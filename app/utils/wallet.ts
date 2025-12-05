@@ -6,7 +6,10 @@ import { POLKADOT_NETWORK_NAME, SS58_FORMAT, WALLET_KEY, WALLET_SEED_KEY, ENCRYP
 // Check if user already has "relay-wallet" in their browser's local storage
 export const exists = (): boolean => {
   if (typeof window === "undefined") return false;
-  return localStorage.getItem("relay-wallet") !== null;
+  const isEncrypted = localStorage.getItem(IS_ENCRYPTED_KEY);
+  if (!isEncrypted) return false;
+
+  return true;
 };
 
 /**
