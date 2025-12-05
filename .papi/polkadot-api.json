@@ -1,0 +1,12 @@
+{
+  "version": 0,
+  "descriptorPath": ".papi/descriptors",
+  "entries": {
+    "pah": {
+      "chain": "polkadot_asset_hub",
+      "metadata": ".papi/metadata/pah.scale",
+      "genesis": "0x68d56f15f85d3136970ec16946040bc1752654e906147f7e43e9d539d7c3de2f",
+      "codeHash": "0xd4cd182f3ea1a30ad6527a088dbd1ebd7381d7c85b675cc8c29f82e695f73fbd"
+    }
+  }
+}

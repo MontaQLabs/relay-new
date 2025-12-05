@@ -19,7 +19,7 @@ export default function LoginPage() {
     // This indicates that the user has already unlocked the wallet and is logged in
     // So we can directly redirect to the home page
     if (isEncrypted === "false" && relayUser !== null) {
-      router.push("/wallet");
+      router.push("/dashboard");
     }
   }, [router]);
 
