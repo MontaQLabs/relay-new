@@ -25,7 +25,7 @@ export interface Transaction {
 export interface User {
     avatar: string; // This will be a link to img stored in an online accessible place
     nickname: string;
-    walletAddress: string; // Public address of the user's wallet
+    wallet: Wallet;
     friends: Friend[];
     socialRecovery: Friend[]; // Selected friends for social recovery
     transactions: Transaction[];
@@ -68,6 +68,23 @@ export interface Comment {
     likes: number;
 }
 
+export interface Wallet {
+    address: string; // Public address of the wallet
+    network: string; // The name of the crypto network the wallet is on
+    coins?: Coin[];
+    status: WalletStatus;
+    isBackedUp: boolean; // Whether the wallet seed phrase has been backed up
+}
+
+export interface Coin {
+    ticker: string; // The ticker symbol of the coin, e.g., USDT, ETH, etc.
+    amount: number; // The current amount of the coin in the wallet
+    change: number; // The change in USD value of the coin in the wallet since the last update
+    symbol: string; // The link of the symbol of the coin stored in an online accessible place
+    fiatValue: number; // The current USD value of the coin in the wallet
+}
+
 export type ActivityId = Activity["activityId"];
 export type CommentId = Comment["commentId"];
 export type ActivityStatus = "open" | "full" | "finished" | "cancelled";
+export type WalletStatus = "active" | "inactive" | "marked";
