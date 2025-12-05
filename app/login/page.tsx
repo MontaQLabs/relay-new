@@ -1,17 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { decryptWallet } from "../utils/wallet";
+import { useRouter } from "next/navigation";
+import { fakeAuth } from "../utils/auth";
+import { fakeFetch } from "../db/supabase";
+import { IS_ENCRYPTED_KEY, USER_KEY } from "../types/constants";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleUnlock = () => {
-    // Template: Add unlock functionality here
-    console.log("Unlock clicked");
-  };
+  useEffect(() => {
+    const isEncrypted = localStorage.getItem(IS_ENCRYPTED_KEY);
+    const relayUser = localStorage.getItem(USER_KEY);
+    // This indicates that the user has already unlocked the wallet and is logged in
+    // So we can directly redirect to the home page
+    if (isEncrypted === "false" && relayUser !== null) {
+      router.push("/wallet");
+    }
+  }, [router]);
 
+  const handleUnlock = async () => {
+    const success = await decryptWallet(password);
+    if (success && fakeAuth()) {
+      const user = fakeFetch();
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+
+      router.push("/home");
+    } else {
+      throw new Error("Failed to decrypt wallet");
+    }
+  };
   const handleForgotPassword = () => {
     // Template: Add forgot password functionality here
     console.log("Forgot password clicked");
@@ -35,9 +57,9 @@ export default function LoginPage() {
         </div>
 
         {/* Welcome text */}
-        <h1 
+        <h1
           className="text-3xl font-semibold tracking-tight animate-slide-up"
-          style={{ color: '#1a1a1a' }}
+          style={{ color: "#1a1a1a" }}
         >
           Welcome Back
         </h1>
@@ -47,9 +69,9 @@ export default function LoginPage() {
       <div className="px-6 pb-6">
         {/* Password field */}
         <div className="animate-slide-up animation-delay-100">
-          <label 
+          <label
             className="block text-sm font-medium mb-2"
-            style={{ color: '#1a1a1a' }}
+            style={{ color: "#1a1a1a" }}
           >
             Password
           </label>
@@ -60,10 +82,10 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
               className="w-full h-14 px-4 pr-12 rounded-2xl border text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
-              style={{ 
-                backgroundColor: '#ffffff',
-                borderColor: '#e5e5e5',
-                color: '#1a1a1a'
+              style={{
+                backgroundColor: "#ffffff",
+                borderColor: "#e5e5e5",
+                color: "#1a1a1a",
               }}
             />
             <button
@@ -73,9 +95,9 @@ export default function LoginPage() {
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
-                <EyeOffIcon className="w-5 h-5" style={{ color: '#8e8e93' }} />
+                <EyeOffIcon className="w-5 h-5" style={{ color: "#8e8e93" }} />
               ) : (
-                <EyeIcon className="w-5 h-5" style={{ color: '#8e8e93' }} />
+                <EyeIcon className="w-5 h-5" style={{ color: "#8e8e93" }} />
               )}
             </button>
           </div>
@@ -88,8 +110,8 @@ export default function LoginPage() {
           onClick={handleUnlock}
           disabled={!password}
           className="w-full h-14 rounded-full flex items-center justify-center transition-all duration-200 animate-slide-up animation-delay-200 cursor-pointer disabled:cursor-not-allowed"
-          style={{ 
-            backgroundColor: password ? '#1a1a1a' : '#d1d1d6',
+          style={{
+            backgroundColor: password ? "#1a1a1a" : "#d1d1d6",
           }}
         >
           <span className="text-white font-medium">Unlock</span>
@@ -99,10 +121,7 @@ export default function LoginPage() {
           onClick={handleForgotPassword}
           className="w-full text-center py-2 transition-colors duration-200 animate-slide-up animation-delay-300 cursor-pointer"
         >
-          <span 
-            className="text-base font-medium"
-            style={{ color: '#7c3aed' }}
-          >
+          <span className="text-base font-medium" style={{ color: "#7c3aed" }}>
             Forgot your password?
           </span>
         </button>
@@ -112,45 +131,57 @@ export default function LoginPage() {
 }
 
 // Eye icon component
-function EyeIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function EyeIcon({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <svg 
-      className={className} 
+    <svg
+      className={className}
       style={style}
-      fill="none" 
-      viewBox="0 0 24 24" 
-      stroke="currentColor" 
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
       strokeWidth={1.5}
     >
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" 
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
       />
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
       />
     </svg>
   );
 }
 
 // Eye off icon component
-function EyeOffIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function EyeOffIcon({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <svg 
-      className={className} 
+    <svg
+      className={className}
       style={style}
-      fill="none" 
-      viewBox="0 0 24 24" 
-      stroke="currentColor" 
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
       strokeWidth={1.5}
     >
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" 
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
       />
     </svg>
   );

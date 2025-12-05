@@ -139,3 +139,75 @@ export const encryptWallet = async (wallet: Wallet, password: string): Promise<b
     return false;
   }
 }
+
+// Decrypt the encrypted wallet stored in localStorage using the user specified password
+export const decryptWallet = async (password: string): Promise<Wallet | null> => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    // Get the encrypted data from localStorage
+    const encryptedBase64 = localStorage.getItem(ENCRYPTED_WALLET_KEY);
+    if (!encryptedBase64) return null;
+
+    // Decode from base64
+    const combined = Uint8Array.from(atob(encryptedBase64), (c) => c.charCodeAt(0));
+
+    // Extract salt (16 bytes), IV (12 bytes), and encrypted data
+    const salt = combined.slice(0, 16);
+    const iv = combined.slice(16, 28);
+    const encryptedData = combined.slice(28);
+
+    // Derive decryption key from password using PBKDF2 (same parameters as encryption)
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(password),
+      "PBKDF2",
+      false,
+      ["deriveBits", "deriveKey"]
+    );
+
+    const cryptoKey = await crypto.subtle.deriveKey(
+      {
+        name: "PBKDF2",
+        salt,
+        iterations: 100000,
+        hash: "SHA-256",
+      },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["decrypt"]
+    );
+
+    // Decrypt the data using AES-GCM
+    const decryptedData = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      cryptoKey,
+      encryptedData
+    );
+
+    // Decode and parse the decrypted data
+    const decoder = new TextDecoder();
+    const decryptedString = decoder.decode(decryptedData);
+    const { wallet, mnemonic } = JSON.parse(decryptedString) as {
+      wallet: Wallet;
+      mnemonic: string;
+    };
+
+    // Restore wallet and mnemonic to localStorage
+    localStorage.setItem(WALLET_KEY, JSON.stringify(wallet));
+    if (mnemonic) {
+      localStorage.setItem(WALLET_SEED_KEY, mnemonic);
+    }
+
+    // Remove encrypted data and update encryption flag
+    localStorage.removeItem(ENCRYPTED_WALLET_KEY);
+    localStorage.setItem(IS_ENCRYPTED_KEY, "false");
+
+    return wallet;
+  } catch (error) {
+    console.error("Failed to decrypt wallet:", error);
+    return null;
+  }
+}
