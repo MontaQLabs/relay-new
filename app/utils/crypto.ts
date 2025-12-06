@@ -1,13 +1,31 @@
 import { Coin, User, Wallet } from "../types/frontend_type";
-import { WALLET_KEY, USER_KEY, POLKADOT_NETWORK_NAME } from "../types/constants";
-import { createClient } from "polkadot-api";
+import { WALLET_KEY, USER_KEY, POLKADOT_NETWORK_NAME, WALLET_SEED_KEY } from "../types/constants";
+import { createClient, PolkadotClient } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider";
 import { pah } from "@polkadot-api/descriptors";
+import { getPolkadotSigner } from "@polkadot-api/signer";
+import { Keyring } from "@polkadot/keyring";
+import { cryptoWaitReady } from "@polkadot/util-crypto";
+import { SS58_FORMAT } from "../types/constants";
+
+// Re-export types used by the fee estimation
+export interface FeeEstimate {
+  fee: bigint;        // Fee in smallest unit (planck for DOT, or asset decimals)
+  feeFormatted: string; // Human-readable fee
+  feeTicker: string;    // The ticker of the fee currency (always DOT for Asset Hub)
+}
+
+// Result type for transfer operations
+export interface TransferResult {
+  success: boolean;
+  txHash?: string;
+  blockHash?: string;
+  error?: string;
+}
 
 // Polkadot Asset Hub WebSocket endpoints
 const ASSET_HUB_WS_ENDPOINTS = [
   "wss://polkadot-asset-hub-rpc.polkadot.io",
-  "wss://statemint-rpc.dwellir.com",
   "wss://statemint.api.onfinality.io/public-ws",
 ];
 
@@ -118,6 +136,114 @@ export const fetchDotCoins = async (): Promise<Coin[]> => {
 };
 
 /**
+ * Gets asset ID for a given ticker symbol on Polkadot Asset Hub
+ * Returns undefined for native DOT
+ * 
+ * @param ticker - The asset ticker symbol (e.g., "USDT", "USDC", "DOT")
+ * @returns Asset ID or undefined for native DOT
+ */
+const getAssetId = (ticker: string): number | undefined => {
+  const asset = KNOWN_ASSETS.find(a => a.ticker === ticker);
+  return asset?.id;
+};
+
+/**
+ * Gets decimals for a given ticker symbol
+ * 
+ * @param ticker - The asset ticker symbol
+ * @returns Decimals for the asset
+ */
+const getDecimals = (ticker: string): number => {
+  if (ticker === "DOT") return DOT_DECIMALS;
+  const asset = KNOWN_ASSETS.find(a => a.ticker === ticker);
+  return asset?.decimals ?? 6;
+};
+
+/**
+ * Estimates transaction fees for a transfer on Polkadot Asset Hub
+ * Uses PAPI's getEstimatedFees method to calculate fees
+ * 
+ * @param senderAddress - The address sending the transfer
+ * @param recipientAddress - The address receiving the transfer  
+ * @param ticker - The asset ticker symbol (e.g., "DOT", "USDT", "USDC")
+ * @param amount - The amount to transfer (in human-readable units)
+ * @returns Promise<FeeEstimate> - Estimated fee information
+ */
+export const estimateTransferFee = async (
+  senderAddress: string,
+  recipientAddress: string,
+  ticker: string,
+  amount: number
+): Promise<FeeEstimate> => {
+  // Create WebSocket provider and client
+  const provider = getWsProvider(ASSET_HUB_WS_ENDPOINTS);
+  const client: PolkadotClient = createClient(provider);
+
+  try {
+    // Get typed API for Polkadot Asset Hub
+    const api = client.getTypedApi(pah);
+
+    // Convert amount to smallest unit
+    const decimals = getDecimals(ticker);
+    const amountInSmallestUnit = BigInt(Math.floor(amount * Math.pow(10, decimals)));
+
+    let tx;
+
+    if (ticker === "DOT") {
+      // Native DOT transfer using Balances pallet
+      tx = api.tx.Balances.transfer_keep_alive({
+        dest: { type: "Id", value: recipientAddress },
+        value: amountInSmallestUnit,
+      });
+    } else {
+      // Asset transfer using Assets pallet (USDT, USDC, etc.)
+      const assetId = getAssetId(ticker);
+      if (assetId === undefined) {
+        throw new Error(`Unknown asset ticker: ${ticker}`);
+      }
+      
+      tx = api.tx.Assets.transfer_keep_alive({
+        id: assetId,
+        target: { type: "Id", value: recipientAddress },
+        amount: amountInSmallestUnit,
+      });
+    }
+
+    // Estimate the fees for this transaction
+    // Fees on Asset Hub are always paid in DOT
+    const estimatedFee = await tx.getEstimatedFees(senderAddress);
+
+    // Format the fee in DOT (10 decimals)
+    const feeInDot = Number(estimatedFee) / Math.pow(10, DOT_DECIMALS);
+    
+    // Format with appropriate precision (show more decimals for small fees)
+    let feeFormatted: string;
+    if (feeInDot < 0.0001) {
+      feeFormatted = feeInDot.toFixed(8);
+    } else if (feeInDot < 0.01) {
+      feeFormatted = feeInDot.toFixed(6);
+    } else {
+      feeFormatted = feeInDot.toFixed(4);
+    }
+
+    // Remove trailing zeros
+    feeFormatted = feeFormatted.replace(/\.?0+$/, "");
+
+    return {
+      fee: estimatedFee,
+      feeFormatted,
+      feeTicker: "DOT",
+    };
+  } catch (error) {
+    console.error("Failed to estimate transfer fee:", error);
+    throw error;
+  } finally {
+    // Destroy the client to clean up WebSocket connection
+    client.destroy();
+  }
+};
+
+/**
  * Updates the coins field in the User object stored in localStorage
  * 
  * @param coins - Array of coins to save
@@ -158,5 +284,101 @@ const updateUserCoins = (coins: Coin[]): void => {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
   } catch (error) {
     console.error("Failed to update user coins in localStorage:", error);
+  }
+};
+
+/**
+ * Sends a transfer transaction on Polkadot Asset Hub
+ * Uses PAPI to create, sign, and submit the transaction
+ * 
+ * @param recipientAddress - The address receiving the transfer
+ * @param ticker - The asset ticker symbol (e.g., "DOT", "USDT", "USDC")
+ * @param network - The network to send on (currently only Asset Hub supported)
+ * @param amount - The amount to transfer (in human-readable units)
+ * @returns Promise<TransferResult> - Result of the transfer operation
+ */
+export const sendTransfer = async (
+  recipientAddress: string,
+  ticker: string,
+  network: string,
+  amount: number
+): Promise<TransferResult> => {
+  // Ensure WASM crypto is ready (required for sr25519)
+  await cryptoWaitReady();
+
+  // Get mnemonic from localStorage
+  const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
+  if (!mnemonic) {
+    return {
+      success: false,
+      error: "Wallet seed not found. Please unlock your wallet first.",
+    };
+  }
+
+  // Create keyring and add keypair from mnemonic
+  const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
+  const keypair = keyring.addFromMnemonic(mnemonic);
+
+  // Create WebSocket provider and client
+  const provider = getWsProvider(ASSET_HUB_WS_ENDPOINTS);
+  const client: PolkadotClient = createClient(provider);
+
+  try {
+    // Get typed API for Polkadot Asset Hub
+    const api = client.getTypedApi(pah);
+
+    // Convert amount to smallest unit
+    const decimals = getDecimals(ticker);
+    const amountInSmallestUnit = BigInt(Math.floor(amount * Math.pow(10, decimals)));
+
+    let tx;
+
+    if (ticker === "DOT") {
+      // Native DOT transfer using Balances pallet
+      tx = api.tx.Balances.transfer_keep_alive({
+        dest: { type: "Id", value: recipientAddress },
+        value: amountInSmallestUnit,
+      });
+    } else {
+      // Asset transfer using Assets pallet (USDT, USDC, etc.)
+      const assetId = getAssetId(ticker);
+      if (assetId === undefined) {
+        return {
+          success: false,
+          error: `Unknown asset ticker: ${ticker}`,
+        };
+      }
+      
+      tx = api.tx.Assets.transfer_keep_alive({
+        id: assetId,
+        target: { type: "Id", value: recipientAddress },
+        amount: amountInSmallestUnit,
+      });
+    }
+
+    // Create a PAPI-compatible signer from the keypair
+    const signer = getPolkadotSigner(
+      keypair.publicKey,
+      "Sr25519",
+      (input) => keypair.sign(input)
+    );
+
+    // Sign and submit the transaction
+    const result = await tx.signAndSubmit(signer);
+
+    return {
+      success: true,
+      txHash: result.txHash,
+      blockHash: result.block.hash,
+    };
+  } catch (error) {
+    console.error("Failed to send transfer:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Transaction failed",
+    };
+  } finally {
+    // Destroy the client to clean up WebSocket connection
+    client.destroy();
   }
 };
