@@ -1,7 +1,7 @@
 import { Wallet } from "../types/frontend_type";
 import { Keyring } from "@polkadot/keyring";
 import { mnemonicGenerate, cryptoWaitReady, decodeAddress, encodeAddress } from "@polkadot/util-crypto";
-import { POLKADOT_NETWORK_NAME, SS58_FORMAT, WALLET_KEY, WALLET_SEED_KEY, ENCRYPTED_WALLET_KEY, IS_ENCRYPTED_KEY } from "../types/constants";
+import { POLKADOT_NETWORK_NAME, SS58_FORMAT, WALLET_KEY, WALLET_SEED_KEY, ENCRYPTED_WALLET_KEY, IS_ENCRYPTED_KEY, USER_KEY } from "../types/constants";
 
 // Check if user already has "relay-wallet" in their browser's local storage
 export const exists = (): boolean => {
@@ -43,6 +43,13 @@ export const createWallet = async (): Promise<Wallet> => {
 
   // Store wallet data in localStorage (mnemonic stored separately for security)
   if (typeof window !== "undefined") {
+    // First remove any possible existing wallet data
+    localStorage.removeItem(WALLET_KEY);
+    localStorage.removeItem(WALLET_SEED_KEY);
+    localStorage.removeItem(ENCRYPTED_WALLET_KEY);
+    localStorage.removeItem(IS_ENCRYPTED_KEY);
+    localStorage.removeItem(USER_KEY);
+
     localStorage.setItem(WALLET_KEY, JSON.stringify(wallet));
     // Store mnemonic separately
     localStorage.setItem(WALLET_SEED_KEY, mnemonic);
@@ -67,9 +74,20 @@ export const isCreated = (): boolean => {
   }
 }
 
+// Check if Web Crypto API is available (requires HTTPS or localhost)
+const isSecureContext = (): boolean => {
+  if (typeof window === "undefined") return false;
+  return window.isSecureContext && typeof crypto !== "undefined" && typeof crypto.subtle !== "undefined";
+};
+
 // Encrypt the wallet data using the user specified password and store it in localStorage
 export const encryptWallet = async (wallet: Wallet, password: string): Promise<boolean> => {
   if (typeof window === "undefined") return false;
+  
+  if (!isSecureContext()) {
+    console.error("Web Crypto API not available. Ensure the app is served over HTTPS.");
+    throw new Error("Encryption requires a secure connection (HTTPS)");
+  }
 
   try {
     // Get the mnemonic seed as well
@@ -143,6 +161,11 @@ export const encryptWallet = async (wallet: Wallet, password: string): Promise<b
 // Decrypt the encrypted wallet stored in localStorage using the user specified password
 export const decryptWallet = async (password: string): Promise<Wallet | null> => {
   if (typeof window === "undefined") return null;
+  
+  if (!isSecureContext()) {
+    console.error("Web Crypto API not available. Ensure the app is served over HTTPS.");
+    throw new Error("Decryption requires a secure connection (HTTPS)");
+  }
 
   try {
     // Get the encrypted data from localStorage

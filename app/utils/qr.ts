@@ -1,4 +1,185 @@
 import QRCode from "qrcode";
+import { Html5Qrcode, Html5QrcodeScannerState } from "html5-qrcode";
+
+/**
+ * QR Scanner result interface
+ */
+export interface QRScanResult {
+  success: boolean;
+  data?: string;
+  error?: string;
+}
+
+/**
+ * QR Scanner class for managing camera-based QR code scanning
+ */
+export class QRScanner {
+  private scanner: Html5Qrcode | null = null;
+  private elementId: string;
+  private isScanning: boolean = false;
+
+  constructor(elementId: string) {
+    this.elementId = elementId;
+  }
+
+  /**
+   * Start scanning for QR codes using the device camera
+   * @param onScan - Callback function when a QR code is successfully scanned
+   * @param onError - Optional callback for scan errors
+   */
+  async start(
+    onScan: (result: string) => void,
+    onError?: (error: string) => void
+  ): Promise<void> {
+    if (this.isScanning) {
+      return;
+    }
+
+    try {
+      this.scanner = new Html5Qrcode(this.elementId);
+      
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+      };
+
+      await this.scanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          onScan(decodedText);
+        },
+        (errorMessage) => {
+          // This fires frequently when no QR code is in view, so we only log errors
+          if (onError && !errorMessage.includes("No QR code found")) {
+            onError(errorMessage);
+          }
+        }
+      );
+
+      this.isScanning = true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to start scanner";
+      console.error("QR Scanner start error:", errorMessage);
+      if (onError) {
+        onError(errorMessage);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Stop the QR scanner and release camera resources
+   */
+  async stop(): Promise<void> {
+    if (!this.scanner) {
+      this.isScanning = false;
+      return;
+    }
+
+    try {
+      const state = this.scanner.getState();
+      if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
+        await this.scanner.stop();
+      }
+      this.scanner.clear();
+    } catch (error) {
+      console.error("Error stopping QR scanner:", error);
+    } finally {
+      this.isScanning = false;
+      this.scanner = null;
+    }
+  }
+
+  /**
+   * Pause the scanner temporarily
+   */
+  pause(): void {
+    if (this.scanner && this.isScanning) {
+      try {
+        this.scanner.pause();
+      } catch (error) {
+        console.error("Error pausing QR scanner:", error);
+      }
+    }
+  }
+
+  /**
+   * Resume a paused scanner
+   */
+  resume(): void {
+    if (this.scanner && this.isScanning) {
+      try {
+        this.scanner.resume();
+      } catch (error) {
+        console.error("Error resuming QR scanner:", error);
+      }
+    }
+  }
+
+  /**
+   * Check if the scanner is currently active
+   */
+  get scanning(): boolean {
+    return this.isScanning;
+  }
+}
+
+/**
+ * Parse a scanned QR code to extract wallet address
+ * Handles various QR code formats including plain addresses and URIs
+ * @param qrData - The raw QR code data
+ * @returns The extracted wallet address
+ */
+export function parseQRCodeAddress(qrData: string): string {
+  // Trim whitespace
+  const trimmed = qrData.trim();
+
+  // Check for common cryptocurrency URI formats
+  // e.g., "ethereum:0x..." or "polkadot:5..." or "bitcoin:1..."
+  const uriMatch = trimmed.match(/^(?:ethereum|polkadot|bitcoin|substrate):(.+?)(?:\?.*)?$/i);
+  if (uriMatch) {
+    return uriMatch[1];
+  }
+
+  // Check for EIP-681 format: ethereum:address@chainId/...
+  const eip681Match = trimmed.match(/^ethereum:([^@/?]+)/i);
+  if (eip681Match) {
+    return eip681Match[1];
+  }
+
+  // Return as-is if it looks like a valid address (starts with common prefixes)
+  // Polkadot addresses typically start with 1, 5, or other base58 characters
+  // Ethereum addresses start with 0x
+  if (/^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{47,48})$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Return the raw data if no specific format is detected
+  return trimmed;
+}
+
+/**
+ * Validate if a string is a valid wallet address format
+ * @param address - The address to validate
+ * @returns Whether the address appears to be valid
+ */
+export function isValidAddress(address: string): boolean {
+  // Ethereum address validation (0x + 40 hex chars)
+  if (/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    return true;
+  }
+
+  // Polkadot/Substrate address validation (base58, typically 47-48 chars)
+  // Uses SS58 encoding - simplified check
+  if (/^[1-9A-HJ-NP-Za-km-z]{47,48}$/.test(address)) {
+    return true;
+  }
+
+  // Additional common formats can be added here
+  return false;
+}
 
 /**
  * Generate a QR code as a data URL from a wallet address
