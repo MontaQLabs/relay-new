@@ -159,14 +159,31 @@ export default function SendPage() {
   };
 
   const handleConfirm = () => {
-    if (isFormValid()) {
-      // TODO: Navigate to confirmation page or execute transaction
-      console.log("Sending:", {
+    if (isFormValid() && selectedToken) {
+      const price = COIN_PRICES[selectedToken.ticker] || 1;
+      const numericAmount = parseFloat(amount) || 0;
+      
+      // Calculate both USD and crypto amounts
+      let amountUsd: number;
+      let amountCrypto: number;
+      
+      if (isUsdMode) {
+        amountUsd = numericAmount;
+        amountCrypto = numericAmount / price;
+      } else {
+        amountCrypto = numericAmount;
+        amountUsd = numericAmount * price;
+      }
+      
+      // Navigate to payment review page with params
+      const params = new URLSearchParams({
         address,
-        token: selectedToken?.ticker,
-        amount,
-        isUsdMode,
+        token: selectedToken.ticker,
+        amountUsd: amountUsd.toFixed(2),
+        amountCrypto: amountCrypto.toFixed(6).replace(/\.?0+$/, ""),
       });
+      
+      router.push(`/dashboard/wallet/payment-review?${params.toString()}`);
     }
   };
 
