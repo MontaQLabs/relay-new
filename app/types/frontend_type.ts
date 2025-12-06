@@ -124,5 +124,5 @@ export interface Coin {
 
 export type ActivityId = Activity["activityId"];
 export type CommentId = Comment["commentId"];
-export type ActivityStatus = "open" | "full" | "finished" | "cancelled";
+export type ActivityStatus = "open" | "attending" | "full" | "finished" | "cancelled";
 export type WalletStatus = "active" | "inactive" | "marked";

@@ -227,25 +227,35 @@ function EmptyState({ activeTab }: { activeTab: TabType }) {
 // Swipeable Community Item Component
 function SwipeableCommunityItem({
   community,
+  onClick,
 }: {
   community: Community;
+  onClick: () => void;
 }) {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [hasMoved, setHasMoved] = useState(false);
   const startXRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const SWIPE_THRESHOLD = 80; // Width of the quit button
+  const CLICK_THRESHOLD = 5; // Minimum movement to consider as swipe
 
   const handleTouchStart = (e: React.TouchEvent) => {
     startXRef.current = e.touches[0].clientX;
     setIsDragging(true);
+    setHasMoved(false);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
     const currentX = e.touches[0].clientX;
     const diff = startXRef.current - currentX;
+    
+    if (Math.abs(diff) > CLICK_THRESHOLD) {
+      setHasMoved(true);
+    }
+    
     // Only allow swiping left (positive diff) and limit the swipe
     const newOffset = Math.min(Math.max(0, diff), SWIPE_THRESHOLD);
     setSwipeOffset(newOffset);
@@ -259,16 +269,27 @@ function SwipeableCommunityItem({
     } else {
       setSwipeOffset(0);
     }
+    
+    // Handle click if no swipe occurred
+    if (!hasMoved && swipeOffset === 0) {
+      onClick();
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     startXRef.current = e.clientX;
     setIsDragging(true);
+    setHasMoved(false);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     const diff = startXRef.current - e.clientX;
+    
+    if (Math.abs(diff) > CLICK_THRESHOLD) {
+      setHasMoved(true);
+    }
+    
     const newOffset = Math.min(Math.max(0, diff), SWIPE_THRESHOLD);
     setSwipeOffset(newOffset);
   };
@@ -281,11 +302,21 @@ function SwipeableCommunityItem({
     } else {
       setSwipeOffset(0);
     }
+    
+    // Handle click if no swipe occurred
+    if (!hasMoved && swipeOffset === 0) {
+      onClick();
+    }
   };
 
   const handleMouseLeave = () => {
     if (isDragging) {
-      handleMouseUp();
+      setIsDragging(false);
+      if (swipeOffset > SWIPE_THRESHOLD / 2) {
+        setSwipeOffset(SWIPE_THRESHOLD);
+      } else {
+        setSwipeOffset(0);
+      }
     }
   };
 
@@ -314,7 +345,7 @@ function SwipeableCommunityItem({
 
       {/* Main Content (slides over the quit button) */}
       <div
-        className="relative bg-white flex items-center gap-4 px-5 py-4 cursor-pointer transition-transform"
+        className="relative bg-white flex items-center gap-4 px-5 py-4 cursor-pointer transition-transform hover:bg-gray-50"
         style={{
           transform: `translateX(-${swipeOffset}px)`,
           transition: isDragging ? "none" : "transform 0.2s ease-out",
@@ -365,12 +396,19 @@ function SwipeableCommunityItem({
 
 // Community List Component
 function CommunityList({ communities }: { communities: Community[] }) {
+  const router = useRouter();
+
+  const handleCommunityClick = (communityId: string) => {
+    router.push(`/dashboard/community/${communityId}`);
+  };
+
   return (
     <div className="divide-y divide-gray-100">
       {communities.map((community) => (
         <SwipeableCommunityItem 
           key={community.communityId} 
           community={community}
+          onClick={() => handleCommunityClick(community.communityId)}
         />
       ))}
     </div>
