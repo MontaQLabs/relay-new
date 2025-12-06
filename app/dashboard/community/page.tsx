@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { authenticateWithWallet, isAuthenticated } from "@/app/utils/auth";
 
@@ -16,6 +17,7 @@ interface Community {
 type TabType = "joined" | "created";
 
 export default function CommunityPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("joined");
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(true);
@@ -78,8 +80,7 @@ export default function CommunityPage() {
   }, [isAuthenticating]);
 
   const handleCreateCommunity = () => {
-    // TODO: Navigate to create community page or open modal
-    console.log("Create community clicked");
+    router.push("/dashboard/community/create-community");
   };
 
   const currentCommunities =
