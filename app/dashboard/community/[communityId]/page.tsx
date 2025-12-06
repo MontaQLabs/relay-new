@@ -6,6 +6,7 @@ import { ChevronLeft, Search, Bell, Plus, MessageCircle, Heart, Check } from "lu
 import { getCommunity, getCommunityActivities } from "@/app/db/supabase";
 import { getWalletAddress } from "@/app/utils/wallet";
 import type { Community, Activity } from "@/app/types/frontend_type";
+import CreateActivitySlideIn from "./CreateActivitySlideIn";
 
 // Generate a random avatar URL using DiceBear
 const getRandomAvatar = (seed: string): string => {
@@ -36,6 +37,7 @@ export default function CommunityDetailPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [mainTab, setMainTab] = useState<MainTabType>("activities");
   const [subTab, setSubTab] = useState<SubTabType>("view");
+  const [isCreateActivityOpen, setIsCreateActivityOpen] = useState(false);
 
   const walletAddress = getWalletAddress();
 
@@ -68,8 +70,12 @@ export default function CommunityDetailPage() {
   };
 
   const handleCreateActivity = () => {
-    // TODO: Navigate to create activity page
-    console.log("Create activity for community:", communityId);
+    setIsCreateActivityOpen(true);
+  };
+
+  const handleActivityCreated = () => {
+    // Refetch data after activity is created
+    fetchData();
   };
 
   // Filter activities based on tabs
@@ -256,6 +262,16 @@ export default function CommunityDetailPage() {
       >
         <Plus className="w-6 h-6" />
       </button>
+
+      {/* Create Activity Slide-in */}
+      {community && (
+        <CreateActivitySlideIn
+          isOpen={isCreateActivityOpen}
+          onClose={() => setIsCreateActivityOpen(false)}
+          community={community}
+          onActivityCreated={handleActivityCreated}
+        />
+      )}
     </div>
   );
 }

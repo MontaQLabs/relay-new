@@ -895,7 +895,10 @@ export const createActivity = async (
       likes: 0,
     });
 
-  if (error) return null;
+  if (error) {
+    console.error('Failed to create activity:', error.message, error.details, error.hint);
+    return null;
+  }
 
   // Add owner as an attendee
   await joinActivity(activityId, ownerWallet);
