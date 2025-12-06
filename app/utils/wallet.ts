@@ -227,3 +227,21 @@ export const isAddrValid = (addr: string): boolean => {
     return false;
   }
 }
+
+/**
+ * Get the wallet address from localStorage
+ * @returns The wallet address or null if not found
+ */
+export const getWalletAddress = (): string | null => {
+  if (typeof window === "undefined") return null;
+  
+  try {
+    const walletData = localStorage.getItem(WALLET_KEY);
+    if (!walletData) return null;
+    
+    const wallet = JSON.parse(walletData) as Wallet;
+    return wallet.address || null;
+  } catch {
+    return null;
+  }
+}

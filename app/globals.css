@@ -183,3 +183,99 @@
 .animate-slide-out-right {
   animation: slide-out-right 0.3s ease-out forwards;
 }
+
+/* Sheet overlay animations */
+@keyframes sheet-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sheet-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.sheet-overlay[data-state="open"] {
+  animation: sheet-overlay-in 0.3s ease-out forwards;
+}
+
+.sheet-overlay[data-state="closed"] {
+  animation: sheet-overlay-out 0.2s ease-out forwards;
+}
+
+/* Sheet content animations */
+@keyframes sheet-slide-in-bottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes sheet-slide-out-bottom {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@keyframes sheet-slide-in-top {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes sheet-slide-out-top {
+  from { transform: translateY(0); }
+  to { transform: translateY(-100%); }
+}
+
+@keyframes sheet-slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes sheet-slide-out-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes sheet-slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes sheet-slide-out-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+/* Bottom sheet */
+.sheet-content-bottom[data-state="open"] {
+  animation: sheet-slide-in-bottom 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.sheet-content-bottom[data-state="closed"] {
+  animation: sheet-slide-out-bottom 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Top sheet */
+.sheet-content-top[data-state="open"] {
+  animation: sheet-slide-in-top 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.sheet-content-top[data-state="closed"] {
+  animation: sheet-slide-out-top 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Left sheet */
+.sheet-content-left[data-state="open"] {
+  animation: sheet-slide-in-left 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.sheet-content-left[data-state="closed"] {
+  animation: sheet-slide-out-left 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Right sheet */
+.sheet-content-right[data-state="open"] {
+  animation: sheet-slide-in-right 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.sheet-content-right[data-state="closed"] {
+  animation: sheet-slide-out-right 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
