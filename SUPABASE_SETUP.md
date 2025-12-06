@@ -138,10 +138,31 @@ Tables created:
 RLS policies enabled on all tables.
 ```
 
+### Step 4b: Run Community Tokens Schema (Optional)
+
+If you want to enable community tokens on Polkadot Asset Hub:
+
+1. Open the file `supabase-community-tokens.sql` from this project
+2. Copy the entire contents
+3. Paste into a new SQL Editor query
+4. Click **"Run"**
+
+You should see:
+
+```
+✅ Community tokens schema extension created successfully!
+
+Table created:
+  - community_tokens
+
+This table stores Polkadot Asset Hub token configurations.
+Each community can have one associated fungible token.
+```
+
 ### Verify Tables
 
 1. Go to **Table Editor** in the sidebar
-2. You should see all 9 tables listed
+2. You should see all 9 tables listed (10 with community_tokens)
 3. Click on each table to verify the columns are correct
 
 ---
@@ -330,6 +351,16 @@ app/
 | `subscribeToActivities(communityId, callback)` | Live activity updates |
 | `subscribeToComments(activityId, callback)` | Live comment updates |
 | `unsubscribe(subscription)` | Unsubscribe from channel |
+
+#### Community Tokens (Polkadot Asset Hub)
+| Function | Description |
+|----------|-------------|
+| `getCommunityToken(communityId)` | Get token config for a community |
+| `createCommunityToken(communityId, tokenData)` | Create token record (owner only) |
+| `updateCommunityToken(communityId, updates)` | Update token config (owner only) |
+| `deleteCommunityToken(communityId)` | Delete token record (owner only) |
+| `updateTokenSupply(communityId, newSupply)` | Update total supply after minting |
+| `setTokenFrozen(communityId, isFrozen)` | Toggle token frozen status |
 
 ---
 

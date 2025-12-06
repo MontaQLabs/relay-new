@@ -14,6 +14,7 @@ import {
   Friend,
   Transaction,
   Community,
+  CommunityToken,
   Activity,
   Comment,
   ActivityStatus,
@@ -161,6 +162,25 @@ interface DbTransaction {
   fees_fiat: number;
   timestamp: string;
   created_at: string;
+}
+
+interface DbCommunityToken {
+  id: string;
+  community_id: string;
+  asset_id: number;
+  admin_wallet: string;
+  min_balance: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  initial_supply: string;
+  issuer_wallet: string | null;
+  freezer_wallet: string | null;
+  is_frozen: boolean;
+  total_supply: string;
+  icon: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // ============================================================================
@@ -419,6 +439,7 @@ export const getCommunity = async (communityId: string): Promise<Community | nul
   if (error || !data) return null;
 
   const activities = await getCommunityActivities(communityId);
+  const token = await getCommunityToken(communityId);
 
   return {
     owner: data.owner_wallet,
@@ -426,6 +447,7 @@ export const getCommunity = async (communityId: string): Promise<Community | nul
     avatar: data.avatar || '',
     communityId: data.community_id,
     activities: activities.map(a => a.activityId),
+    token: token || undefined,
   };
 };
 
@@ -530,6 +552,160 @@ export const getCommunityMembers = async (communityId: string): Promise<string[]
   if (error || !data) return [];
 
   return data.map((m: { user_wallet: string }) => m.user_wallet);
+};
+
+// ============================================================================
+// Community Token Operations (Polkadot Asset Hub)
+// ============================================================================
+
+/**
+ * Map database community token to frontend type
+ */
+const mapDbCommunityTokenToToken = (db: DbCommunityToken): CommunityToken => ({
+  assetId: db.asset_id,
+  admin: db.admin_wallet,
+  minBalance: db.min_balance,
+  name: db.name,
+  symbol: db.symbol,
+  decimals: db.decimals,
+  initialSupply: db.initial_supply,
+  issuer: db.issuer_wallet || undefined,
+  freezer: db.freezer_wallet || undefined,
+  isFrozen: db.is_frozen,
+  totalSupply: db.total_supply,
+  icon: db.icon || undefined,
+  createdAt: db.created_at,
+});
+
+/**
+ * Get community token by community ID
+ */
+export const getCommunityToken = async (communityId: string): Promise<CommunityToken | null> => {
+  const { data, error } = await getSupabaseClient()
+    .from('community_tokens')
+    .select('*')
+    .eq('community_id', communityId)
+    .single();
+
+  if (error || !data) return null;
+
+  return mapDbCommunityTokenToToken(data);
+};
+
+/**
+ * Create a community token (owner only - enforced by RLS)
+ */
+export const createCommunityToken = async (
+  communityId: string,
+  token: Omit<CommunityToken, 'createdAt' | 'isFrozen' | 'totalSupply'> & { totalSupply?: string }
+): Promise<boolean> => {
+  const { error } = await getSupabaseClient()
+    .from('community_tokens')
+    .insert({
+      community_id: communityId,
+      asset_id: token.assetId,
+      admin_wallet: token.admin,
+      min_balance: token.minBalance,
+      name: token.name,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      initial_supply: token.initialSupply,
+      issuer_wallet: token.issuer || null,
+      freezer_wallet: token.freezer || null,
+      is_frozen: false,
+      total_supply: token.totalSupply || token.initialSupply,
+      icon: token.icon || null,
+    });
+
+  return !error;
+};
+
+/**
+ * Update a community token (owner only - enforced by RLS)
+ */
+export const updateCommunityToken = async (
+  communityId: string,
+  updates: Partial<{
+    name: string;
+    symbol: string;
+    decimals: number;
+    minBalance: string;
+    issuer: string;
+    freezer: string;
+    icon: string;
+  }>
+): Promise<boolean> => {
+  const dbUpdates: Record<string, unknown> = {};
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.symbol !== undefined) dbUpdates.symbol = updates.symbol;
+  if (updates.decimals !== undefined) dbUpdates.decimals = updates.decimals;
+  if (updates.minBalance !== undefined) dbUpdates.min_balance = updates.minBalance;
+  if (updates.issuer !== undefined) dbUpdates.issuer_wallet = updates.issuer;
+  if (updates.freezer !== undefined) dbUpdates.freezer_wallet = updates.freezer;
+  if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
+
+  const { error } = await getSupabaseClient()
+    .from('community_tokens')
+    .update(dbUpdates)
+    .eq('community_id', communityId);
+
+  return !error;
+};
+
+/**
+ * Delete a community token (owner only - enforced by RLS)
+ */
+export const deleteCommunityToken = async (communityId: string): Promise<boolean> => {
+  const { error } = await getSupabaseClient()
+    .from('community_tokens')
+    .delete()
+    .eq('community_id', communityId);
+
+  return !error;
+};
+
+/**
+ * Update token total supply (called after minting on-chain)
+ */
+export const updateTokenSupply = async (
+  communityId: string,
+  newSupply: string
+): Promise<boolean> => {
+  const { error } = await getSupabaseClient()
+    .from('community_tokens')
+    .update({ total_supply: newSupply })
+    .eq('community_id', communityId);
+
+  return !error;
+};
+
+/**
+ * Set token frozen status
+ */
+export const setTokenFrozen = async (
+  communityId: string,
+  isFrozen: boolean
+): Promise<boolean> => {
+  const { error } = await getSupabaseClient()
+    .from('community_tokens')
+    .update({ is_frozen: isFrozen })
+    .eq('community_id', communityId);
+
+  return !error;
+};
+
+/**
+ * Check if an asset ID is already in use
+ */
+export const isAssetIdAvailable = async (assetId: number): Promise<boolean> => {
+  const { data, error } = await getSupabaseClient()
+    .from('community_tokens')
+    .select('id')
+    .eq('asset_id', assetId)
+    .single();
+
+  // If error or no data, the asset ID is available
+  return !!error || !data;
 };
 
 // ============================================================================

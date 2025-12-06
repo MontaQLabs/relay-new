@@ -39,6 +39,39 @@ export interface Community {
     avatar: string; // A link to img stored in an online accessible place
     communityId: string; // A unique identifier for the community
     activities: ActivityId[]; // Activity IDs within the community
+    token?: CommunityToken; // Optional community token on Polkadot Asset Hub
+}
+
+/**
+ * Community Token on Polkadot Asset Hub
+ * Represents a fungible token created via the Assets pallet on Polkadot Asset Hub.
+ * See: https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fpolkadot-asset-hub-rpc.polkadot.io#/extrinsics
+ */
+export interface CommunityToken {
+    // Core asset identifiers (from assets.create)
+    assetId: number; // Unique numeric ID for the asset on Polkadot Asset Hub (u32)
+    admin: string; // Admin account address - can manage the asset
+    minBalance: string; // Minimum balance to hold the asset (stored as string for u128 precision)
+
+    // Token metadata (from assets.setMetadata)
+    name: string; // Token name (e.g., "Community Token")
+    symbol: string; // Token ticker symbol (e.g., "CTKN")
+    decimals: number; // Number of decimal places (u8, typically 10-18)
+
+    // Initial supply configuration (from assets.mint)
+    initialSupply: string; // Initial supply amount (stored as string for u128 precision)
+
+    // Team roles (from assets.setTeam) - optional, defaults to owner if not set
+    issuer?: string; // Account that can mint new tokens
+    freezer?: string; // Account that can freeze/thaw accounts
+
+    // Asset status
+    isFrozen: boolean; // Whether the asset is frozen (no transfers allowed)
+    totalSupply: string; // Current total supply (stored as string for u128 precision)
+
+    // Metadata for UI
+    icon?: string; // Link to token icon stored in an online accessible place
+    createdAt: string; // ISO timestamp when the token was created
 }
 
 export interface Activity {
