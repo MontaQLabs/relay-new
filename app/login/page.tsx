@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { decryptWallet } from "../utils/wallet";
 import { useRouter } from "next/navigation";
-import { fakeAuth } from "../utils/auth";
-import { fakeFetch } from "../db/supabase";
 import { IS_ENCRYPTED_KEY, USER_KEY } from "../types/constants";
 
 export default function LoginPage() {
@@ -25,13 +23,8 @@ export default function LoginPage() {
 
   const handleUnlock = async () => {
     const success = await decryptWallet(password);
-    if (success && fakeAuth()) {
-      const user = fakeFetch();
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-
+    if (success) {
       router.push("/dashboard/wallet");
-    } else {
-      throw new Error("Failed to decrypt wallet");
     }
   };
   const handleForgotPassword = () => {

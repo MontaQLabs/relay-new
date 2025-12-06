@@ -1,10 +1,14 @@
 "use client";
 
+import { Search } from "lucide-react";
+
 interface HeaderProps {
   greeting?: string;
   title?: string;
   showNotification?: boolean;
   notificationCount?: number;
+  showSearch?: boolean;
+  onSearchClick?: () => void;
 }
 
 export default function Header({
@@ -12,6 +16,8 @@ export default function Header({
   title = "Welcome to Relay",
   showNotification = true,
   notificationCount = 0,
+  showSearch = false,
+  onSearchClick,
 }: HeaderProps) {
   return (
     <header className="flex items-start justify-between px-5 pt-4 pb-3">
@@ -24,23 +30,35 @@ export default function Header({
         </h1>
       </div>
 
-      {showNotification && (
-        <button
-          className="relative w-11 h-11 rounded-full border border-border bg-background flex items-center justify-center transition-all duration-200 hover:bg-muted active:scale-95"
-          aria-label="Notifications"
-        >
-          <NotificationBellIcon className="w-5 h-5 text-foreground" />
-          {notificationCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-              <span className="text-[10px] font-bold text-white">
-                {notificationCount > 9 ? "9+" : notificationCount}
+      <div className="flex items-center gap-2">
+        {showSearch && (
+          <button
+            onClick={onSearchClick}
+            className="relative w-11 h-11 rounded-full border border-border bg-background flex items-center justify-center transition-all duration-200 hover:bg-muted active:scale-95"
+            aria-label="Search"
+          >
+            <Search className="w-5 h-5 text-foreground" />
+          </button>
+        )}
+
+        {showNotification && (
+          <button
+            className="relative w-11 h-11 rounded-full border border-border bg-background flex items-center justify-center transition-all duration-200 hover:bg-muted active:scale-95"
+            aria-label="Notifications"
+          >
+            <NotificationBellIcon className="w-5 h-5 text-foreground" />
+            {notificationCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-white">
+                  {notificationCount > 9 ? "9+" : notificationCount}
+                </span>
               </span>
-            </span>
-          )}
-          {/* Red dot indicator */}
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
-        </button>
-      )}
+            )}
+            {/* Red dot indicator */}
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+          </button>
+        )}
+      </div>
     </header>
   );
 }

@@ -15,7 +15,7 @@ export default function BottomNav() {
 
   const navItems: NavItem[] = [
     {
-      label: "Wallet",
+      label: "Home",
       href: "/dashboard/wallet",
       icon: <WalletIcon className="w-6 h-6" />,
       activeIcon: <WalletActiveIcon className="w-6 h-6" />,
@@ -24,10 +24,10 @@ export default function BottomNav() {
       label: "Community",
       href: "/dashboard/community",
       icon: <CommunityIcon className="w-6 h-6" />,
-      activeIcon: <CommunityIcon className="w-6 h-6" />,
+      activeIcon: <CommunityActiveIcon className="w-6 h-6" />,
     },
     {
-      label: "Profile",
+      label: "My",
       href: "/dashboard/settings",
       icon: <ProfileIcon className="w-6 h-6" />,
       activeIcon: <ProfileIcon className="w-6 h-6" />,
@@ -56,7 +56,7 @@ export default function BottomNav() {
             >
               <div className="relative">
                 {active ? item.activeIcon : item.icon}
-                {active && item.label === "Wallet" && (
+                {active && (item.label === "Home" || item.label === "Community") && (
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-500" />
                 )}
               </div>
@@ -137,6 +137,29 @@ function CommunityIcon({ className }: { className?: string }) {
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// Community Active Icon (Filled paper plane)
+function CommunityActiveIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <path
+        d="M22 2L11 13"
+        stroke="#8B5CF6"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M22 2L15 22L11 13L2 9L22 2Z"
+        stroke="#8B5CF6"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="rgba(139, 92, 246, 0.15)"
       />
     </svg>
   );
