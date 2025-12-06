@@ -2,11 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 const MAX_DESCRIPTION_LENGTH = 144;
 const MAX_RULES_LENGTH = 144;
@@ -21,6 +26,11 @@ export default function CreateCommunityPage() {
   const [description, setDescription] = useState("");
   const [rules, setRules] = useState("");
   const [allowInvestment, setAllowInvestment] = useState(true);
+  const [activityTypes, setActivityTypes] = useState<string[]>([]);
+
+  // Activity types modal state
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [tempActivityTypes, setTempActivityTypes] = useState<string[]>([""]);
 
   const handleBack = () => {
     setIsExiting(true);
@@ -42,22 +52,44 @@ export default function CreateCommunityPage() {
   };
 
   const handleTypeClick = () => {
-    // TODO: Navigate to type selection page or open modal
-    console.log("Type selection clicked");
+    // Initialize temp types with existing types or empty array with one empty string
+    setTempActivityTypes(activityTypes.length > 0 ? [...activityTypes] : [""]);
+    setIsActivityModalOpen(true);
+  };
+
+  const handleAddMoreType = () => {
+    setTempActivityTypes([...tempActivityTypes, ""]);
+  };
+
+  const handleTypeInputChange = (index: number, value: string) => {
+    const updated = [...tempActivityTypes];
+    updated[index] = value;
+    setTempActivityTypes(updated);
+  };
+
+  const handleConfirmTypes = () => {
+    // Filter out empty strings and save
+    const validTypes = tempActivityTypes.filter((type) => type.trim() !== "");
+    setActivityTypes(validTypes);
+    setIsActivityModalOpen(false);
+  };
+
+  const handleCloseActivityModal = () => {
+    setIsActivityModalOpen(false);
   };
 
   const isFormValid = () => {
-    // Name is required, description should have at least 10 words
+    // Name is required, description should have at least 10 words, at least one activity type
     const hasName = name.trim().length > 0;
     const wordCount = description.trim().split(/\s+/).filter(Boolean).length;
     const hasEnoughWords = wordCount >= 10;
-    return hasName && hasEnoughWords;
+    const hasActivityTypes = activityTypes.length > 0;
+    return hasName && hasEnoughWords && hasActivityTypes;
   };
 
   const handleNext = () => {
     if (isFormValid()) {
-      // TODO: Navigate to next step or submit
-      console.log("Next clicked", { name, description, rules, allowInvestment });
+      router.push("/dashboard/community/community-coins");
     }
   };
 
@@ -155,15 +187,28 @@ export default function CreateCommunityPage() {
           onClick={handleTypeClick}
           className="flex items-center justify-between px-5 py-4 border-t border-gray-100 hover:bg-gray-50 transition-colors text-left"
         >
-          <div>
+          <div className="flex-1">
             <label className="text-sm font-medium text-black block mb-1 pointer-events-none">
               Type
             </label>
-            <span className="text-base text-gray-400">
-              Setup allowed activity types
-            </span>
+            {activityTypes.length > 0 ? (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {activityTypes.map((type, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-sm font-medium"
+                  >
+                    {type}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-base text-gray-400">
+                Setup allowed activity types
+              </span>
+            )}
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-400" />
+          <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
         </button>
 
         {/* Allow Investment Toggle */}
@@ -189,6 +234,60 @@ export default function CreateCommunityPage() {
           Next
         </Button>
       </div>
+
+      {/* Activity Types Bottom Sheet */}
+      <Sheet open={isActivityModalOpen} onOpenChange={setIsActivityModalOpen}>
+        <SheetContent side="bottom" hideCloseButton className="px-5 pb-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <SheetTitle className="text-xl font-semibold text-black">
+              Allowed Activities
+            </SheetTitle>
+            <button
+              onClick={handleCloseActivityModal}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+
+          {/* Activity Type Inputs */}
+          <div className="space-y-4 mb-4">
+            {tempActivityTypes.map((type, index) => (
+              <div key={index} className="border-b border-gray-100 pb-4">
+                <label className="text-sm font-medium text-black block mb-2">
+                  Type
+                </label>
+                <Input
+                  value={type}
+                  onChange={(e) => handleTypeInputChange(index, e.target.value)}
+                  placeholder="Enter the name of the activity type"
+                  className="border-none bg-transparent p-0 h-auto text-base text-gray-900 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Add More Button */}
+          <button
+            onClick={handleAddMoreType}
+            className="text-violet-500 font-medium text-base w-full text-center py-2 hover:text-violet-600 transition-colors"
+          >
+            Add more
+          </button>
+
+          {/* Confirm Button */}
+          <div className="mt-8">
+            <Button
+              onClick={handleConfirmTypes}
+              className="w-full h-14 rounded-2xl bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white font-semibold text-base transition-all"
+            >
+              Confirm
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
