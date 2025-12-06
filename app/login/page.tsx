@@ -29,7 +29,7 @@ export default function LoginPage() {
       const user = fakeFetch();
       localStorage.setItem(USER_KEY, JSON.stringify(user));
 
-      router.push("/home");
+      router.push("/dashboard/wallet");
     } else {
       throw new Error("Failed to decrypt wallet");
     }

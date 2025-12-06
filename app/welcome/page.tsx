@@ -98,6 +98,7 @@ export default function WelcomePage() {
         
         {/* Already have an Account button */}
         <button 
+          onClick={() => router.push("/dashboard/wallet/import-wallet")}
           disabled={isLoading}
           className="w-full h-14 rounded-full flex items-center justify-center border animate-slide-up animation-delay-300 transition-all duration-200 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           style={{ backgroundColor: '#f5f5f5', borderColor: '#e5e5e5' }}

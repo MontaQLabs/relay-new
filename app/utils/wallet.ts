@@ -1,6 +1,6 @@
 import { Wallet } from "../types/frontend_type";
 import { Keyring } from "@polkadot/keyring";
-import { mnemonicGenerate, cryptoWaitReady, decodeAddress, encodeAddress } from "@polkadot/util-crypto";
+import { mnemonicGenerate, mnemonicValidate, cryptoWaitReady, decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import { POLKADOT_NETWORK_NAME, SS58_FORMAT, WALLET_KEY, WALLET_SEED_KEY, ENCRYPTED_WALLET_KEY, IS_ENCRYPTED_KEY, USER_KEY } from "../types/constants";
 
 // Check if user already has "relay-wallet" in their browser's local storage
@@ -53,6 +53,59 @@ export const createWallet = async (): Promise<Wallet> => {
     localStorage.setItem(WALLET_KEY, JSON.stringify(wallet));
     // Store mnemonic separately
     localStorage.setItem(WALLET_SEED_KEY, mnemonic);
+  }
+
+  return wallet;
+};
+
+/**
+ * Imports an existing wallet using a space-separated seed phrase
+ * Validates the mnemonic, recreates the keypair, and stores in localStorage
+ * 
+ * @param seedPhrase - Space-separated 12-word mnemonic seed phrase
+ * @returns Promise<Wallet> - The imported wallet object
+ * @throws Error if the mnemonic is invalid
+ */
+export const importWallet = async (seedPhrase: string): Promise<Wallet> => {
+  // Ensure WASM crypto is ready (required for sr25519)
+  await cryptoWaitReady();
+
+  // Normalize the seed phrase (trim and ensure single spaces)
+  const normalizedMnemonic = seedPhrase.trim().toLowerCase().replace(/\s+/g, ' ');
+
+  // Validate the mnemonic
+  const isValid = mnemonicValidate(normalizedMnemonic);
+  if (!isValid) {
+    throw new Error("Invalid seed phrase. Please check your words and try again.");
+  }
+
+  // Create a keyring instance with sr25519 (Polkadot's default signature scheme)
+  const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
+
+  // Add the keypair from the mnemonic
+  const pair = keyring.addFromMnemonic(normalizedMnemonic);
+
+  // Create the wallet object
+  const wallet: Wallet = {
+    address: pair.address,
+    network: POLKADOT_NETWORK_NAME,
+    coins: [],
+    status: "inactive", // Wallet status will be determined by on-chain data
+    isBackedUp: true, // User already has the seed phrase since they imported it
+  };
+
+  // Store wallet data in localStorage
+  if (typeof window !== "undefined") {
+    // First remove any possible existing wallet data
+    localStorage.removeItem(WALLET_KEY);
+    localStorage.removeItem(WALLET_SEED_KEY);
+    localStorage.removeItem(ENCRYPTED_WALLET_KEY);
+    localStorage.removeItem(IS_ENCRYPTED_KEY);
+    localStorage.removeItem(USER_KEY);
+
+    localStorage.setItem(WALLET_KEY, JSON.stringify(wallet));
+    // Store mnemonic separately
+    localStorage.setItem(WALLET_SEED_KEY, normalizedMnemonic);
   }
 
   return wallet;
