@@ -1,6 +1,6 @@
 import { Wallet } from "../types/frontend_type";
 import { Keyring } from "@polkadot/keyring";
-import { mnemonicGenerate, cryptoWaitReady } from "@polkadot/util-crypto";
+import { mnemonicGenerate, cryptoWaitReady, decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import { POLKADOT_NETWORK_NAME, SS58_FORMAT, WALLET_KEY, WALLET_SEED_KEY, ENCRYPTED_WALLET_KEY, IS_ENCRYPTED_KEY } from "../types/constants";
 
 // Check if user already has "relay-wallet" in their browser's local storage
@@ -209,5 +209,21 @@ export const decryptWallet = async (password: string): Promise<Wallet | null> =>
   } catch (error) {
     console.error("Failed to decrypt wallet:", error);
     return null;
+  }
+}
+
+// Check if the address is a valid polkadot address
+export const isAddrValid = (addr: string): boolean => {
+  if (!addr || addr.trim() === "") return false;
+
+  try {
+    // decodeAddress will throw if the address is invalid
+    // It validates the SS58 checksum and format
+    const decoded = decodeAddress(addr);
+    // Re-encode to verify it's a valid SS58 address
+    encodeAddress(decoded);
+    return true;
+  } catch {
+    return false;
   }
 }

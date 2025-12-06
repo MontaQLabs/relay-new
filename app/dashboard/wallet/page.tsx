@@ -188,13 +188,13 @@ function CoinRow({ coin, index }: { coin: Coin; index: number }) {
 
         {/* Coin Info */}
         <div className="flex flex-col">
-          <span className="font-semibold text-foreground">{coin.ticker}</span>
+          <span className="font-semibold text-black">{coin.ticker}</span>
         </div>
       </div>
 
       {/* Coin Value */}
       <div className="flex flex-col items-end">
-        <span className="font-semibold text-foreground">{coin.amount}</span>
+        <span className="font-semibold text-black">{coin.amount}</span>
         <span className="text-xs text-muted-foreground">
           ¥{coin.fiatValue.toFixed(2)}
         </span>
