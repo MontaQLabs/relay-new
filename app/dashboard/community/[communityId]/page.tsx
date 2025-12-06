@@ -7,6 +7,7 @@ import { getCommunity, getCommunityActivities } from "@/app/db/supabase";
 import { getWalletAddress } from "@/app/utils/wallet";
 import type { Community, Activity } from "@/app/types/frontend_type";
 import CreateActivitySlideIn from "./CreateActivitySlideIn";
+import ActivityDetailSlideIn from "./ActivityDetailSlideIn";
 
 // Generate a random avatar URL using DiceBear
 const getRandomAvatar = (seed: string): string => {
@@ -38,6 +39,8 @@ export default function CommunityDetailPage() {
   const [mainTab, setMainTab] = useState<MainTabType>("activities");
   const [subTab, setSubTab] = useState<SubTabType>("view");
   const [isCreateActivityOpen, setIsCreateActivityOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [isActivityDetailOpen, setIsActivityDetailOpen] = useState(false);
 
   const walletAddress = getWalletAddress();
 
@@ -75,6 +78,21 @@ export default function CommunityDetailPage() {
 
   const handleActivityCreated = () => {
     // Refetch data after activity is created
+    fetchData();
+  };
+
+  const handleActivityClick = (activity: Activity) => {
+    setSelectedActivity(activity);
+    setIsActivityDetailOpen(true);
+  };
+
+  const handleActivityDetailClose = () => {
+    setIsActivityDetailOpen(false);
+    setSelectedActivity(null);
+  };
+
+  const handleActivityUpdated = () => {
+    // Refetch data after activity is updated (attendance changed, etc.)
     fetchData();
   };
 
@@ -248,6 +266,7 @@ export default function CommunityDetailPage() {
                 key={activity.activityId} 
                 activity={activity} 
                 walletAddress={walletAddress}
+                onClick={() => handleActivityClick(activity)}
               />
             ))}
           </div>
@@ -270,6 +289,16 @@ export default function CommunityDetailPage() {
           onClose={() => setIsCreateActivityOpen(false)}
           community={community}
           onActivityCreated={handleActivityCreated}
+        />
+      )}
+
+      {/* Activity Detail Slide-in */}
+      {selectedActivity && (
+        <ActivityDetailSlideIn
+          isOpen={isActivityDetailOpen}
+          onClose={handleActivityDetailClose}
+          activity={selectedActivity}
+          onActivityUpdated={handleActivityUpdated}
         />
       )}
     </div>
@@ -336,10 +365,12 @@ function EmptyState({ mainTab, subTab }: { mainTab: MainTabType; subTab: SubTabT
 // Activity Card Component
 function ActivityCard({ 
   activity, 
-  walletAddress 
+  walletAddress,
+  onClick,
 }: { 
   activity: Activity;
   walletAddress: string | null;
+  onClick: () => void;
 }) {
   const isAttending = walletAddress && activity.attendees.includes(walletAddress);
   const isFinished = activity.status === "finished";
@@ -355,7 +386,10 @@ function ActivityCard({
   const status = getStatusDisplay();
 
   return (
-    <div className="bg-white">
+    <button
+      onClick={onClick}
+      className="bg-white w-full text-left cursor-pointer hover:bg-gray-50 transition-colors rounded-xl p-3 -mx-3"
+    >
       {/* Activity Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -423,7 +457,7 @@ function ActivityCard({
           <span className="text-sm">{activity.likes}</span>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
