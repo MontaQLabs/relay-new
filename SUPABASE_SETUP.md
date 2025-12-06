@@ -316,11 +316,19 @@ app/
 | `getAllCommunities()` | Get all public communities |
 | `getUserCommunities(walletAddress)` | Get communities user belongs to |
 | `getCommunity(communityId)` | Get single community by ID |
-| `createCommunity(ownerWallet, data)` | Create new community |
+| `createCommunity(ownerWallet, data)` | Create new community (name, description, activityTypes, etc.) |
 | `updateCommunity(communityId, updates)` | Update community (owner only) |
 | `deleteCommunity(communityId)` | Delete community (owner only) |
 | `joinCommunity(communityId, userWallet)` | Join a community |
 | `leaveCommunity(communityId, userWallet)` | Leave a community |
+
+**Community Fields:**
+- `name` - Community name (required)
+- `description` - Community description, at least 10 words (required)
+- `avatar` - Link to community avatar image (optional)
+- `rules` - Community rules for members (optional)
+- `activityTypes` - Array of allowed activity types (required)
+- `allowInvestment` - Whether investment is allowed (default: true)
 
 #### Activities
 | Function | Description |

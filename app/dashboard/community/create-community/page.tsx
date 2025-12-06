@@ -25,7 +25,7 @@ export default function CreateCommunityPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [rules, setRules] = useState("");
-  const [allowInvestment, setAllowInvestment] = useState(true);
+  const [allowInvestment, setAllowInvestment] = useState(false);
   const [activityTypes, setActivityTypes] = useState<string[]>([]);
 
   // Activity types modal state
@@ -89,6 +89,15 @@ export default function CreateCommunityPage() {
 
   const handleNext = () => {
     if (isFormValid()) {
+      // Store form data in localStorage for step 2
+      const communityData = {
+        name,
+        description,
+        rules,
+        allowInvestment,
+        activityTypes,
+      };
+      localStorage.setItem("community-draft", JSON.stringify(communityData));
       router.push("/dashboard/community/community-coins");
     }
   };

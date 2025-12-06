@@ -127,7 +127,11 @@ CREATE TABLE IF NOT EXISTS communities (
     community_id TEXT UNIQUE NOT NULL,
     owner_wallet TEXT NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    description TEXT,
     avatar TEXT,
+    rules TEXT,
+    activity_types TEXT[] DEFAULT '{}',
+    allow_investment BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

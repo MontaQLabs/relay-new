@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
@@ -17,11 +17,24 @@ interface CommunityTokenForm {
   icon: string;
 }
 
+interface CommunityDraft {
+  name: string;
+  description: string;
+  rules: string;
+  allowInvestment: boolean;
+  activityTypes: string[];
+}
+
+type ButtonState = "idle" | "processing" | "success" | "error";
+
 export default function CommunityCoinsPage() {
   const router = useRouter();
   const [isExiting, setIsExiting] = useState(false);
   const [issueCoins, setIssueCoins] = useState(false);
   const [configLocked, setConfigLocked] = useState(false);
+  const [buttonState, setButtonState] = useState<ButtonState>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [communityDraft, setCommunityDraft] = useState<CommunityDraft | null>(null);
   const currentStep = 2;
 
   const [formData, setFormData] = useState<CommunityTokenForm>({
@@ -34,6 +47,24 @@ export default function CommunityCoinsPage() {
     freezer: "",
     icon: "",
   });
+
+  // Load community draft from localStorage on mount
+  useEffect(() => {
+    const storedDraft = localStorage.getItem("community-draft");
+    if (storedDraft) {
+      try {
+        const parsed = JSON.parse(storedDraft);
+        // Use a microtask to avoid synchronous setState in effect
+        queueMicrotask(() => setCommunityDraft(parsed));
+      } catch {
+        // Invalid draft data, redirect back to step 1
+        router.replace("/dashboard/community/create-community");
+      }
+    } else {
+      // No draft found, redirect back to step 1
+      router.replace("/dashboard/community/create-community");
+    }
+  }, [router]);
 
   const handleBack = () => {
     setIsExiting(true);
@@ -68,11 +99,97 @@ export default function CommunityCoinsPage() {
     return allRequiredFilled && symbolValid && decimalsValid;
   }, [issueCoins, formData]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (issueCoins && !isFormValid) return;
+    if (!communityDraft) return;
+    if (buttonState === "processing" || buttonState === "success") return;
 
-    // TODO: Handle community creation with token data
-    console.log("Create community clicked", issueCoins ? formData : null);
+    setButtonState("processing");
+    setErrorMessage(null);
+
+    try {
+      // Get auth token from localStorage
+      const authToken = localStorage.getItem("relay-auth-token");
+      if (!authToken) {
+        setButtonState("error");
+        setErrorMessage("Not authenticated. Please log in again.");
+        return;
+      }
+
+      // Build request payload
+      const payload: {
+        name: string;
+        description: string;
+        rules?: string;
+        activityTypes: string[];
+        allowInvestment: boolean;
+        token?: {
+          name: string;
+          symbol: string;
+          decimals: number;
+          minBalance: string;
+          initialSupply: string;
+          issuer?: string;
+          freezer?: string;
+          icon?: string;
+          configLocked?: boolean;
+        };
+      } = {
+        name: communityDraft.name,
+        description: communityDraft.description,
+        rules: communityDraft.rules || undefined,
+        activityTypes: communityDraft.activityTypes,
+        allowInvestment: communityDraft.allowInvestment,
+      };
+
+      // Add token data if issuing coins
+      if (issueCoins) {
+        payload.token = {
+          name: formData.name,
+          symbol: formData.symbol.toUpperCase(),
+          decimals: parseInt(formData.decimals, 10),
+          minBalance: formData.minBalance,
+          initialSupply: formData.initialSupply,
+          issuer: formData.issuer || undefined,
+          freezer: formData.freezer || undefined,
+          icon: formData.icon || undefined,
+          configLocked,
+        };
+      }
+
+      // Call the API
+      const response = await fetch("/api/community/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setButtonState("error");
+        setErrorMessage(data.error || "Failed to create community");
+        return;
+      }
+
+      // Success!
+      setButtonState("success");
+      
+      // Clear the draft from localStorage
+      localStorage.removeItem("community-draft");
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push("/dashboard/community");
+      }, 1500);
+    } catch (error) {
+      console.error("Create community error:", error);
+      setButtonState("error");
+      setErrorMessage("An unexpected error occurred. Please try again.");
+    }
   };
 
   return (
@@ -256,18 +373,45 @@ export default function CommunityCoinsPage() {
         )}
       </div>
 
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="px-5 pb-2">
+          <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-sm text-red-700">{errorMessage}</p>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Button */}
       <div className="px-5 pb-8 pt-4">
         <Button
           onClick={handleCreate}
-          disabled={issueCoins && !isFormValid}
+          disabled={(issueCoins && !isFormValid) || buttonState === "processing" || buttonState === "success"}
           className={`w-full h-14 rounded-2xl font-semibold text-base transition-all ${
-            !issueCoins || isFormValid
+            buttonState === "success"
+              ? "bg-green-500 hover:bg-green-500 text-white"
+              : buttonState === "processing"
+              ? "bg-[#1a1a1a] text-white cursor-wait"
+              : !issueCoins || isFormValid
               ? "bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >
-          {issueCoins ? "Confirm" : "Create Community"}
+          {buttonState === "processing" ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Creating...
+            </span>
+          ) : buttonState === "success" ? (
+            <span className="flex items-center justify-center gap-2">
+              <Check className="w-5 h-5" />
+              Community Created!
+            </span>
+          ) : issueCoins ? (
+            "Confirm"
+          ) : (
+            "Create Community"
+          )}
         </Button>
       </div>
     </div>

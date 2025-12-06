@@ -116,7 +116,11 @@ interface DbCommunity {
   community_id: string;
   owner_wallet: string;
   name: string;
+  description: string | null;
   avatar: string | null;
+  rules: string | null;
+  activity_types: string[];
+  allow_investment: boolean;
   created_at: string;
 }
 
@@ -385,8 +389,12 @@ export const getAllCommunities = async (): Promise<Community[]> => {
       return {
         owner: c.owner_wallet,
         name: c.name,
+        description: c.description || '',
         avatar: c.avatar || '',
         communityId: c.community_id,
+        rules: c.rules || undefined,
+        activityTypes: c.activity_types || [],
+        allowInvestment: c.allow_investment ?? true,
         activities: activities.map(a => a.activityId),
       };
     })
@@ -396,7 +404,41 @@ export const getAllCommunities = async (): Promise<Community[]> => {
 };
 
 /**
- * Get communities that a user is a member of
+ * Get communities that a user has created (is owner of)
+ */
+export const getCreatedCommunities = async (walletAddress: string): Promise<Community[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('communities')
+    .select('*')
+    .eq('owner_wallet', walletAddress)
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+
+  const communitiesWithActivities = await Promise.all(
+    data.map(async (c: DbCommunity) => {
+      const activities = await getCommunityActivities(c.community_id);
+      const memberCount = await getCommunityMemberCount(c.community_id);
+      return {
+        owner: c.owner_wallet,
+        name: c.name,
+        description: c.description || '',
+        avatar: c.avatar || '',
+        communityId: c.community_id,
+        rules: c.rules || undefined,
+        activityTypes: c.activity_types || [],
+        allowInvestment: c.allow_investment ?? true,
+        activities: activities.map(a => a.activityId),
+        memberCount,
+      };
+    })
+  );
+
+  return communitiesWithActivities;
+};
+
+/**
+ * Get communities that a user is a member of (excluding ones they own)
  */
 export const getUserCommunities = async (walletAddress: string): Promise<Community[]> => {
   const { data, error } = await getSupabaseClient()
@@ -410,17 +452,29 @@ export const getUserCommunities = async (walletAddress: string): Promise<Communi
   if (error || !data) return [];
 
   const communitiesWithActivities = await Promise.all(
-    data.map(async (item) => {
-      const c = item.communities as unknown as DbCommunity;
-      const activities = await getCommunityActivities(c.community_id);
-      return {
-        owner: c.owner_wallet,
-        name: c.name,
-        avatar: c.avatar || '',
-        communityId: c.community_id,
-        activities: activities.map(a => a.activityId),
-      };
-    })
+    data
+      .filter((item) => {
+        const c = item.communities as unknown as DbCommunity;
+        // Exclude communities where the user is the owner (those go in "Created" tab)
+        return c.owner_wallet !== walletAddress;
+      })
+      .map(async (item) => {
+        const c = item.communities as unknown as DbCommunity;
+        const activities = await getCommunityActivities(c.community_id);
+        const memberCount = await getCommunityMemberCount(c.community_id);
+        return {
+          owner: c.owner_wallet,
+          name: c.name,
+          description: c.description || '',
+          avatar: c.avatar || '',
+          communityId: c.community_id,
+          rules: c.rules || undefined,
+          activityTypes: c.activity_types || [],
+          allowInvestment: c.allow_investment ?? true,
+          activities: activities.map(a => a.activityId),
+          memberCount,
+        };
+      })
   );
 
   return communitiesWithActivities;
@@ -444,8 +498,12 @@ export const getCommunity = async (communityId: string): Promise<Community | nul
   return {
     owner: data.owner_wallet,
     name: data.name,
+    description: data.description || '',
     avatar: data.avatar || '',
     communityId: data.community_id,
+    rules: data.rules || undefined,
+    activityTypes: data.activity_types || [],
+    allowInvestment: data.allow_investment ?? true,
     activities: activities.map(a => a.activityId),
     token: token || undefined,
   };
@@ -466,7 +524,11 @@ export const createCommunity = async (
       community_id: communityId,
       owner_wallet: ownerWallet,
       name: community.name,
+      description: community.description,
       avatar: community.avatar,
+      rules: community.rules || null,
+      activity_types: community.activityTypes,
+      allow_investment: community.allowInvestment,
     });
 
   if (error) return null;
@@ -482,14 +544,26 @@ export const createCommunity = async (
  */
 export const updateCommunity = async (
   communityId: string,
-  updates: { name?: string; avatar?: string }
+  updates: { 
+    name?: string; 
+    description?: string;
+    avatar?: string;
+    rules?: string;
+    activityTypes?: string[];
+    allowInvestment?: boolean;
+  }
 ): Promise<boolean> => {
+  const dbUpdates: Record<string, unknown> = {};
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
+  if (updates.rules !== undefined) dbUpdates.rules = updates.rules;
+  if (updates.activityTypes !== undefined) dbUpdates.activity_types = updates.activityTypes;
+  if (updates.allowInvestment !== undefined) dbUpdates.allow_investment = updates.allowInvestment;
+
   const { error } = await getSupabaseClient()
     .from('communities')
-    .update({
-      name: updates.name,
-      avatar: updates.avatar,
-    })
+    .update(dbUpdates)
     .eq('community_id', communityId);
 
   return !error;
@@ -552,6 +626,20 @@ export const getCommunityMembers = async (communityId: string): Promise<string[]
   if (error || !data) return [];
 
   return data.map((m: { user_wallet: string }) => m.user_wallet);
+};
+
+/**
+ * Get community member count
+ */
+export const getCommunityMemberCount = async (communityId: string): Promise<number> => {
+  const { count, error } = await getSupabaseClient()
+    .from('community_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('community_id', communityId);
+
+  if (error || count === null) return 0;
+
+  return count;
 };
 
 // ============================================================================

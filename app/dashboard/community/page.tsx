@@ -1,20 +1,41 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { authenticateWithWallet, isAuthenticated } from "@/app/utils/auth";
-
-// Types for community data
-interface Community {
-  id: string;
-  name: string;
-  description: string;
-  memberCount: number;
-  imageUrl?: string;
-}
+import { getWalletAddress } from "@/app/utils/wallet";
+import { getUserCommunities, getCreatedCommunities } from "@/app/db/supabase";
+import { Community } from "@/app/types/frontend_type";
 
 type TabType = "joined" | "created";
+
+// Random avatar colors for communities without avatars
+const AVATAR_COLORS = [
+  "bg-violet-500",
+  "bg-blue-500",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-indigo-500",
+  "bg-teal-500",
+  "bg-orange-500",
+];
+
+// Generate a consistent color based on community ID
+const getAvatarColor = (communityId: string): string => {
+  let hash = 0;
+  for (let i = 0; i < communityId.length; i++) {
+    hash = communityId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+};
+
+// Generate a random avatar URL using DiceBear
+const getRandomAvatar = (communityId: string): string => {
+  return `https://api.dicebear.com/7.x/shapes/svg?seed=${communityId}`;
+};
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -59,25 +80,33 @@ export default function CommunityPage() {
   }, []);
 
   // Fetch communities after authentication
+  const fetchCommunities = useCallback(async () => {
+    const walletAddress = getWalletAddress();
+    if (!walletAddress) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const [joined, created] = await Promise.all([
+        getUserCommunities(walletAddress),
+        getCreatedCommunities(walletAddress),
+      ]);
+      
+      setJoinedCommunities(joined);
+      setCreatedCommunities(created);
+    } catch (error) {
+      console.error("Failed to fetch communities:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isAuthenticating) return;
-
-    const fetchCommunities = async () => {
-      setIsLoading(true);
-      try {
-        // TODO: Replace with actual API calls to fetch communities
-        // For now, we'll simulate empty communities
-        setJoinedCommunities([]);
-        setCreatedCommunities([]);
-      } catch (error) {
-        console.error("Failed to fetch communities:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchCommunities();
-  }, [isAuthenticating]);
+  }, [isAuthenticating, fetchCommunities]);
 
   const handleCreateCommunity = () => {
     router.push("/dashboard/community/create-community");
@@ -195,38 +224,154 @@ function EmptyState({ activeTab }: { activeTab: TabType }) {
   );
 }
 
+// Swipeable Community Item Component
+function SwipeableCommunityItem({
+  community,
+}: {
+  community: Community;
+}) {
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const SWIPE_THRESHOLD = 80; // Width of the quit button
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startXRef.current = e.touches[0].clientX;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentX = e.touches[0].clientX;
+    const diff = startXRef.current - currentX;
+    // Only allow swiping left (positive diff) and limit the swipe
+    const newOffset = Math.min(Math.max(0, diff), SWIPE_THRESHOLD);
+    setSwipeOffset(newOffset);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    // Snap to either fully open or closed
+    if (swipeOffset > SWIPE_THRESHOLD / 2) {
+      setSwipeOffset(SWIPE_THRESHOLD);
+    } else {
+      setSwipeOffset(0);
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    startXRef.current = e.clientX;
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const diff = startXRef.current - e.clientX;
+    const newOffset = Math.min(Math.max(0, diff), SWIPE_THRESHOLD);
+    setSwipeOffset(newOffset);
+  };
+
+  const handleMouseUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (swipeOffset > SWIPE_THRESHOLD / 2) {
+      setSwipeOffset(SWIPE_THRESHOLD);
+    } else {
+      setSwipeOffset(0);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) {
+      handleMouseUp();
+    }
+  };
+
+  // Format community ID for display
+  const displayId = community.communityId.replace(/^comm_/, "").slice(0, 7);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="relative overflow-hidden"
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Quit Button (behind the main content) */}
+      <div 
+        className="absolute right-0 top-0 bottom-0 flex items-center justify-center bg-red-500"
+        style={{ width: SWIPE_THRESHOLD }}
+      >
+        <Button
+          variant="ghost"
+          className="text-white font-semibold hover:bg-red-600 h-full w-full rounded-none"
+          disabled
+        >
+          Quit
+        </Button>
+      </div>
+
+      {/* Main Content (slides over the quit button) */}
+      <div
+        className="relative bg-white flex items-center gap-4 px-5 py-4 cursor-pointer transition-transform"
+        style={{
+          transform: `translateX(-${swipeOffset}px)`,
+          transition: isDragging ? "none" : "transform 0.2s ease-out",
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+      >
+        {/* Avatar */}
+        <div 
+          className={`w-14 h-14 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 ${
+            !community.avatar ? getAvatarColor(community.communityId) : ""
+          }`}
+        >
+          {community.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={community.avatar}
+              alt={community.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={getRandomAvatar(community.communityId)}
+              alt={community.name}
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
+
+        {/* Community Info */}
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-black truncate">
+            {community.name}
+          </h4>
+          <p className="text-sm text-muted-foreground">
+            ID: {displayId}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Community List Component
 function CommunityList({ communities }: { communities: Community[] }) {
   return (
     <div className="divide-y divide-gray-100">
       {communities.map((community) => (
-        <div
-          key={community.id}
-          className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center overflow-hidden">
-            {community.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={community.imageUrl}
-                alt={community.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-violet-600 font-semibold text-lg">
-                {community.name.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-black truncate">
-              {community.name}
-            </h4>
-            <p className="text-sm text-muted-foreground">
-              {community.memberCount} members
-            </p>
-          </div>
-        </div>
+        <SwipeableCommunityItem 
+          key={community.communityId} 
+          community={community}
+        />
       ))}
     </div>
   );

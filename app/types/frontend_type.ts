@@ -36,10 +36,15 @@ export interface User {
 export interface Community {
     owner: string; // The public address of the community owner
     name: string;
+    description: string; // Description of the community (at least 10 words)
     avatar: string; // A link to img stored in an online accessible place
     communityId: string; // A unique identifier for the community
+    rules?: string; // Community rules that members should adhere to
+    activityTypes: string[]; // Allowed activity types in this community
+    allowInvestment: boolean; // Whether investment is allowed in this community
     activities: ActivityId[]; // Activity IDs within the community
     token?: CommunityToken; // Optional community token on Polkadot Asset Hub
+    memberCount?: number; // Number of members in the community
 }
 
 /**
