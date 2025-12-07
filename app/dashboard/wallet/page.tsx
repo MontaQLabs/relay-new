@@ -189,7 +189,7 @@ export default function WalletPage() {
       </div>
 
       {/* Portfolio Section */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
         <div className="px-5 py-4">
           <h2 className="text-lg font-semibold text-black">Portfolio</h2>
         </div>
@@ -210,7 +210,7 @@ export default function WalletPage() {
       </div>
 
       {/* Polkadot Bazaar Section */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
         <div className="px-5 py-4 flex items-center gap-2">
           <Store className="w-5 h-5 text-pink-500" />
           <h2 className="text-lg font-semibold text-black">Polkadot Bazaar</h2>
@@ -467,7 +467,7 @@ function CoinRow({ coin, index }: { coin: Coin; index: number }) {
 
   return (
     <div
-      className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer animate-slide-up"
+      className="flex items-center justify-between px-5 pb-4 hover:bg-gray-50 transition-colors cursor-pointer animate-slide-up"
       style={{ animationDelay: `${index * 50}ms` }}
     >
       <div className="flex items-center gap-3">

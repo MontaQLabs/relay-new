@@ -18,7 +18,7 @@ export default function Header({
   onSearchClick,
 }: HeaderProps) {
   return (
-    <header className="flex items-start justify-between px-5 pt-4 pb-3">
+    <header className="flex items-start justify-between px-6 pt-4 pb-3">
       <div className="flex flex-col">
         <span className="text-sm text-muted-foreground font-medium">
           {greeting}
