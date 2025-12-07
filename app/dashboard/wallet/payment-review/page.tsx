@@ -6,7 +6,8 @@ import { ChevronLeft, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { estimateTransferFee, FeeEstimate, sendTransfer, TransferResult } from "@/app/utils/crypto";
 import { WALLET_KEY } from "@/app/types/constants";
-import type { Wallet } from "@/app/types/frontend_type";
+import { getKnownAssets } from "@/app/db/supabase";
+import type { Wallet, KnownAsset } from "@/app/types/frontend_type";
 
 // Transaction states for the confirm button
 type TransactionState = "idle" | "processing" | "success" | "error";
@@ -34,6 +35,7 @@ function PaymentReviewContent() {
   const [feeError, setFeeError] = useState<string | null>(null);
   const [txState, setTxState] = useState<TransactionState>("idle");
   const [txError, setTxError] = useState<string | null>(null);
+  const [knownAssets, setKnownAssets] = useState<KnownAsset[]>([]);
 
   // Get payment data from search params
   const address = searchParams.get("address") || "";
@@ -41,15 +43,19 @@ function PaymentReviewContent() {
   const amountUsd = parseFloat(searchParams.get("amountUsd") || "0");
   const amountCrypto = parseFloat(searchParams.get("amountCrypto") || "0");
 
-  // Fetch transaction fee estimate on mount
+  // Fetch known assets and transaction fee estimate on mount
   useEffect(() => {
-    const fetchFee = async () => {
+    const fetchAssetsAndFee = async () => {
       if (!address || !token || !amountCrypto) {
         setFeeLoading(false);
         return;
       }
 
       try {
+        // First, fetch known assets from Supabase
+        const assets = await getKnownAssets();
+        setKnownAssets(assets);
+
         // Get sender address from localStorage
         const walletData = localStorage.getItem(WALLET_KEY);
         if (!walletData) {
@@ -71,7 +77,8 @@ function PaymentReviewContent() {
           senderAddress,
           address,
           token,
-          amountCrypto
+          amountCrypto,
+          assets
         );
         setFeeEstimate(estimate);
         setFeeError(null);
@@ -83,7 +90,7 @@ function PaymentReviewContent() {
       }
     };
 
-    fetchFee();
+    fetchAssetsAndFee();
   }, [address, token, amountCrypto]);
 
   const handleBack = () => {
@@ -111,7 +118,8 @@ function PaymentReviewContent() {
         address,
         token,
         "Polkadot Asset Hub", // network
-        amountCrypto
+        amountCrypto,
+        knownAssets
       );
 
       if (result.success) {

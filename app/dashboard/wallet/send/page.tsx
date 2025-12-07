@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { isAddrValid } from "@/app/utils/wallet";
 import { fetchDotCoins } from "@/app/utils/crypto";
+import { getKnownAssets } from "@/app/db/supabase";
 import type { Coin } from "@/app/types/frontend_type";
 
 // Color mapping for common crypto tickers
@@ -49,37 +50,25 @@ export default function SendPage() {
   // UI state
   const [coins, setCoins] = useState<Coin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Load coins on mount
+
+  // Load known assets and coins on mount
   useEffect(() => {
-    const loadCoins = async () => {
+    const loadAssetsAndCoins = async () => {
       try {
-        const fetchedCoins = await fetchDotCoins();
-        // If no coins from API, use mock data for demo
-        if (fetchedCoins.length === 0) {
-          setCoins([
-            { ticker: "ETH", amount: 2, change: 0, symbol: "", fiatValue: 7600 },
-            { ticker: "ETC", amount: 2, change: 0, symbol: "", fiatValue: 50 },
-            { ticker: "ZEC", amount: 2, change: 0, symbol: "", fiatValue: 100 },
-            { ticker: "XMR", amount: 2, change: 0, symbol: "", fiatValue: 330 },
-          ]);
-        } else {
-          setCoins(fetchedCoins);
-        }
+        // First fetch known assets from Supabase
+        const assets = await getKnownAssets();
+        
+        // Then fetch coins using known assets
+        const fetchedCoins = await fetchDotCoins(assets);
+        setCoins(fetchedCoins);
       } catch (error) {
         console.error("Failed to fetch coins:", error);
-        // Use mock data on error
-        setCoins([
-          { ticker: "ETH", amount: 2, change: 0, symbol: "", fiatValue: 7600 },
-          { ticker: "ETC", amount: 2, change: 0, symbol: "", fiatValue: 50 },
-          { ticker: "ZEC", amount: 2, change: 0, symbol: "", fiatValue: 100 },
-          { ticker: "XMR", amount: 2, change: 0, symbol: "", fiatValue: 330 },
-        ]);
+        setCoins([]);
       } finally {
         setIsLoading(false);
       }
     };
-    loadCoins();
+    loadAssetsAndCoins();
   }, []);
 
   const handleBack = () => {

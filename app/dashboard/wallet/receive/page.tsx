@@ -6,6 +6,7 @@ import { ChevronLeft, Download } from "lucide-react";
 import { fetchDotCoins } from "@/app/utils/crypto";
 import { getWalletAddress } from "@/app/utils/wallet";
 import { generateQRCode, downloadQRWithPromo } from "@/app/utils/qr";
+import { getKnownAssets } from "@/app/db/supabase";
 import type { Coin } from "@/app/types/frontend_type";
 import {
   Sheet,
@@ -55,29 +56,17 @@ export default function ReceivePage() {
           setWalletAddress("1exaAg2VJRQbyUBAeXcktChCAqjVP9TUxF3zo23R2T6EGdE");
         }
         
-        // Fetch coins
-        const fetchedCoins = await fetchDotCoins();
-        // If no coins from API, use mock data for demo
-        if (fetchedCoins.length === 0) {
-          setCoins([
-            { ticker: "ETH", amount: 2, change: 0, symbol: "", fiatValue: 7600 },
-            { ticker: "ETC", amount: 2, change: 0, symbol: "", fiatValue: 50 },
-            { ticker: "ZEC", amount: 2, change: 0, symbol: "", fiatValue: 100 },
-            { ticker: "XMR", amount: 2, change: 0, symbol: "", fiatValue: 330 },
-          ]);
-        } else {
-          setCoins(fetchedCoins);
-        }
+        // First fetch known assets from Supabase
+        const knownAssets = await getKnownAssets();
+        
+        // Then fetch coins using known assets
+        const fetchedCoins = await fetchDotCoins(knownAssets);
+        setCoins(fetchedCoins);
       } catch (error) {
         console.error("Failed to load data:", error);
-        // Use mock data on error
+        // Use demo address on error
         setWalletAddress("1exaAg2VJRQbyUBAeXcktChCAqjVP9TUxF3zo23R2T6EGdE");
-        setCoins([
-          { ticker: "ETH", amount: 2, change: 0, symbol: "", fiatValue: 7600 },
-          { ticker: "ETC", amount: 2, change: 0, symbol: "", fiatValue: 50 },
-          { ticker: "ZEC", amount: 2, change: 0, symbol: "", fiatValue: 100 },
-          { ticker: "XMR", amount: 2, change: 0, symbol: "", fiatValue: 330 },
-        ]);
+        setCoins([]);
       } finally {
         setIsLoading(false);
       }

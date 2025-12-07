@@ -1,4 +1,4 @@
-import { Coin, User, Wallet } from "../types/frontend_type";
+import { Coin, User, Wallet, KnownAsset } from "../types/frontend_type";
 import { WALLET_KEY, USER_KEY, POLKADOT_NETWORK_NAME, WALLET_SEED_KEY } from "../types/constants";
 import { createClient, PolkadotClient } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider";
@@ -196,32 +196,6 @@ const ASSET_HUB_WS_ENDPOINTS = [
   "wss://statemint.api.onfinality.io/public-ws",
 ];
 
-// Known asset IDs on Polkadot Asset Hub (internal use for balance fetching)
-// The UI fetches this list from Supabase for display purposes
-// Reference: https://assethub-polkadot.subscan.io/assets
-const KNOWN_ASSETS = [
-  // Stablecoins
-  { id: 1984, ticker: "USDt", decimals: 6, symbol: "https://assets.coingecko.com/coins/images/325/small/Tether.png" },
-  { id: 1337, ticker: "USDC", decimals: 6, symbol: "https://assets.coingecko.com/coins/images/6319/small/usdc.png" },
-  
-  // Popular meme/community tokens
-  { id: 30, ticker: "DED", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/DED-LOGO-EYE.png" },
-  { id: 18, ticker: "DOTA", decimals: 4, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/dota.png" },
-  { id: 23, ticker: "PINK", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/pink.png" },
-  { id: 31337, ticker: "WUD", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/WUD.png" },
-  { id: 17, ticker: "WIFD", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/wifd.png" },
-  { id: 42069, ticker: "STINK", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/stink.png" },
-  
-  // Utility/project tokens
-  { id: 1107, ticker: "TSN", decimals: 18, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/tsn.png" },
-  { id: 50000111, ticker: "DON", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/don.png" },
-  
-  // Bridged/wrapped assets (from Snowbridge/Ethereum)
-  // Note: These use the Assets pallet with specific IDs registered by bridges
-  { id: 21, ticker: "vDOT", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/vdot.png" },
-  { id: 8, ticker: "RMRK", decimals: 10, symbol: "https://assets.coingecko.com/coins/images/15320/small/RMRK.png" },
-];
-
 // Asset details returned from Polkadot Asset Hub
 export interface AssetDetails {
   assetId: number;
@@ -245,12 +219,13 @@ const DOT_DECIMALS = 10;
 
 /**
  * Fetches all coins owned by the user on Polkadot Asset Hub
- * Queries native DOT balance and known assets (USDT, USDC)
+ * Queries native DOT balance and known assets from the provided list
  * Saves the result to localStorage under USER_KEY
  * 
+ * @param knownAssets - Array of known assets to query balances for (fetched from Supabase)
  * @returns Promise<Coin[]> - Array of coins owned by the user
  */
-export const fetchDotCoins = async (): Promise<Coin[]> => {
+export const fetchDotCoins = async (knownAssets: KnownAsset[]): Promise<Coin[]> => {
   if (typeof window === "undefined") return [];
 
   // Get wallet address from localStorage
@@ -302,7 +277,7 @@ export const fetchDotCoins = async (): Promise<Coin[]> => {
     }
 
     // Query known assets from Assets pallet
-    for (const asset of KNOWN_ASSETS) {
+    for (const asset of knownAssets) {
       try {
         const assetAccount = await api.query.Assets.Account.getValue(asset.id, address);
         
@@ -344,10 +319,11 @@ export const fetchDotCoins = async (): Promise<Coin[]> => {
  * Returns undefined for native DOT
  * 
  * @param ticker - The asset ticker symbol (e.g., "USDT", "USDC", "DOT")
+ * @param knownAssets - Array of known assets to search in
  * @returns Asset ID or undefined for native DOT
  */
-const getAssetId = (ticker: string): number | undefined => {
-  const asset = KNOWN_ASSETS.find(a => a.ticker === ticker);
+const getAssetId = (ticker: string, knownAssets: KnownAsset[]): number | undefined => {
+  const asset = knownAssets.find(a => a.ticker === ticker);
   return asset?.id;
 };
 
@@ -355,11 +331,12 @@ const getAssetId = (ticker: string): number | undefined => {
  * Gets decimals for a given ticker symbol
  * 
  * @param ticker - The asset ticker symbol
+ * @param knownAssets - Array of known assets to search in
  * @returns Decimals for the asset
  */
-const getDecimals = (ticker: string): number => {
+const getDecimals = (ticker: string, knownAssets: KnownAsset[]): number => {
   if (ticker === "DOT") return DOT_DECIMALS;
-  const asset = KNOWN_ASSETS.find(a => a.ticker === ticker);
+  const asset = knownAssets.find(a => a.ticker === ticker);
   return asset?.decimals ?? 6;
 };
 
@@ -371,13 +348,15 @@ const getDecimals = (ticker: string): number => {
  * @param recipientAddress - The address receiving the transfer  
  * @param ticker - The asset ticker symbol (e.g., "DOT", "USDT", "USDC")
  * @param amount - The amount to transfer (in human-readable units)
+ * @param knownAssets - Array of known assets (fetched from Supabase)
  * @returns Promise<FeeEstimate> - Estimated fee information
  */
 export const estimateTransferFee = async (
   senderAddress: string,
   recipientAddress: string,
   ticker: string,
-  amount: number
+  amount: number,
+  knownAssets: KnownAsset[]
 ): Promise<FeeEstimate> => {
   // Create WebSocket provider and client
   const provider = getWsProvider(ASSET_HUB_WS_ENDPOINTS);
@@ -388,7 +367,7 @@ export const estimateTransferFee = async (
     const api = client.getTypedApi(pah);
 
     // Convert amount to smallest unit
-    const decimals = getDecimals(ticker);
+    const decimals = getDecimals(ticker, knownAssets);
     const amountInSmallestUnit = BigInt(Math.floor(amount * Math.pow(10, decimals)));
 
     let tx;
@@ -401,7 +380,7 @@ export const estimateTransferFee = async (
       });
     } else {
       // Asset transfer using Assets pallet (USDT, USDC, etc.)
-      const assetId = getAssetId(ticker);
+      const assetId = getAssetId(ticker, knownAssets);
       if (assetId === undefined) {
         throw new Error(`Unknown asset ticker: ${ticker}`);
       }
@@ -499,13 +478,15 @@ const updateUserCoins = (coins: Coin[]): void => {
  * @param ticker - The asset ticker symbol (e.g., "DOT", "USDT", "USDC")
  * @param network - The network to send on (currently only Asset Hub supported)
  * @param amount - The amount to transfer (in human-readable units)
+ * @param knownAssets - Array of known assets (fetched from Supabase)
  * @returns Promise<TransferResult> - Result of the transfer operation
  */
 export const sendTransfer = async (
   recipientAddress: string,
   ticker: string,
   network: string,
-  amount: number
+  amount: number,
+  knownAssets: KnownAsset[]
 ): Promise<TransferResult> => {
   // Ensure WASM crypto is ready (required for sr25519)
   await cryptoWaitReady();
@@ -532,7 +513,7 @@ export const sendTransfer = async (
     const api = client.getTypedApi(pah);
 
     // Convert amount to smallest unit
-    const decimals = getDecimals(ticker);
+    const decimals = getDecimals(ticker, knownAssets);
     const amountInSmallestUnit = BigInt(Math.floor(amount * Math.pow(10, decimals)));
 
     let tx;
@@ -545,7 +526,7 @@ export const sendTransfer = async (
       });
     } else {
       // Asset transfer using Assets pallet (USDT, USDC, etc.)
-      const assetId = getAssetId(ticker);
+      const assetId = getAssetId(ticker, knownAssets);
       if (assetId === undefined) {
         return {
           success: false,
@@ -593,12 +574,14 @@ export const sendTransfer = async (
  * 
  * @param assetId - The numeric asset ID on Polkadot Asset Hub
  * @param iconUrl - Optional icon URL for the asset (from Supabase known_assets)
+ * @param knownAsset - Optional known asset info for fallback values
  * @returns Promise<AssetDetails | null> - Detailed asset information or null if not found
  */
-export const fetchAssetDetails = async (assetId: number, iconUrl?: string): Promise<AssetDetails | null> => {
-  // Find the known asset info for icon URL (fallback to internal list)
-  const knownAsset = KNOWN_ASSETS.find(a => a.id === assetId);
-  
+export const fetchAssetDetails = async (
+  assetId: number, 
+  iconUrl?: string,
+  knownAsset?: KnownAsset
+): Promise<AssetDetails | null> => {
   // Create WebSocket provider and client
   const provider = getWsProvider(ASSET_HUB_WS_ENDPOINTS);
   const client = createClient(provider);

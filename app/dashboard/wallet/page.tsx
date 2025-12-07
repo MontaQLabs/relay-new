@@ -37,15 +37,21 @@ export default function WalletPage() {
   const [assetDetails, setAssetDetails] = useState<AssetDetails | null>(null);
   const [isLoadingAsset, setIsLoadingAsset] = useState(false);
 
+  // Fetch known assets from Supabase first, then fetch coin balances
   useEffect(() => {
-    const loadCoins = async () => {
+    const loadAssetsAndCoins = async () => {
       try {
-        // First, fetch the coins from the blockchain
-        const fetchedCoins = await fetchDotCoins();
+        // First, fetch known assets from Supabase
+        const assets = await getKnownAssets();
+        setKnownAssets(assets);
+        setIsLoadingAssets(false);
+
+        // Then, fetch the coins from the blockchain using the known assets
+        const fetchedCoins = await fetchDotCoins(assets);
         setCoins(fetchedCoins);
         setIsLoading(false);
 
-        // Then, fetch real-time prices and calculate portfolio value
+        // Finally, fetch real-time prices and calculate portfolio value
         if (fetchedCoins.length > 0) {
           setIsPriceLoading(true);
           try {
@@ -62,28 +68,13 @@ export default function WalletPage() {
           }
         }
       } catch (error) {
-        console.error("Failed to fetch coins:", error);
+        console.error("Failed to fetch assets or coins:", error);
         setIsLoading(false);
-      }
-    };
-
-    loadCoins();
-  }, []);
-
-  // Fetch known assets from Supabase
-  useEffect(() => {
-    const loadKnownAssets = async () => {
-      try {
-        const assets = await getKnownAssets();
-        setKnownAssets(assets);
-      } catch (error) {
-        console.error("Failed to fetch known assets:", error);
-      } finally {
         setIsLoadingAssets(false);
       }
     };
 
-    loadKnownAssets();
+    loadAssetsAndCoins();
   }, []);
 
   // Fetch asset details when an asset is selected
@@ -93,7 +84,7 @@ export default function WalletPage() {
     setIsLoadingAsset(true);
     
     try {
-      const details = await fetchAssetDetails(asset.id, asset.symbol);
+      const details = await fetchAssetDetails(asset.id, asset.symbol, asset);
       setAssetDetails(details);
     } catch (error) {
       console.error("Failed to fetch asset details:", error);
