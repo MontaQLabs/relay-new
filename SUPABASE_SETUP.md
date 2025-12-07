@@ -159,10 +159,95 @@ This table stores Polkadot Asset Hub token configurations.
 Each community can have one associated fungible token.
 ```
 
+### Step 4c: Run Known Assets Schema (Required for Wallet Bazaar)
+
+To enable the Polkadot Bazaar feature in the wallet page:
+
+1. Run the following SQL in a new SQL Editor query:
+
+```sql
+-- ============================================================================
+-- KNOWN ASSETS TABLE
+-- ============================================================================
+-- Stores known/popular assets on Polkadot Asset Hub for the Bazaar feature.
+-- These are displayed in the wallet page for users to browse.
+-- Reference: https://assethub-polkadot.subscan.io/assets
+
+CREATE TABLE IF NOT EXISTS known_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    asset_id INTEGER UNIQUE NOT NULL,
+    ticker TEXT NOT NULL,
+    decimals INTEGER NOT NULL DEFAULT 10,
+    symbol TEXT NOT NULL, -- URL to the token icon
+    category TEXT, -- Optional: stablecoin, meme, utility, bridged
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_known_assets_id ON known_assets(asset_id);
+CREATE INDEX IF NOT EXISTS idx_known_assets_category ON known_assets(category);
+
+-- Enable RLS
+ALTER TABLE known_assets ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read known assets (public data)
+CREATE POLICY "Anyone can read known assets" ON known_assets
+    FOR SELECT
+    USING (true);
+
+-- Insert initial known assets
+INSERT INTO known_assets (asset_id, ticker, decimals, symbol, category) VALUES
+  -- Stablecoins
+  (1984, 'USDt', 6, 'https://assets.coingecko.com/coins/images/325/small/Tether.png', 'stablecoin'),
+  (1337, 'USDC', 6, 'https://assets.coingecko.com/coins/images/6319/small/usdc.png', 'stablecoin'),
+  
+  -- Popular meme/community tokens
+  (30, 'DED', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/DED-LOGO-EYE.png', 'meme'),
+  (18, 'DOTA', 4, 'https://raw.githubusercontent.com/nicpick/logos/main/dota.png', 'meme'),
+  (23, 'PINK', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/pink.png', 'meme'),
+  (31337, 'WUD', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/WUD.png', 'meme'),
+  (17, 'WIFD', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/wifd.png', 'meme'),
+  (42069, 'STINK', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/stink.png', 'meme'),
+  
+  -- Utility/project tokens
+  (1107, 'TSN', 18, 'https://raw.githubusercontent.com/nicpick/logos/main/tsn.png', 'utility'),
+  (50000111, 'DON', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/don.png', 'utility'),
+  
+  -- Bridged/wrapped assets
+  (21, 'vDOT', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/vdot.png', 'bridged'),
+  (8, 'RMRK', 10, 'https://assets.coingecko.com/coins/images/15320/small/RMRK.png', 'bridged')
+ON CONFLICT (asset_id) DO UPDATE SET
+  ticker = EXCLUDED.ticker,
+  decimals = EXCLUDED.decimals,
+  symbol = EXCLUDED.symbol,
+  category = EXCLUDED.category,
+  updated_at = NOW();
+
+-- Success message
+DO $$
+BEGIN
+    RAISE NOTICE '✅ Known assets table created successfully!';
+    RAISE NOTICE 'Table created: known_assets';
+    RAISE NOTICE 'Initial assets inserted: 12 popular Polkadot Asset Hub tokens';
+END;
+$$;
+```
+
+2. Click **"Run"**
+
+You should see:
+
+```
+✅ Known assets table created successfully!
+Table created: known_assets
+Initial assets inserted: 12 popular Polkadot Asset Hub tokens
+```
+
 ### Verify Tables
 
 1. Go to **Table Editor** in the sidebar
-2. You should see all 9 tables listed (10 with community_tokens)
+2. You should see all 9 tables listed (10 with community_tokens, 11 with known_assets)
 3. Click on each table to verify the columns are correct
 
 ---
@@ -369,6 +454,20 @@ app/
 | `deleteCommunityToken(communityId)` | Delete token record (owner only) |
 | `updateTokenSupply(communityId, newSupply)` | Update total supply after minting |
 | `setTokenFrozen(communityId, isFrozen)` | Toggle token frozen status |
+
+#### Known Assets (Polkadot Asset Hub Bazaar)
+| Function | Description |
+|----------|-------------|
+| `getKnownAssets()` | Get all known assets for the Bazaar |
+| `getKnownAssetById(assetId)` | Get a specific known asset by ID |
+| `getKnownAssetsByCategory(category)` | Get assets filtered by category |
+
+**KnownAsset Fields:**
+- `id` - Unique numeric asset ID on Polkadot Asset Hub (u32)
+- `ticker` - Token ticker symbol (e.g., "USDt", "USDC", "DED")
+- `decimals` - Number of decimal places (typically 6-18)
+- `symbol` - URL to the token icon/logo
+- `category` - Optional category: "stablecoin", "meme", "utility", "bridged"
 
 ---
 

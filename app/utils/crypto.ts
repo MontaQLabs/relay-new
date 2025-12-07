@@ -8,6 +8,173 @@ import { Keyring } from "@polkadot/keyring";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import { SS58_FORMAT } from "../types/constants";
 
+// CoinGecko API endpoint for price fetching
+const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price";
+
+// Mapping from ticker symbols to CoinGecko IDs
+const TICKER_TO_COINGECKO_ID: Record<string, string> = {
+  DOT: "polkadot",
+  USDt: "tether",
+  USDT: "tether",
+  USDC: "usd-coin",
+  DED: "ded",
+  PINK: "pink",
+  ETH: "ethereum",
+  BTC: "bitcoin",
+  SOL: "solana",
+  XMR: "monero",
+  ZEC: "zcash",
+  ETC: "ethereum-classic",
+  RMRK: "rmrk",
+  // Add more mappings as needed
+};
+
+// Price data returned from the API
+export interface TokenPrice {
+  usd: number;
+  usd_24h_change?: number;
+}
+
+// Price map type: ticker -> price info
+export type PriceMap = Record<string, TokenPrice>;
+
+/**
+ * Fetches real-time USD prices for the given token tickers from CoinGecko API
+ * Returns a map of ticker -> { usd: price, usd_24h_change: change }
+ * If a token price is unavailable, it won't be included in the result
+ * 
+ * @param tickers - Array of token ticker symbols (e.g., ["DOT", "USDt", "USDC"])
+ * @returns Promise<PriceMap> - Map of ticker to price info
+ */
+export const fetchTokenPrices = async (tickers: string[]): Promise<PriceMap> => {
+  if (tickers.length === 0) return {};
+
+  try {
+    // Convert tickers to CoinGecko IDs
+    const coinGeckoIds: string[] = [];
+    const tickerToIdMap = new Map<string, string>();
+
+    for (const ticker of tickers) {
+      const coinGeckoId = TICKER_TO_COINGECKO_ID[ticker];
+      if (coinGeckoId && !coinGeckoIds.includes(coinGeckoId)) {
+        coinGeckoIds.push(coinGeckoId);
+        tickerToIdMap.set(ticker, coinGeckoId);
+      }
+    }
+
+    if (coinGeckoIds.length === 0) {
+      // No known CoinGecko IDs, return stablecoin defaults
+      return getStablecoinDefaults(tickers);
+    }
+
+    // Fetch prices from CoinGecko
+    const url = `${COINGECKO_API_URL}?ids=${coinGeckoIds.join(",")}&vs_currencies=usd&include_24hr_change=true`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      console.error("Failed to fetch prices from CoinGecko:", response.statusText);
+      return getStablecoinDefaults(tickers);
+    }
+
+    const data = await response.json();
+
+    // Build result map with original tickers
+    const priceMap: PriceMap = {};
+
+    for (const ticker of tickers) {
+      const coinGeckoId = tickerToIdMap.get(ticker);
+      
+      if (coinGeckoId && data[coinGeckoId]) {
+        priceMap[ticker] = {
+          usd: data[coinGeckoId].usd ?? 0,
+          usd_24h_change: data[coinGeckoId].usd_24h_change,
+        };
+      } else if (isStablecoin(ticker)) {
+        // Default stablecoins to $1
+        priceMap[ticker] = { usd: 1, usd_24h_change: 0 };
+      }
+    }
+
+    return priceMap;
+  } catch (error) {
+    console.error("Error fetching token prices:", error);
+    return getStablecoinDefaults(tickers);
+  }
+};
+
+/**
+ * Checks if a ticker is a stablecoin
+ */
+const isStablecoin = (ticker: string): boolean => {
+  const stablecoins = ["USDt", "USDT", "USDC", "DAI", "BUSD", "TUSD", "USDP"];
+  return stablecoins.includes(ticker);
+};
+
+/**
+ * Returns default prices for stablecoins when API is unavailable
+ */
+const getStablecoinDefaults = (tickers: string[]): PriceMap => {
+  const priceMap: PriceMap = {};
+  for (const ticker of tickers) {
+    if (isStablecoin(ticker)) {
+      priceMap[ticker] = { usd: 1, usd_24h_change: 0 };
+    }
+  }
+  return priceMap;
+};
+
+/**
+ * Gets the USD price for a single token
+ * Returns 0 if price is unavailable
+ * 
+ * @param ticker - Token ticker symbol
+ * @returns Promise<number> - USD price
+ */
+export const getTokenPrice = async (ticker: string): Promise<number> => {
+  const prices = await fetchTokenPrices([ticker]);
+  return prices[ticker]?.usd ?? 0;
+};
+
+/**
+ * Calculates the total USD value of a coin portfolio
+ * Uses real-time prices from CoinGecko API
+ * If a coin's price is unavailable, uses 0 for that coin
+ * 
+ * @param coins - Array of coins with amounts
+ * @returns Promise<{ totalValue: number; coinsWithPrices: Coin[] }> - Total USD value and coins with updated fiat values
+ */
+export const calculatePortfolioValue = async (
+  coins: Coin[]
+): Promise<{ totalValue: number; coinsWithPrices: Coin[] }> => {
+  if (coins.length === 0) {
+    return { totalValue: 0, coinsWithPrices: [] };
+  }
+
+  // Get all tickers
+  const tickers = coins.map((coin) => coin.ticker);
+
+  // Fetch prices for all tickers
+  const prices = await fetchTokenPrices(tickers);
+
+  // Calculate values for each coin
+  let totalValue = 0;
+  const coinsWithPrices: Coin[] = coins.map((coin) => {
+    const price = prices[coin.ticker]?.usd ?? 0;
+    const fiatValue = coin.amount * price;
+    const change = prices[coin.ticker]?.usd_24h_change ?? 0;
+
+    totalValue += fiatValue;
+
+    return {
+      ...coin,
+      fiatValue,
+      change,
+    };
+  });
+
+  return { totalValue, coinsWithPrices };
+};
+
 // Re-export types used by the fee estimation
 export interface FeeEstimate {
   fee: bigint;        // Fee in smallest unit (planck for DOT, or asset decimals)
@@ -29,12 +196,49 @@ const ASSET_HUB_WS_ENDPOINTS = [
   "wss://statemint.api.onfinality.io/public-ws",
 ];
 
-// Known asset IDs on Polkadot Asset Hub
+// Known asset IDs on Polkadot Asset Hub (internal use for balance fetching)
+// The UI fetches this list from Supabase for display purposes
 // Reference: https://assethub-polkadot.subscan.io/assets
 const KNOWN_ASSETS = [
-  { id: 1984, ticker: "USDT", decimals: 6, symbol: "https://assets.coingecko.com/coins/images/325/small/Tether.png" },
+  // Stablecoins
+  { id: 1984, ticker: "USDt", decimals: 6, symbol: "https://assets.coingecko.com/coins/images/325/small/Tether.png" },
   { id: 1337, ticker: "USDC", decimals: 6, symbol: "https://assets.coingecko.com/coins/images/6319/small/usdc.png" },
+  
+  // Popular meme/community tokens
+  { id: 30, ticker: "DED", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/DED-LOGO-EYE.png" },
+  { id: 18, ticker: "DOTA", decimals: 4, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/dota.png" },
+  { id: 23, ticker: "PINK", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/pink.png" },
+  { id: 31337, ticker: "WUD", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/WUD.png" },
+  { id: 17, ticker: "WIFD", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/wifd.png" },
+  { id: 42069, ticker: "STINK", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/stink.png" },
+  
+  // Utility/project tokens
+  { id: 1107, ticker: "TSN", decimals: 18, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/tsn.png" },
+  { id: 50000111, ticker: "DON", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/don.png" },
+  
+  // Bridged/wrapped assets (from Snowbridge/Ethereum)
+  // Note: These use the Assets pallet with specific IDs registered by bridges
+  { id: 21, ticker: "vDOT", decimals: 10, symbol: "https://raw.githubusercontent.com/nicpick/logos/main/vdot.png" },
+  { id: 8, ticker: "RMRK", decimals: 10, symbol: "https://assets.coingecko.com/coins/images/15320/small/RMRK.png" },
 ];
+
+// Asset details returned from Polkadot Asset Hub
+export interface AssetDetails {
+  assetId: number;
+  ticker: string;
+  name: string;
+  symbol: string; // Icon URL
+  decimals: number;
+  owner: string;
+  issuer: string;
+  admin: string;
+  freezer: string;
+  supply: string;
+  minBalance: string;
+  accounts: number;
+  isFrozen: boolean;
+  isSufficient: boolean;
+}
 
 // DOT decimals on Polkadot Asset Hub
 const DOT_DECIMALS = 10;
@@ -112,7 +316,7 @@ export const fetchDotCoins = async (): Promise<Coin[]> => {
               amount: amount,
               change: 0, // Would need price API for real change data
               symbol: asset.symbol,
-              fiatValue: asset.ticker === "USDT" || asset.ticker === "USDC" ? amount : 0, // Stablecoins are ~$1
+              fiatValue: asset.ticker === "USDt" || asset.ticker === "USDC" ? amount : 0, // Stablecoins are ~$1
             });
           }
         }
@@ -377,6 +581,77 @@ export const sendTransfer = async (
       success: false,
       error: error instanceof Error ? error.message : "Transaction failed",
     };
+  } finally {
+    // Destroy the client to clean up WebSocket connection
+    client.destroy();
+  }
+};
+
+/**
+ * Fetches detailed information about an asset from Polkadot Asset Hub
+ * Queries the Assets pallet for metadata and asset details
+ * 
+ * @param assetId - The numeric asset ID on Polkadot Asset Hub
+ * @param iconUrl - Optional icon URL for the asset (from Supabase known_assets)
+ * @returns Promise<AssetDetails | null> - Detailed asset information or null if not found
+ */
+export const fetchAssetDetails = async (assetId: number, iconUrl?: string): Promise<AssetDetails | null> => {
+  // Find the known asset info for icon URL (fallback to internal list)
+  const knownAsset = KNOWN_ASSETS.find(a => a.id === assetId);
+  
+  // Create WebSocket provider and client
+  const provider = getWsProvider(ASSET_HUB_WS_ENDPOINTS);
+  const client = createClient(provider);
+
+  try {
+    // Get typed API for Polkadot Asset Hub
+    const api = client.getTypedApi(pah);
+
+    // Query asset details from Assets.Asset
+    const assetInfo = await api.query.Assets.Asset.getValue(assetId);
+    
+    if (!assetInfo) {
+      console.log(`Asset ${assetId} not found`);
+      return null;
+    }
+
+    // Query asset metadata from Assets.Metadata
+    const metadata = await api.query.Assets.Metadata.getValue(assetId);
+    
+    // Decode the Binary fields to strings
+    const name = metadata?.name ? new TextDecoder().decode(metadata.name.asBytes()) : knownAsset?.ticker || "Unknown";
+    const ticker = metadata?.symbol ? new TextDecoder().decode(metadata.symbol.asBytes()) : knownAsset?.ticker || "???";
+    const decimals = metadata?.decimals ?? knownAsset?.decimals ?? 10;
+
+    // Format supply with decimals
+    const supplyRaw = assetInfo.supply;
+    const supplyFormatted = (Number(supplyRaw) / Math.pow(10, decimals)).toLocaleString("en-US", {
+      maximumFractionDigits: 2,
+    });
+
+    // Format min balance
+    const minBalanceRaw = assetInfo.min_balance;
+    const minBalanceFormatted = (Number(minBalanceRaw) / Math.pow(10, decimals)).toString();
+
+    return {
+      assetId,
+      ticker,
+      name,
+      symbol: iconUrl || knownAsset?.symbol || "",
+      decimals,
+      owner: assetInfo.owner,
+      issuer: assetInfo.issuer,
+      admin: assetInfo.admin,
+      freezer: assetInfo.freezer,
+      supply: supplyFormatted,
+      minBalance: minBalanceFormatted,
+      accounts: assetInfo.accounts,
+      isFrozen: assetInfo.status.type === "Frozen",
+      isSufficient: assetInfo.is_sufficient,
+    };
+  } catch (error) {
+    console.error("Failed to fetch asset details:", error);
+    return null;
   } finally {
     // Destroy the client to clean up WebSocket connection
     client.destroy();

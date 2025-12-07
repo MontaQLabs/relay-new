@@ -18,6 +18,7 @@ import {
   Activity,
   Comment,
   ActivityStatus,
+  KnownAsset,
 } from '../types/frontend_type';
 
 // ============================================================================
@@ -183,6 +184,17 @@ interface DbCommunityToken {
   is_frozen: boolean;
   total_supply: string;
   icon: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbKnownAsset {
+  id: string;
+  asset_id: number;
+  ticker: string;
+  decimals: number;
+  symbol: string;
+  category: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -794,6 +806,66 @@ export const isAssetIdAvailable = async (assetId: number): Promise<boolean> => {
 
   // If error or no data, the asset ID is available
   return !!error || !data;
+};
+
+// ============================================================================
+// Known Assets Operations (Polkadot Asset Hub)
+// ============================================================================
+
+/**
+ * Map database known asset to frontend type
+ */
+const mapDbKnownAssetToKnownAsset = (db: DbKnownAsset): KnownAsset => ({
+  id: db.asset_id,
+  ticker: db.ticker,
+  decimals: db.decimals,
+  symbol: db.symbol,
+  category: db.category || undefined,
+});
+
+/**
+ * Get all known assets from the database
+ * These are popular tokens on Polkadot Asset Hub that users can browse
+ */
+export const getKnownAssets = async (): Promise<KnownAsset[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('known_assets')
+    .select('*')
+    .order('asset_id', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map(mapDbKnownAssetToKnownAsset);
+};
+
+/**
+ * Get a known asset by its asset ID
+ */
+export const getKnownAssetById = async (assetId: number): Promise<KnownAsset | null> => {
+  const { data, error } = await getSupabaseClient()
+    .from('known_assets')
+    .select('*')
+    .eq('asset_id', assetId)
+    .single();
+
+  if (error || !data) return null;
+
+  return mapDbKnownAssetToKnownAsset(data);
+};
+
+/**
+ * Get known assets by category
+ */
+export const getKnownAssetsByCategory = async (category: string): Promise<KnownAsset[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('known_assets')
+    .select('*')
+    .eq('category', category)
+    .order('asset_id', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map(mapDbKnownAssetToKnownAsset);
 };
 
 // ============================================================================

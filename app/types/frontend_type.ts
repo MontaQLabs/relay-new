@@ -122,6 +122,20 @@ export interface Coin {
     fiatValue: number; // The current USD value of the coin in the wallet
 }
 
+/**
+ * Known Asset on Polkadot Asset Hub
+ * Represents a known fungible asset tracked in the application.
+ * These are popular tokens on Asset Hub that users can browse and trade.
+ * Reference: https://assethub-polkadot.subscan.io/assets
+ */
+export interface KnownAsset {
+    id: number; // Unique numeric ID for the asset on Polkadot Asset Hub (u32)
+    ticker: string; // Token ticker symbol (e.g., "USDt", "USDC", "DED")
+    decimals: number; // Number of decimal places (u8, typically 6-18)
+    symbol: string; // URL to the token icon/logo
+    category?: string; // Optional category (e.g., "stablecoin", "meme", "utility", "bridged")
+}
+
 export type ActivityId = Activity["activityId"];
 export type CommentId = Comment["commentId"];
 export type ActivityStatus = "open" | "attending" | "full" | "finished" | "cancelled";
