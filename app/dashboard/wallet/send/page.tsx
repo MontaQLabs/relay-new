@@ -6,7 +6,7 @@ import { ChevronLeft, Check } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { isAddrValid } from "@/app/utils/wallet";
-import { fetchDotCoins } from "@/app/utils/crypto";
+import { fetchDotCoins, calculatePortfolioValue, PriceMap } from "@/app/utils/crypto";
 import { getKnownAssets } from "@/app/db/supabase";
 import type { Coin } from "@/app/types/frontend_type";
 
@@ -24,19 +24,6 @@ const COIN_COLORS: Record<string, { bg: string; color: string }> = {
   DEFAULT: { bg: "#6366f1", color: "#ffffff" },
 };
 
-// Mock price data (in a real app, this would come from an API)
-const COIN_PRICES: Record<string, number> = {
-  ETH: 3800,
-  ETC: 25,
-  ZEC: 50,
-  XMR: 165,
-  BTC: 98000,
-  USDT: 1,
-  USDC: 1,
-  DOT: 7.5,
-  SOL: 220,
-};
-
 export default function SendPage() {
   const router = useRouter();
   const [isExiting, setIsExiting] = useState(false);
@@ -50,6 +37,8 @@ export default function SendPage() {
   // UI state
   const [coins, setCoins] = useState<Coin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPriceLoading, setIsPriceLoading] = useState(false);
+  const [priceMap, setPriceMap] = useState<PriceMap>({});
 
   // Load known assets and coins on mount
   useEffect(() => {
@@ -61,10 +50,35 @@ export default function SendPage() {
         // Then fetch coins using known assets
         const fetchedCoins = await fetchDotCoins(assets);
         setCoins(fetchedCoins);
+        setIsLoading(false);
+
+        // Finally, fetch real-time prices and calculate portfolio value
+        if (fetchedCoins.length > 0) {
+          setIsPriceLoading(true);
+          try {
+            const { coinsWithPrices } = await calculatePortfolioValue(fetchedCoins);
+            setCoins(coinsWithPrices);
+            
+            // Build price map from coins with prices
+            const prices: PriceMap = {};
+            for (const coin of coinsWithPrices) {
+              if (coin.amount > 0) {
+                prices[coin.ticker] = {
+                  usd: coin.fiatValue / coin.amount,
+                  usd_24h_change: coin.change,
+                };
+              }
+            }
+            setPriceMap(prices);
+          } catch (priceError) {
+            console.error("Failed to fetch prices:", priceError);
+          } finally {
+            setIsPriceLoading(false);
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch coins:", error);
         setCoins([]);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -96,6 +110,16 @@ export default function SendPage() {
     setAmount(""); // Reset amount when token changes
   };
 
+  // Update selectedToken when coins are updated with prices
+  useEffect(() => {
+    if (selectedToken && coins.length > 0) {
+      const updatedCoin = coins.find(c => c.ticker === selectedToken.ticker);
+      if (updatedCoin && updatedCoin.fiatValue !== selectedToken.fiatValue) {
+        setSelectedToken(updatedCoin);
+      }
+    }
+  }, [coins, selectedToken]);
+
   const handleAmountChange = (value: string) => {
     // Only allow valid number input
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
@@ -103,13 +127,35 @@ export default function SendPage() {
     }
   };
 
+  // Get token price from price map (fallback to calculating from coin data)
+  const getTokenPrice = useCallback((ticker: string): number => {
+    if (priceMap[ticker]?.usd) {
+      return priceMap[ticker].usd;
+    }
+    // Fallback: calculate from coin data if available
+    const coin = coins.find(c => c.ticker === ticker);
+    if (coin && coin.amount > 0 && coin.fiatValue > 0) {
+      return coin.fiatValue / coin.amount;
+    }
+    // Default fallback for stablecoins
+    if (ticker === "USDT" || ticker === "USDt" || ticker === "USDC") {
+      return 1;
+    }
+    return 0;
+  }, [priceMap, coins]);
+
   const toggleCurrencyMode = () => {
     if (!selectedToken || !amount) {
       setIsUsdMode(!isUsdMode);
       return;
     }
     
-    const price = COIN_PRICES[selectedToken.ticker] || 1;
+    const price = getTokenPrice(selectedToken.ticker);
+    if (price === 0) {
+      setIsUsdMode(!isUsdMode);
+      return;
+    }
+    
     const numericAmount = parseFloat(amount) || 0;
     
     if (isUsdMode) {
@@ -126,7 +172,9 @@ export default function SendPage() {
 
   const getConvertedAmount = useCallback(() => {
     if (!selectedToken || !amount) return "0";
-    const price = COIN_PRICES[selectedToken.ticker] || 1;
+    const price = getTokenPrice(selectedToken.ticker);
+    if (price === 0) return "0";
+    
     const numericAmount = parseFloat(amount) || 0;
     
     if (isUsdMode) {
@@ -138,7 +186,7 @@ export default function SendPage() {
       const usdAmount = numericAmount * price;
       return usdAmount.toFixed(2);
     }
-  }, [selectedToken, amount, isUsdMode]);
+  }, [selectedToken, amount, isUsdMode, getTokenPrice]);
 
   const isFormValid = () => {
     const hasValidAddress = isAddrValid(address);
@@ -149,7 +197,7 @@ export default function SendPage() {
 
   const handleConfirm = () => {
     if (isFormValid() && selectedToken) {
-      const price = COIN_PRICES[selectedToken.ticker] || 1;
+      const price = getTokenPrice(selectedToken.ticker);
       const numericAmount = parseFloat(amount) || 0;
       
       // Calculate both USD and crypto amounts
@@ -158,7 +206,7 @@ export default function SendPage() {
       
       if (isUsdMode) {
         amountUsd = numericAmount;
-        amountCrypto = numericAmount / price;
+        amountCrypto = price > 0 ? numericAmount / price : 0;
       } else {
         amountCrypto = numericAmount;
         amountUsd = numericAmount * price;
@@ -330,16 +378,34 @@ export default function SendPage() {
               />
             </div>
             
-            {/* Converted Amount Display */}
-            {selectedToken && amount && (
-              <div className="mt-2 text-lg text-muted-foreground">
-                ≈ {isUsdMode ? "" : "$"}{getConvertedAmount()} {isUsdMode ? selectedToken.ticker : ""}
-              </div>
-            )}
-            
-            {/* Max Button */}
+            {/* Equivalent Value Display */}
             {selectedToken && (
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex items-center justify-between">
+                {/* Show equivalent value when amount is entered */}
+                <div className="text-sm text-muted-foreground">
+                  {amount && parseFloat(amount) > 0 ? (
+                    isPriceLoading ? (
+                      <span className="flex items-center gap-1">
+                        <span className="w-3 h-3 border border-gray-300 border-t-violet-500 rounded-full animate-spin" />
+                        <span>Loading...</span>
+                      </span>
+                    ) : (
+                      <>
+                        ≈ {isUsdMode ? (
+                          <span>{getConvertedAmount()} {selectedToken.ticker}</span>
+                        ) : (
+                          <span>${getConvertedAmount()}</span>
+                        )}
+                      </>
+                    )
+                  ) : (
+                    <span className="text-gray-400">
+                      {isUsdMode ? `Enter USD amount` : `Enter ${selectedToken.ticker} amount`}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Max button */}
                 <button
                   onClick={() => {
                     if (isUsdMode) {
@@ -350,7 +416,7 @@ export default function SendPage() {
                   }}
                   className="text-sm font-medium text-violet-500 hover:text-violet-600 transition-colors"
                 >
-                  Max: {isUsdMode ? `$${selectedToken.fiatValue.toFixed(2)}` : `${selectedToken.amount} ${selectedToken.ticker}`}
+                  Max
                 </button>
               </div>
             )}
