@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronRight,
@@ -30,6 +30,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import SeedPhraseDisplay from "@/components/SeedPhraseDisplay";
+import { WALLET_SEED_KEY } from "@/app/types/constants";
 
 interface MenuItem {
   id: string;
@@ -60,6 +62,9 @@ export default function SettingsPage() {
   const [buttonState, setButtonState] = useState<ButtonState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Seed phrase modal state
+  const [isSeedPhraseOpen, setIsSeedPhraseOpen] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -321,7 +326,7 @@ export default function SettingsPage() {
       title: "Seed Phrase",
       description: "Check your seed phrase",
       badge: !isBackedUp ? { text: "not backed up", variant: "error" } : undefined,
-      href: "/dashboard/settings/seed-phrase",
+      onClick: () => setIsSeedPhraseOpen(true),
     },
     {
       id: "change-password",
@@ -584,6 +589,95 @@ export default function SettingsPage() {
         <LogOut className="w-5 h-5" />
         <span>Logout</span>
       </button>
+
+      {/* Seed Phrase Sheet */}
+      <SeedPhraseSheet
+        isOpen={isSeedPhraseOpen}
+        onClose={() => setIsSeedPhraseOpen(false)}
+      />
     </div>
+  );
+}
+
+// Seed Phrase Sheet Component
+function SeedPhraseSheet({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  // Compute seed phrase from localStorage when sheet is open
+  const seedPhrase = useMemo(() => {
+    if (!isOpen || typeof window === "undefined") {
+      return null; // null means not loaded yet
+    }
+    const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
+    return mnemonic ? mnemonic.trim().split(/\s+/) : [];
+  }, [isOpen]);
+
+  const isLoading = seedPhrase === null;
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="bottom" className="rounded-t-3xl px-6 pb-8 max-h-[90vh] overflow-y-auto">
+        <SheetHeader className="text-left pb-6">
+          {/* Back button */}
+          <button
+            onClick={onClose}
+            className="mb-4 -ml-2 p-2 cursor-pointer"
+            aria-label="Go back"
+          >
+            <svg
+              className="w-6 h-6"
+              style={{ color: "#1a1a1a" }}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+
+          {/* Title */}
+          <SheetTitle className="text-3xl font-semibold tracking-tight text-left" style={{ color: "#1a1a1a" }}>
+            View Seed Phrase
+          </SheetTitle>
+        </SheetHeader>
+
+        {isLoading ? (
+          <div className="py-8 text-center">
+            <div className="inline-block w-8 h-8 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
+          </div>
+        ) : seedPhrase === null || seedPhrase.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-gray-600">No seed phrase found. Please create or import a wallet first.</p>
+          </div>
+        ) : (
+          <>
+            {/* Seed Phrase Display */}
+            <div className="mb-8">
+              <SeedPhraseDisplay words={seedPhrase} />
+            </div>
+
+            {/* Finish Button */}
+            <button
+              onClick={onClose}
+              className="w-full h-14 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer"
+              style={{
+                backgroundColor: "#1a1a1a",
+              }}
+            >
+              <span className="text-white font-medium">Finish</span>
+            </button>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }
