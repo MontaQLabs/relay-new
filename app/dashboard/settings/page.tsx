@@ -21,7 +21,7 @@ import { getWalletAddress, encryptWallet } from "@/app/utils/wallet";
 import { getUserByWallet } from "@/app/db/supabase";
 import { signOut, getAuthToken } from "@/app/utils/auth";
 import { validate } from "@/app/utils/password";
-import { WALLET_KEY } from "@/app/types/constants";
+import { WALLET_KEY, WALLET_SEED_KEY, IS_ENCRYPTED_KEY, USER_KEY } from "@/app/types/constants";
 import type { User, Wallet } from "@/app/types/frontend_type";
 import {
   Sheet,
@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import SeedPhraseDisplay from "@/components/SeedPhraseDisplay";
-import { WALLET_SEED_KEY } from "@/app/types/constants";
 
 interface MenuItem {
   id: string;
@@ -136,6 +135,18 @@ export default function SettingsPage() {
   // Handle logout
   const handleLogout = async () => {
     try {
+      // Delete all non-auth related storage items except for the encrypted wallet
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(WALLET_KEY);
+        localStorage.removeItem(WALLET_SEED_KEY);
+        localStorage.removeItem(IS_ENCRYPTED_KEY);
+        localStorage.removeItem(USER_KEY);
+        // Remove any app-specific storage items
+        localStorage.removeItem("community-draft");
+        // Note: ENCRYPTED_WALLET_KEY is preserved
+      }
+      
+      // Then call signOut to handle auth-related cleanup
       await signOut();
       router.push("/login");
     } catch (error) {

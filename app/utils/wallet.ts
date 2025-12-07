@@ -277,9 +277,9 @@ export const decryptWallet = async (password: string): Promise<Wallet | null> =>
       localStorage.setItem(WALLET_SEED_KEY, mnemonic);
     }
 
-    // Remove encrypted data and update encryption flag
-    localStorage.removeItem(ENCRYPTED_WALLET_KEY);
+    // Update encryption flag (keep encrypted wallet in localStorage)
     localStorage.setItem(IS_ENCRYPTED_KEY, "false");
+    localStorage.setItem(ENCRYPTED_WALLET_KEY, encryptedBase64);
 
     return wallet;
   } catch (error) {
