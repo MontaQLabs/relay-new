@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { decryptWallet } from "../utils/wallet";
 import { useRouter } from "next/navigation";
@@ -10,21 +10,28 @@ export default function LoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  useEffect(() => {
+  const [isAlreadyUnlocked] = useState(() => {
+    if (typeof window === "undefined") return false;
     const isEncrypted = localStorage.getItem(IS_ENCRYPTED_KEY);
     const relayUser = localStorage.getItem(USER_KEY);
-    // This indicates that the user has already unlocked the wallet and is logged in
-    // So we can directly redirect to the home page
-    if (isEncrypted === "false" && relayUser !== null) {
-      router.push("/dashboard");
-    }
-  }, [router]);
+    return isEncrypted === "false" && relayUser !== null;
+  });
 
   const handleUnlock = async () => {
-    const success = await decryptWallet(password);
-    if (success) {
+    // Check if user has already unlocked the wallet and is logged in
+    const isEncrypted = localStorage.getItem(IS_ENCRYPTED_KEY);
+    const relayUser = localStorage.getItem(USER_KEY);
+
+    if (isEncrypted === "false" && relayUser !== null) {
       router.push("/dashboard/wallet");
+      return;
+    } else {
+      const success = await decryptWallet(password);
+      if (success) {
+        router.push("/dashboard/wallet");
+      } else {
+        alert("Wrong password");
+      }
     }
   };
   const handleForgotPassword = () => {
@@ -58,53 +65,55 @@ export default function LoginPage() {
         </h1>
       </div>
 
-      {/* Form content */}
-      <div className="px-6 pb-6">
-        {/* Password field */}
-        <div className="animate-slide-up animation-delay-100">
-          <label
-            className="block text-sm font-medium mb-2"
-            style={{ color: "#1a1a1a" }}
-          >
-            Password
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              className="w-full h-14 px-4 pr-12 rounded-2xl border text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
-              style={{
-                backgroundColor: "#ffffff",
-                borderColor: "#e5e5e5",
-                color: "#1a1a1a",
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 cursor-pointer"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+      {/* Form content - only show password field if wallet is not already unlocked */}
+      {!isAlreadyUnlocked && (
+        <div className="px-6 pb-6">
+          {/* Password field */}
+          <div className="animate-slide-up animation-delay-100">
+            <label
+              className="block text-sm font-medium mb-2"
+              style={{ color: "#1a1a1a" }}
             >
-              {showPassword ? (
-                <EyeOffIcon className="w-5 h-5" style={{ color: "#8e8e93" }} />
-              ) : (
-                <EyeIcon className="w-5 h-5" style={{ color: "#8e8e93" }} />
-              )}
-            </button>
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                className="w-full h-14 px-4 pr-12 rounded-2xl border text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                style={{
+                  backgroundColor: "#ffffff",
+                  borderColor: "#e5e5e5",
+                  color: "#1a1a1a",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 cursor-pointer"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOffIcon className="w-5 h-5" style={{ color: "#8e8e93" }} />
+                ) : (
+                  <EyeIcon className="w-5 h-5" style={{ color: "#8e8e93" }} />
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Unlock button and Forgot password */}
       <div className="px-6 pb-10 pt-6 space-y-4">
         <button
           onClick={handleUnlock}
-          disabled={!password}
+          disabled={!isAlreadyUnlocked && !password}
           className="w-full h-14 rounded-full flex items-center justify-center transition-all duration-200 animate-slide-up animation-delay-200 cursor-pointer disabled:cursor-not-allowed"
           style={{
-            backgroundColor: password ? "#1a1a1a" : "#d1d1d6",
+            backgroundColor: isAlreadyUnlocked || password ? "#1a1a1a" : "#d1d1d6",
           }}
         >
           <span className="text-white font-medium">Unlock</span>
