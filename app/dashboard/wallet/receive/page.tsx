@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Download } from "lucide-react";
-import { fetchDotCoins } from "@/app/utils/crypto";
+import { fetchDotCoins, calculatePortfolioValue } from "@/app/utils/crypto";
 import { getWalletAddress } from "@/app/utils/wallet";
 import { generateQRCode, downloadQRWithPromo } from "@/app/utils/qr";
 import { getKnownAssets } from "@/app/db/supabase";
@@ -35,6 +35,7 @@ export default function ReceivePage() {
   // Data state
   const [coins, setCoins] = useState<Coin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>("");
   
   // Sheet state
@@ -62,12 +63,25 @@ export default function ReceivePage() {
         // Then fetch coins using known assets
         const fetchedCoins = await fetchDotCoins(knownAssets);
         setCoins(fetchedCoins);
+        setIsLoading(false);
+
+        // Finally, fetch real-time prices and calculate portfolio value
+        if (fetchedCoins.length > 0) {
+          setIsPriceLoading(true);
+          try {
+            const { coinsWithPrices } = await calculatePortfolioValue(fetchedCoins);
+            setCoins(coinsWithPrices);
+          } catch (priceError) {
+            console.error("Failed to fetch prices:", priceError);
+          } finally {
+            setIsPriceLoading(false);
+          }
+        }
       } catch (error) {
         console.error("Failed to load data:", error);
         // Use demo address on error
         setWalletAddress("1exaAg2VJRQbyUBAeXcktChCAqjVP9TUxF3zo23R2T6EGdE");
         setCoins([]);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -181,7 +195,14 @@ export default function ReceivePage() {
                         <div className="text-right">
                           <div className="font-medium text-black">{coin.amount}</div>
                           <div className="text-sm text-muted-foreground">
-                            ${coin.fiatValue.toFixed(2)}
+                            {isPriceLoading ? (
+                              <span className="inline-flex items-center gap-1">
+                                <span className="w-2 h-2 border border-gray-300 border-t-violet-500 rounded-full animate-spin" />
+                                <span>${coin.fiatValue.toFixed(2)}</span>
+                              </span>
+                            ) : (
+                              <span>${coin.fiatValue.toFixed(2)}</span>
+                            )}
                           </div>
                         </div>
                       </div>
