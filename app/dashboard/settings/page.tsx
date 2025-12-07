@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronRight,
@@ -14,12 +14,22 @@ import {
   FileText,
   LogOut,
   AlertCircle,
+  Camera,
+  Loader2,
 } from "lucide-react";
 import { getWalletAddress } from "@/app/utils/wallet";
 import { getUserByWallet } from "@/app/db/supabase";
-import { signOut } from "@/app/utils/auth";
+import { signOut, getAuthToken } from "@/app/utils/auth";
 import { WALLET_KEY } from "@/app/types/constants";
 import type { User, Wallet } from "@/app/types/frontend_type";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
 
 interface MenuItem {
   id: string;
@@ -34,12 +44,22 @@ interface MenuItem {
   onClick?: () => void;
 }
 
+type ButtonState = "idle" | "processing" | "success" | "error";
+
 export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  // Edit profile states
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [editAvatar, setEditAvatar] = useState("");
+  const [editNickname, setEditNickname] = useState("");
+  const [buttonState, setButtonState] = useState<ButtonState>("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -119,6 +139,173 @@ export default function SettingsPage() {
 
   // Check if social recovery is configured
   const hasSocialRecovery = user?.socialRecovery && user.socialRecovery.length > 0;
+
+  // Open edit profile sheet
+  const openEditProfile = () => {
+    setEditAvatar(user?.avatar || getAvatarUrl());
+    setEditNickname(user?.nickname || "");
+    setButtonState("idle");
+    setErrorMessage("");
+    setIsEditProfileOpen(true);
+  };
+
+  // Handle avatar change
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // For now, create a local URL preview
+      // In production, you'd upload to a storage service
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle save profile
+  const handleSaveProfile = async () => {
+    if (!wallet?.address) return;
+
+    setButtonState("processing");
+    setErrorMessage("");
+
+    try {
+      // Only update changed values
+      const updates: { avatar?: string; nickname?: string } = {};
+      
+      const originalAvatar = user?.avatar || getAvatarUrl();
+      const originalNickname = user?.nickname || "";
+
+      if (editAvatar !== originalAvatar) {
+        updates.avatar = editAvatar;
+      }
+      if (editNickname !== originalNickname) {
+        updates.nickname = editNickname;
+      }
+
+      // If nothing changed, just close
+      if (Object.keys(updates).length === 0) {
+        setIsEditProfileOpen(false);
+        return;
+      }
+
+      // Get auth token
+      const authToken = getAuthToken();
+      if (!authToken) {
+        throw new Error("Not authenticated. Please log in again.");
+      }
+
+      // Call the API route
+      const response = await fetch("/api/user/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+
+      setButtonState("success");
+      
+      // Refetch user data from database to ensure sync
+      try {
+        const updatedUserData = await getUserByWallet(wallet.address);
+        if (updatedUserData) {
+          setUser(updatedUserData);
+          setWallet(updatedUserData.wallet);
+        } else {
+          // Fallback to local state update if refetch fails
+          setUser((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  avatar: updates.avatar ?? prev.avatar,
+                  nickname: updates.nickname ?? prev.nickname,
+                }
+              : prev
+          );
+        }
+      } catch (refetchError) {
+        console.error("Failed to refetch user data:", refetchError);
+        // Fallback to local state update
+        setUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                avatar: updates.avatar ?? prev.avatar,
+                nickname: updates.nickname ?? prev.nickname,
+              }
+            : prev
+        );
+      }
+
+      // Close after 0.5 second
+      setTimeout(() => {
+        setIsEditProfileOpen(false);
+        setButtonState("idle");
+      }, 500);
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      setButtonState("error");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to save profile. Please try again."
+      );
+      
+      // Reset button state after showing error
+      setTimeout(() => {
+        setButtonState("idle");
+      }, 2000);
+    }
+  };
+
+  // Get button content based on state
+  const getButtonContent = () => {
+    switch (buttonState) {
+      case "processing":
+        return (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Saving...</span>
+          </>
+        );
+      case "success":
+        return (
+          <>
+            <Check className="w-4 h-4" />
+            <span>Saved!</span>
+          </>
+        );
+      case "error":
+        return <span>Try Again</span>;
+      default:
+        return <span>Confirm</span>;
+    }
+  };
+
+  // Get button styles based on state
+  const getButtonStyles = () => {
+    switch (buttonState) {
+      case "processing":
+        return "bg-gray-400 cursor-not-allowed";
+      case "success":
+        return "bg-green-500 hover:bg-green-600";
+      case "error":
+        return "bg-red-500 hover:bg-red-600";
+      default:
+        return "bg-gray-700 hover:bg-gray-800";
+    }
+  };
 
   const menuItems: MenuItem[] = [
     {
@@ -246,12 +433,101 @@ export default function SettingsPage() {
 
         {/* Edit Profile Button */}
         <button
-          onClick={() => router.push("/dashboard/settings/edit-profile")}
+          onClick={openEditProfile}
           className="px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-colors flex-shrink-0"
         >
           Edit Profile
         </button>
       </div>
+
+      {/* Edit Profile Sheet */}
+      <Sheet open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl px-6 pb-8">
+          <SheetHeader className="text-center pb-4">
+            <SheetTitle className="text-xl font-bold">Edit Profile</SheetTitle>
+            <SheetDescription>
+              Update your avatar and display name
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex flex-col items-center gap-6 pt-4">
+            {/* Avatar Editor */}
+            <div className="relative">
+              <div
+                onClick={handleAvatarClick}
+                className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 cursor-pointer ring-4 ring-violet-100 hover:ring-violet-200 transition-all group"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={editAvatar}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${wallet?.address || "default"}`;
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <button
+                onClick={handleAvatarClick}
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-violet-500 rounded-full flex items-center justify-center shadow-lg hover:bg-violet-600 transition-colors"
+              >
+                <Camera className="w-4 h-4 text-white" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+
+            {/* Nickname Input */}
+            <div className="w-full max-w-sm">
+              <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-2">
+                Display Name
+              </label>
+              <Input
+                id="nickname"
+                type="text"
+                value={editNickname}
+                onChange={(e) => setEditNickname(e.target.value)}
+                placeholder="Enter your display name"
+                className="w-full h-12 px-4 rounded-xl border-gray-200 focus:border-violet-500 focus:ring-violet-500 text-black"
+              />
+            </div>
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="w-full max-w-sm flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-xl">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="w-full max-w-sm flex gap-3 pt-2">
+              <button
+                onClick={() => setIsEditProfileOpen(false)}
+                disabled={buttonState === "processing"}
+                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-full hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                disabled={buttonState === "processing" || buttonState === "success"}
+                className={`flex-1 py-3 px-4 text-white font-medium rounded-full transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed ${getButtonStyles()}`}
+              >
+                {getButtonContent()}
+              </button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Menu Items */}
       <div className="bg-gradient-to-br from-violet-50/50 to-pink-50/50 rounded-3xl overflow-hidden">

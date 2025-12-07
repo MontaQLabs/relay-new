@@ -1227,17 +1227,31 @@ export const getTransactions = async (walletAddress: string): Promise<Transactio
 
   if (error || !data) return [];
 
-  return data.map((t: DbTransaction) => ({
-    id: t.tx_id,
-    sender: t.sender_nickname || 'Unknown',
-    senderAddress: t.sender_wallet,
-    receiver: t.receiver_nickname || 'Unknown',
-    receiverAddress: t.receiver_wallet,
-    network: t.network,
-    amountFiat: t.amount_fiat,
-    feesFiat: t.fees_fiat,
-    timestamp: t.timestamp,
-  }));
+  return data.map((t: DbTransaction) => {
+    // Determine transaction type based on wallet address
+    const isSent = t.sender_wallet.toLowerCase() === walletAddress.toLowerCase();
+    const type: "sent" | "received" = isSent ? "sent" : "received";
+    
+    // Derive ticker from network (default to DOT for Polkadot networks)
+    const ticker = t.network.includes("Polkadot") || t.network.includes("Asset Hub") ? "DOT" : "UNKNOWN";
+    
+    return {
+      id: t.tx_id,
+      sender: t.sender_nickname || 'Unknown',
+      senderAddress: t.sender_wallet,
+      receiver: t.receiver_nickname || 'Unknown',
+      receiverAddress: t.receiver_wallet,
+      network: t.network,
+      ticker: ticker,
+      amount: 0, // Amount in native coin not stored in DB, default to 0
+      amountFiat: t.amount_fiat,
+      fee: 0, // Fee in native coin not stored in DB, default to 0
+      feesFiat: t.fees_fiat,
+      timestamp: t.timestamp,
+      status: "completed" as const, // Transactions in DB are already completed
+      type: type,
+    };
+  });
 };
 
 /**
