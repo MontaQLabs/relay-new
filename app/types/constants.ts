@@ -5,3 +5,4 @@ export const WALLET_SEED_KEY = "relay-wallet-seed";
 export const ENCRYPTED_WALLET_KEY = "relay-encrypted";
 export const IS_ENCRYPTED_KEY = "is-encrypted";
 export const USER_KEY = "relay-user";
+export const IS_BACKED_UP_KEY = "is-relay-backed-up";

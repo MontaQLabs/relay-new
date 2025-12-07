@@ -2,11 +2,33 @@
 
 import { useState, useEffect } from "react";
 import type { Coin, KnownAsset } from "@/app/types/frontend_type";
-import { fetchDotCoins, fetchAssetDetails, AssetDetails, calculatePortfolioValue } from "@/app/utils/crypto";
+import {
+  fetchDotCoins,
+  fetchAssetDetails,
+  AssetDetails,
+  calculatePortfolioValue,
+} from "@/app/utils/crypto";
 import { getKnownAssets } from "@/app/db/supabase";
 import { ActionButton } from "@/components/action-button";
-import { EyeIcon, EyeOffIcon, ScanIcon, SendIcon, BellIcon, XIcon, HandCoins, Loader2, Store } from "lucide-react";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  ScanIcon,
+  SendIcon,
+  BellIcon,
+  XIcon,
+  HandCoins,
+  Loader2,
+  Store,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { useRouter } from "next/navigation";
+import { IS_BACKED_UP_KEY } from "@/app/types/constants";
 
 // Color mapping for common crypto tickers
 const COIN_COLORS: Record<string, { bg: string; color: string }> = {
@@ -29,7 +51,8 @@ export default function WalletPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [totalBalance, setTotalBalance] = useState(0);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
-  
+  const [isBackedUp, setIsBackedUp] = useState(false);
+
   // Polkadot Bazaar state
   const [knownAssets, setKnownAssets] = useState<KnownAsset[]>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(true);
@@ -37,8 +60,14 @@ export default function WalletPage() {
   const [assetDetails, setAssetDetails] = useState<AssetDetails | null>(null);
   const [isLoadingAsset, setIsLoadingAsset] = useState(false);
 
+  const router = useRouter();
+
   // Fetch known assets from Supabase first, then fetch coin balances
   useEffect(() => {
+    const backedUp = localStorage.getItem(IS_BACKED_UP_KEY);
+    if (backedUp) {
+      setIsBackedUp(true);
+    }
     const loadAssetsAndCoins = async () => {
       try {
         // First, fetch known assets from Supabase
@@ -55,13 +84,17 @@ export default function WalletPage() {
         if (fetchedCoins.length > 0) {
           setIsPriceLoading(true);
           try {
-            const { totalValue, coinsWithPrices } = await calculatePortfolioValue(fetchedCoins);
+            const { totalValue, coinsWithPrices } =
+              await calculatePortfolioValue(fetchedCoins);
             setCoins(coinsWithPrices);
             setTotalBalance(totalValue);
           } catch (priceError) {
             console.error("Failed to fetch prices:", priceError);
             // Fall back to any existing fiat values
-            const fallbackTotal = fetchedCoins.reduce((sum, coin) => sum + coin.fiatValue, 0);
+            const fallbackTotal = fetchedCoins.reduce(
+              (sum, coin) => sum + coin.fiatValue,
+              0
+            );
             setTotalBalance(fallbackTotal);
           } finally {
             setIsPriceLoading(false);
@@ -82,7 +115,7 @@ export default function WalletPage() {
     setSelectedAsset(asset);
     setAssetDetails(null);
     setIsLoadingAsset(true);
-    
+
     try {
       const details = await fetchAssetDetails(asset.id, asset.symbol, asset);
       setAssetDetails(details);
@@ -96,6 +129,10 @@ export default function WalletPage() {
   const handleCloseAssetSheet = () => {
     setSelectedAsset(null);
     setAssetDetails(null);
+  };
+
+  const handleSaveSecret = () => {
+    router.push("/dashboard/settings");
   };
 
   const formatBalance = (value: number) => {
@@ -178,7 +215,7 @@ export default function WalletPage() {
           <Store className="w-5 h-5 text-pink-500" />
           <h2 className="text-lg font-semibold text-black">Polkadot Bazaar</h2>
         </div>
-        
+
         <div className="px-5 pb-4">
           {isLoadingAssets ? (
             <div className="py-8 flex items-center justify-center">
@@ -190,49 +227,57 @@ export default function WalletPage() {
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-3">
-              {[...knownAssets].sort((a, b) => {
-                // Prioritize USDt first, USDC second
-                const priority: Record<string, number> = { 'USDt': 0, 'USDC': 1 };
-                const aPriority = priority[a.ticker] ?? 999;
-                const bPriority = priority[b.ticker] ?? 999;
-                return aPriority - bPriority;
-              }).map((asset, index) => (
-                <button
-                  key={asset.id}
-                  onClick={() => handleAssetClick(asset)}
-                  className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-gray-50 transition-colors animate-fade-in"
-                  style={{ animationDelay: `${index * 30}ms` }}
-                >
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {asset.symbol ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={asset.symbol}
-                        alt={asset.ticker}
-                        className="w-8 h-8 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <span className="text-sm font-bold text-gray-500">
-                        {asset.ticker[0]}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-gray-700 truncate w-full text-center">
-                    {asset.ticker}
-                  </span>
-                </button>
-              ))}
+              {[...knownAssets]
+                .sort((a, b) => {
+                  // Prioritize USDt first, USDC second
+                  const priority: Record<string, number> = { USDt: 0, USDC: 1 };
+                  const aPriority = priority[a.ticker] ?? 999;
+                  const bPriority = priority[b.ticker] ?? 999;
+                  return aPriority - bPriority;
+                })
+                .map((asset, index) => (
+                  <button
+                    key={asset.id}
+                    onClick={() => handleAssetClick(asset)}
+                    className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-gray-50 transition-colors animate-fade-in"
+                    style={{ animationDelay: `${index * 30}ms` }}
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                      {asset.symbol ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={asset.symbol}
+                          alt={asset.ticker}
+                          className="w-8 h-8 object-contain"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <span className="text-sm font-bold text-gray-500">
+                          {asset.ticker[0]}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 truncate w-full text-center">
+                      {asset.ticker}
+                    </span>
+                  </button>
+                ))}
             </div>
           )}
         </div>
       </div>
 
       {/* Asset Details Bottom Sheet */}
-      <Sheet open={selectedAsset !== null} onOpenChange={(open) => !open && handleCloseAssetSheet()}>
-        <SheetContent side="bottom" className="px-5 pb-8 max-h-[70vh] overflow-auto">
+      <Sheet
+        open={selectedAsset !== null}
+        onOpenChange={(open) => !open && handleCloseAssetSheet()}
+      >
+        <SheetContent
+          side="bottom"
+          className="px-5 pb-8 max-h-[70vh] overflow-auto"
+        >
           {selectedAsset && (
             <>
               {/* Header with icon and ticker */}
@@ -274,30 +319,48 @@ export default function WalletPage() {
                   {/* Key Stats */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gray-50 rounded-2xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Total Supply</p>
-                      <p className="text-lg font-semibold text-black">{assetDetails.supply}</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Total Supply
+                      </p>
+                      <p className="text-lg font-semibold text-black">
+                        {assetDetails.supply}
+                      </p>
                     </div>
                     <div className="bg-gray-50 rounded-2xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Holders</p>
-                      <p className="text-lg font-semibold text-black">{assetDetails.accounts.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Holders
+                      </p>
+                      <p className="text-lg font-semibold text-black">
+                        {assetDetails.accounts.toLocaleString()}
+                      </p>
                     </div>
                     <div className="bg-gray-50 rounded-2xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Decimals</p>
-                      <p className="text-lg font-semibold text-black">{assetDetails.decimals}</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Decimals
+                      </p>
+                      <p className="text-lg font-semibold text-black">
+                        {assetDetails.decimals}
+                      </p>
                     </div>
                     <div className="bg-gray-50 rounded-2xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Min Balance</p>
-                      <p className="text-lg font-semibold text-black">{assetDetails.minBalance}</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Min Balance
+                      </p>
+                      <p className="text-lg font-semibold text-black">
+                        {assetDetails.minBalance}
+                      </p>
                     </div>
                   </div>
 
                   {/* Status badges */}
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      assetDetails.isFrozen 
-                        ? "bg-red-100 text-red-700" 
-                        : "bg-green-100 text-green-700"
-                    }`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        assetDetails.isFrozen
+                          ? "bg-red-100 text-red-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
                       {assetDetails.isFrozen ? "Frozen" : "Active"}
                     </span>
                     {assetDetails.isSufficient && (
@@ -310,19 +373,25 @@ export default function WalletPage() {
                   {/* Addresses */}
                   <div className="space-y-3 pt-2">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Owner</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Owner
+                      </p>
                       <p className="text-sm font-mono text-black bg-gray-50 px-3 py-2 rounded-xl truncate">
                         {assetDetails.owner}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Admin</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Admin
+                      </p>
                       <p className="text-sm font-mono text-black bg-gray-50 px-3 py-2 rounded-xl truncate">
                         {assetDetails.admin}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Issuer</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Issuer
+                      </p>
                       <p className="text-sm font-mono text-black bg-gray-50 px-3 py-2 rounded-xl truncate">
                         {assetDetails.issuer}
                       </p>
@@ -348,7 +417,7 @@ export default function WalletPage() {
       </Sheet>
 
       {/* Protect Wallet Banner */}
-      {showProtectBanner && (
+      {showProtectBanner && !isBackedUp && (
         <div className="fixed bottom-24 left-5 right-5 bg-[#1a1a1a] rounded-2xl px-4 py-4 flex items-center justify-between shadow-2xl animate-slide-up">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
@@ -357,7 +426,10 @@ export default function WalletPage() {
             <span className="text-white font-medium">Protect your wallet</span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="text-emerald-400 font-semibold text-sm hover:text-emerald-300 transition-colors">
+            <button
+              onClick={handleSaveSecret}
+              className="text-emerald-400 font-semibold text-sm hover:text-emerald-300 transition-colors"
+            >
               Save Secret
             </button>
             <button
@@ -381,9 +453,7 @@ function EmptyPortfolio() {
       <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
         <WalletEmptyIcon className="w-8 h-8 text-gray-400" />
       </div>
-      <h3 className="text-base font-semibold text-black mb-1">
-        No assets yet
-      </h3>
+      <h3 className="text-base font-semibold text-black mb-1">No assets yet</h3>
       <p className="text-sm text-muted-foreground max-w-[240px]">
         Your portfolio is empty. Receive or buy crypto to get started.
       </p>
@@ -438,7 +508,11 @@ function CoinRow({ coin, index }: { coin: Coin; index: number }) {
           {coin.amount.toLocaleString("en-US", { maximumFractionDigits: 4 })}
         </span>
         <span className="text-xs text-muted-foreground">
-          ${coin.fiatValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          $
+          {coin.fiatValue.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </span>
       </div>
     </div>
@@ -456,7 +530,7 @@ function CryptoIcon({
   className?: string;
 }) {
   const baseClass = className;
-  
+
   switch (symbol) {
     case "ETH":
     case "ETC":
@@ -512,7 +586,13 @@ function CryptoIcon({
 // Wallet Empty Icon
 function WalletEmptyIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
