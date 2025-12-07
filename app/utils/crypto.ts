@@ -1,4 +1,4 @@
-import { Coin, User, Wallet, KnownAsset } from "../types/frontend_type";
+import { Coin, User, Wallet, KnownAsset, Transaction } from "../types/frontend_type";
 import { WALLET_KEY, USER_KEY, POLKADOT_NETWORK_NAME, WALLET_SEED_KEY } from "../types/constants";
 import { createClient, PolkadotClient } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider";
@@ -639,4 +639,193 @@ export const fetchAssetDetails = async (
     // Destroy the client to clean up WebSocket connection
     client.destroy();
   }
+};
+
+// Subscan API endpoint for Polkadot Asset Hub
+const SUBSCAN_ASSET_HUB_API = "https://assethub-polkadot.api.subscan.io";
+
+// Interface for Subscan transfer response
+interface SubscanTransfer {
+  from: string;
+  to: string;
+  extrinsic_index: string;
+  success: boolean;
+  hash: string;
+  block_num: number;
+  block_timestamp: number;
+  module: string;
+  amount: string;
+  amount_v2: string;
+  fee: string;
+  nonce: number;
+  asset_symbol: string;
+  asset_unique_id: string;
+  item_index?: number;
+}
+
+interface SubscanTransfersResponse {
+  code: number;
+  message: string;
+  generated_at: number;
+  data: {
+    count: number;
+    transfers: SubscanTransfer[] | null;
+  };
+}
+
+/**
+ * Fetches transaction history from Polkadot Asset Hub using Subscan API
+ * Returns an array of Transaction objects for the user's wallet
+ * 
+ * @param address - The wallet address to fetch transactions for (optional, uses localStorage if not provided)
+ * @param page - Page number for pagination (default: 0)
+ * @param pageSize - Number of transactions per page (default: 25)
+ * @returns Promise<Transaction[]> - Array of transaction objects
+ */
+export const fetchPolkadotTransactions = async (
+  address?: string,
+  page: number = 0,
+  pageSize: number = 100
+): Promise<Transaction[]> => {
+  if (typeof window === "undefined") return [];
+
+  // Get wallet address from parameter or localStorage
+  let walletAddress = address;
+  if (!walletAddress) {
+    const walletData = localStorage.getItem(WALLET_KEY);
+    if (!walletData) {
+      console.error("No wallet found in localStorage");
+      return [];
+    }
+
+    try {
+      const wallet = JSON.parse(walletData) as Wallet;
+      walletAddress = wallet.address;
+    } catch {
+      console.error("Failed to parse wallet data");
+      return [];
+    }
+  }
+
+  if (!walletAddress) {
+    console.error("No wallet address available");
+    return [];
+  }
+
+  const transactions: Transaction[] = [];
+
+  try {
+    // Fetch transfers from Subscan API
+    const response = await fetch(`${SUBSCAN_ASSET_HUB_API}/api/v2/scan/transfers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        address: walletAddress,
+        row: pageSize,
+        page: page,
+        direction: "all", // Get both sent and received
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to fetch transactions from Subscan:", response.statusText);
+      return [];
+    }
+
+    const data: SubscanTransfersResponse = await response.json();
+
+    if (data.code !== 0) {
+      console.error("Subscan API error:", data.message);
+      return [];
+    }
+
+    const transfers = data.data?.transfers || [];
+
+    for (const transfer of transfers) {
+      // Determine if this is a sent or received transaction
+      const isSent = transfer.from.toLowerCase() === walletAddress.toLowerCase();
+      const type: "sent" | "received" = isSent ? "sent" : "received";
+
+      // Parse the amount - Subscan returns amounts in the smallest unit
+      // Default to DOT decimals (10) if not specified
+      const decimals = transfer.asset_symbol === "DOT" ? 10 : 6; // Most assets use 6 decimals
+      const amount = parseFloat(transfer.amount_v2 || transfer.amount) / Math.pow(10, decimals);
+      const fee = parseFloat(transfer.fee) / Math.pow(10, 10); // Fees are always in DOT (10 decimals)
+
+      // Create transaction object
+      const transaction: Transaction = {
+        id: transfer.hash,
+        sender: "", // Subscan doesn't provide usernames, just addresses
+        senderAddress: transfer.from,
+        receiver: "",
+        receiverAddress: transfer.to,
+        network: "Polkadot Asset Hub",
+        ticker: transfer.asset_symbol || "DOT",
+        amount: amount,
+        amountFiat: 0, // Would need price API to calculate
+        fee: fee,
+        feesFiat: 0,
+        timestamp: new Date(transfer.block_timestamp * 1000).toISOString(),
+        status: transfer.success ? "completed" : "failed",
+        type: type,
+        blockHash: transfer.hash,
+        extrinsicIndex: parseInt(transfer.extrinsic_index.split("-")[1] || "0"),
+      };
+
+      transactions.push(transaction);
+    }
+
+    return transactions;
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    return [];
+  }
+};
+
+/**
+ * Filters transactions by month and year
+ * 
+ * @param transactions - Array of transactions to filter
+ * @param year - Year to filter by
+ * @param month - Month to filter by (1-12)
+ * @returns Filtered array of transactions
+ */
+export const filterTransactionsByMonth = (
+  transactions: Transaction[],
+  year: number,
+  month: number
+): Transaction[] => {
+  return transactions.filter((tx) => {
+    const txDate = new Date(tx.timestamp);
+    return txDate.getFullYear() === year && txDate.getMonth() + 1 === month;
+  });
+};
+
+/**
+ * Calculates the total sent and received amounts for a list of transactions
+ * 
+ * @param transactions - Array of transactions
+ * @param ticker - Optional ticker to filter by
+ * @returns Object with sent and received totals
+ */
+export const calculateTransactionTotals = (
+  transactions: Transaction[],
+  ticker?: string
+): { sent: number; received: number } => {
+  let sent = 0;
+  let received = 0;
+
+  for (const tx of transactions) {
+    if (ticker && tx.ticker !== ticker) continue;
+    
+    if (tx.type === "sent") {
+      sent += tx.amount;
+    } else {
+      received += tx.amount;
+    }
+  }
+
+  return { sent, received };
 };

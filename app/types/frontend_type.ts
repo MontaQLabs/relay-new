@@ -17,9 +17,16 @@ export interface Transaction {
     receiver: string;
     receiverAddress: string;
     network: string; // The name of the crypto network the wallet address is on
+    ticker: string; // The ticker symbol of the transacted coin (e.g., "DOT", "USDT")
+    amount: number; // The amount in the native coin (not USD)
     amountFiat: number;
+    fee: number; // The fee in the native coin
     feesFiat: number;
     timestamp: string;
+    status: "completed" | "pending" | "failed"; // Transaction status
+    type: "sent" | "received"; // Direction of transaction relative to user
+    blockHash?: string; // Optional block hash
+    extrinsicIndex?: number; // Optional extrinsic index
 }
 
 export interface User {

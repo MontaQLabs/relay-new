@@ -11,10 +11,17 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const isCommunityPage = pathname?.startsWith("/dashboard/community");
+  const isSettingsPage = pathname?.startsWith("/dashboard/settings");
+
+  // Get appropriate title based on current page
+  const getHeaderTitle = () => {
+    if (isSettingsPage) return "Relayer";
+    return "Welcome to Relay";
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Header showSearch={isCommunityPage} />
+      <Header showSearch={isCommunityPage} title={getHeaderTitle()} />
       <main className="flex-1 overflow-y-auto pb-24">{children}</main>
       <BottomNav />
     </div>
