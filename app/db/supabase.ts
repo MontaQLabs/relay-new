@@ -364,7 +364,7 @@ export const updateFriend = async (
 };
 
 /**
- * Remove a friend
+ * Remove a friend (client-side)
  */
 export const removeFriend = async (
   userWallet: string,
@@ -377,6 +377,56 @@ export const removeFriend = async (
     .eq('wallet_address', friendWalletAddress);
 
   return !error;
+};
+
+/**
+ * Delete a friend (server-side compatible)
+ * Accepts an optional Supabase client for server-side use
+ * Uses case-insensitive comparison for wallet addresses
+ */
+export const deleteFriend = async (
+  userWallet: string,
+  friendWalletAddress: string,
+  client?: SupabaseClient
+): Promise<{ success: boolean; error?: string }> => {
+  const supabaseClient = client || getSupabaseClient();
+  
+  // Trim wallet addresses
+  const trimmedUserWallet = userWallet.trim();
+  const trimmedFriendWallet = friendWalletAddress.trim();
+
+  // First, get all friends for this user to find the exact match (case-insensitive)
+  const { data: allFriends, error: fetchError } = await supabaseClient
+    .from('friends')
+    .select('id, user_wallet, wallet_address')
+    .eq('user_wallet', trimmedUserWallet);
+
+  if (fetchError) {
+    console.error('Error fetching friends:', fetchError);
+    return { success: false, error: 'Failed to check friend existence' };
+  }
+
+  // Find the friend with case-insensitive wallet address comparison
+  const friend = allFriends?.find(
+    (f) => f.wallet_address.toLowerCase().trim() === trimmedFriendWallet.toLowerCase()
+  );
+
+  if (!friend) {
+    return { success: false, error: 'Friend not found' };
+  }
+
+  // Delete using the exact stored values (preserving case)
+  const { error: deleteError } = await supabaseClient
+    .from('friends')
+    .delete()
+    .eq('id', friend.id);
+
+  if (deleteError) {
+    console.error('Error deleting friend:', deleteError);
+    return { success: false, error: 'Failed to delete friend' };
+  }
+
+  return { success: true };
 };
 
 // ============================================================================
