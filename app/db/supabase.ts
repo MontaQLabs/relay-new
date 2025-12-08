@@ -740,6 +740,48 @@ export const getCommunityMemberCount = async (communityId: string): Promise<numb
   return count;
 };
 
+/**
+ * Check if a user is a member of a community
+ */
+export const isUserCommunityMember = async (
+  communityId: string,
+  userWallet: string
+): Promise<boolean> => {
+  const { data, error } = await getSupabaseClient()
+    .from('community_members')
+    .select('id')
+    .eq('community_id', communityId)
+    .eq('user_wallet', userWallet)
+    .single();
+
+  return !error && !!data;
+};
+
+/**
+ * Check membership for multiple communities at once
+ */
+export const checkUserMembershipBulk = async (
+  communityIds: string[],
+  userWallet: string
+): Promise<Record<string, boolean>> => {
+  if (communityIds.length === 0) return {};
+
+  const { data, error } = await getSupabaseClient()
+    .from('community_members')
+    .select('community_id')
+    .eq('user_wallet', userWallet)
+    .in('community_id', communityIds);
+
+  if (error || !data) return {};
+
+  const membershipMap: Record<string, boolean> = {};
+  communityIds.forEach((id) => {
+    membershipMap[id] = data.some((m) => m.community_id === id);
+  });
+
+  return membershipMap;
+};
+
 // ============================================================================
 // Community Token Operations (Polkadot Asset Hub)
 // ============================================================================
