@@ -109,7 +109,7 @@ export default function ImportWalletPage() {
       </div>
 
       {/* Seed phrase inputs */}
-      <div className="px-6 overflow-y-auto">
+      <div className="px-6 py-2 overflow-y-auto">
         <div className="grid grid-cols-3 gap-3 animate-slide-up animation-delay-100">
           {words.map((word, index) => (
             <div key={index} className="relative">

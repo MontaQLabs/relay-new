@@ -147,7 +147,7 @@ export default function WalletPage() {
       {/* Balance Card */}
       <div className="bg-[#1a1a1a] rounded-3xl p-6 shadow-xl">
         {/* Balance Header */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2 px-2">
           <span className="text-white text-sm font-medium">Balance</span>
           <button
             onClick={() => setShowBalance(!showBalance)}
@@ -163,7 +163,7 @@ export default function WalletPage() {
         </div>
 
         {/* Balance Amount */}
-        <div className="flex items-baseline gap-3 mb-2">
+        <div className="flex items-baseline gap-3 mb-4 px-1">
           <span className="text-white text-4xl font-bold tracking-tight">
             {showBalance ? (
               isPriceLoading ? (

@@ -9,9 +9,9 @@ import {
   ArrowRight,
   Hexagon,
   Users,
-  Globe,
   Shield,
   Sparkles,
+  Scan,
 } from "lucide-react";
 import { exists } from "./utils/wallet";
 
@@ -154,31 +154,28 @@ export default function LandingPage() {
           </div>
 
           <h1 className="animate-slide-up mb-4 max-w-xs text-center text-4xl font-bold leading-tight tracking-tight text-white opacity-0 animation-delay-300">
-            Your Multi-Chain
-            <br />
             <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              Crypto Hub
+              Build Communities
             </span>
           </h1>
 
           <p className="animate-slide-up mb-10 max-w-xs text-center text-base leading-relaxed text-gray-400 opacity-0 animation-delay-400">
-            One wallet for all chains. Connect, trade, and build communities
-            together.
+            Find interesting things in the cryptoverse
           </p>
 
           {/* Feature pills */}
           <div className="animate-slide-up mb-12 flex flex-wrap items-center justify-center gap-3 opacity-0 animation-delay-500">
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-sm">
-              <Globe className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-300">Multi-Chain</span>
+              <Scan className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-gray-300">Scan to Pay</span>
             </div>
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-sm">
               <Users className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-300">Community</span>
+              <span className="text-sm text-gray-300">Authentic Connections</span>
             </div>
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-sm">
               <Shield className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-300">Secure</span>
+              <span className="text-sm text-gray-300">Powered by Polkadot</span>
             </div>
           </div>
         </section>

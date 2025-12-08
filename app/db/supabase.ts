@@ -434,6 +434,42 @@ export const deleteFriend = async (
 // ============================================================================
 
 /**
+ * Search communities by name (partial match, case-insensitive)
+ */
+export const searchCommunities = async (searchTerm: string): Promise<Community[]> => {
+  if (!searchTerm.trim()) return [];
+
+  const { data, error } = await getSupabaseClient()
+    .from('communities')
+    .select('*')
+    .ilike('name', `%${searchTerm.trim()}%`)
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+
+  const communitiesWithDetails = await Promise.all(
+    data.map(async (c: DbCommunity) => {
+      const activities = await getCommunityActivities(c.community_id);
+      const memberCount = await getCommunityMemberCount(c.community_id);
+      return {
+        owner: c.owner_wallet,
+        name: c.name,
+        description: c.description || '',
+        avatar: c.avatar || '',
+        communityId: c.community_id,
+        rules: c.rules || undefined,
+        activityTypes: c.activity_types || [],
+        allowInvestment: c.allow_investment ?? true,
+        activities: activities.map(a => a.activityId),
+        memberCount,
+      };
+    })
+  );
+
+  return communitiesWithDetails;
+};
+
+/**
  * Get all communities (public)
  */
 export const getAllCommunities = async (): Promise<Community[]> => {

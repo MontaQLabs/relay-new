@@ -121,9 +121,10 @@ export default function LoginPage() {
 
         <button
           onClick={handleForgotPassword}
-          className="w-full text-center py-2 transition-colors duration-200 animate-slide-up animation-delay-300 cursor-pointer"
+          disabled={true}
+          className="w-full text-center py-2 text-gray-400 cursor-not-allowed"
         >
-          <span className="text-base font-medium" style={{ color: "#7c3aed" }}>
+          <span className="text-base text-gray-200 font-medium">
             Forgot your password?
           </span>
         </button>

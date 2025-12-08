@@ -10,7 +10,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isCommunityPage = pathname?.startsWith("/dashboard/community");
   const isSettingsPage = pathname?.startsWith("/dashboard/settings");
 
   // Get appropriate title based on current page
@@ -21,7 +20,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Header showSearch={isCommunityPage} title={getHeaderTitle()} />
+      <Header title={getHeaderTitle()} />
       <main className="flex-1 overflow-y-auto pb-24">{children}</main>
       <BottomNav />
     </div>

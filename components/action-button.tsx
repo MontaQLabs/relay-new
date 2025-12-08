@@ -29,7 +29,7 @@ export const ActionButton = ({
   return (
     <button
       onClick={handleClick}
-      className="flex-1 flex flex-col items-center gap-1.5 py-3 px-4 rounded-xl hover:bg-white/5 transition-colors"
+      className="flex-1 flex flex-col items-center gap-1.5 py-2 px-2 rounded-xl hover:bg-white/5 transition-colors"
     >
       <div className="text-white">{icon}</div>
       <span className="text-white/80 text-xs font-medium">{label}</span>

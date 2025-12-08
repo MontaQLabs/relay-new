@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authenticateWithWallet, isAuthenticated } from "@/app/utils/auth";
 import { getWalletAddress } from "@/app/utils/wallet";
-import { getUserCommunities, getCreatedCommunities } from "@/app/db/supabase";
+import { getUserCommunities, getCreatedCommunities, searchCommunities } from "@/app/db/supabase";
 import { Community } from "@/app/types/frontend_type";
 
 type TabType = "joined" | "created";
@@ -45,6 +45,11 @@ export default function CommunityPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [joinedCommunities, setJoinedCommunities] = useState<Community[]>([]);
   const [createdCommunities, setCreatedCommunities] = useState<Community[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<Community[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Authenticate user on load
   useEffect(() => {
@@ -112,6 +117,42 @@ export default function CommunityPage() {
     router.push("/dashboard/community/create-community");
   };
 
+  // Debounced search handler
+  const handleSearch = useCallback(async (term: string) => {
+    setSearchTerm(term);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!term.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    // Debounce search by 300ms
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchCommunities(term);
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  }, []);
+
+  const clearSearch = () => {
+    setSearchTerm("");
+    setSearchResults([]);
+    setIsSearchFocused(false);
+  };
+
   const currentCommunities =
     activeTab === "joined" ? joinedCommunities : createdCommunities;
 
@@ -123,8 +164,37 @@ export default function CommunityPage() {
     );
   }
 
+  // Determine what to display
+  const showSearchResults = searchTerm.trim().length > 0;
+
   return (
     <div className="flex flex-col animate-fade-in">
+      {/* Search Box */}
+      <div className="px-5 pt-4 pb-2">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+            <Search className="w-4 h-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search communities..."
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+            className="w-full pl-10 pr-10 py-2.5 bg-gray-100 border-0 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white transition-all text-black"
+          />
+          {searchTerm && (
+            <button
+              onClick={clearSearch}
+              className="absolute inset-y-0 right-3 flex items-center"
+            >
+              <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Auth Error Banner (if wallet not set up) */}
       {authError && (
         <div className="mx-5 mt-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
@@ -132,7 +202,30 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* Tab Navigation */}
+      {/* Search Results */}
+      {showSearchResults ? (
+        <div className="flex flex-col">
+          <div className="px-5 py-3 border-b border-gray-100">
+            <p className="text-sm text-muted-foreground">
+              {isSearching
+                ? "Searching..."
+                : searchResults.length === 0
+                ? "No communities found"
+                : `${searchResults.length} ${searchResults.length === 1 ? "community" : "communities"} found`}
+            </p>
+          </div>
+          {!isSearching && searchResults.length > 0 && (
+            <CommunityList communities={searchResults} />
+          )}
+          {isSearching && (
+            <div className="flex items-center justify-center py-10">
+              <div className="w-6 h-6 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Tab Navigation */}
       <div className="flex items-center gap-6 px-5 border-b border-gray-100">
         <TabButton
           label="Joined"
@@ -162,15 +255,17 @@ export default function CommunityPage() {
         </button>
       </div>
 
-      {/* Content Area */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
-        </div>
-      ) : currentCommunities.length === 0 ? (
-        <EmptyState activeTab={activeTab} />
-      ) : (
-        <CommunityList communities={currentCommunities} />
+          {/* Content Area */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
+            </div>
+          ) : currentCommunities.length === 0 ? (
+            <EmptyState activeTab={activeTab} />
+          ) : (
+            <CommunityList communities={currentCommunities} />
+          )}
+        </>
       )}
     </div>
   );
