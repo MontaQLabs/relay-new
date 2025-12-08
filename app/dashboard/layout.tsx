@@ -19,7 +19,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col pt-safe">
       <Header title={getHeaderTitle()} />
       <main className="flex-1 overflow-y-auto pb-24">{children}</main>
       <BottomNav />

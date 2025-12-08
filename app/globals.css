@@ -279,3 +279,16 @@
 .sheet-content-right[data-state="closed"] {
   animation: sheet-slide-out-right 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
+
+/* Safe area insets for mobile devices (iPhone notch, Android status bar, etc.) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mt-safe {
+  margin-top: env(safe-area-inset-top, 0px);
+}
