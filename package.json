@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "papi generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "papi generate"
   },
   "dependencies": {
     "@polkadot-api/descriptors": "file:.papi/descriptors",
