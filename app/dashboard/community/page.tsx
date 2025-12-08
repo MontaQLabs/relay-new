@@ -8,6 +8,7 @@ import { authenticateWithWallet, isAuthenticated } from "@/app/utils/auth";
 import { getWalletAddress } from "@/app/utils/wallet";
 import { getUserCommunities, getCreatedCommunities, searchCommunities } from "@/app/db/supabase";
 import { Community } from "@/app/types/frontend_type";
+import { EmptyState } from "@/components/empty-state";
 
 type TabType = "joined" | "created";
 
@@ -296,29 +297,6 @@ function TabButton({
   );
 }
 
-// Empty State Component
-function EmptyState({ activeTab }: { activeTab: TabType }) {
-  return (
-    <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
-      {/* Empty Box Illustration */}
-      <div className="relative mb-8">
-        <EmptyBoxIllustration />
-      </div>
-
-      <h3 className="text-lg font-semibold text-black mb-2">
-        {activeTab === "joined"
-          ? "You haven't joined any community"
-          : "You haven't created any community"}
-      </h3>
-      <p className="text-sm text-muted-foreground max-w-[280px]">
-        {activeTab === "joined"
-          ? "You can create a community or search the community ID you want to join."
-          : "Create your first community and become a leader."}
-      </p>
-    </div>
-  );
-}
-
 // Swipeable Community Item Component
 function SwipeableCommunityItem({
   community,
@@ -507,67 +485,5 @@ function CommunityList({ communities }: { communities: Community[] }) {
         />
       ))}
     </div>
-  );
-}
-
-// Empty Box Illustration SVG Component
-function EmptyBoxIllustration() {
-  return (
-    <svg
-      width="200"
-      height="160"
-      viewBox="0 0 200 160"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Shadow */}
-      <ellipse cx="100" cy="145" rx="60" ry="8" fill="#F3F4F6" />
-
-      {/* Box base - back */}
-      <path
-        d="M40 80 L100 110 L160 80 L160 130 L100 150 L40 130 Z"
-        fill="white"
-        stroke="#1a1a1a"
-        strokeWidth="1.5"
-      />
-
-      {/* Box left flap */}
-      <path
-        d="M40 80 L40 60 L70 40 L100 60 L100 80 L70 100 Z"
-        fill="white"
-        stroke="#1a1a1a"
-        strokeWidth="1.5"
-      />
-
-      {/* Box right flap */}
-      <path
-        d="M160 80 L160 60 L130 40 L100 60 L100 80 L130 100 Z"
-        fill="white"
-        stroke="#1a1a1a"
-        strokeWidth="1.5"
-      />
-
-      {/* Box inner shadow */}
-      <path d="M50 85 L100 110 L150 85" stroke="#E5E7EB" strokeWidth="1" />
-
-      {/* Box inside dark area */}
-      <path
-        d="M55 75 L100 95 L145 75 L145 85 L100 105 L55 85 Z"
-        fill="#1a1a1a"
-      />
-
-      {/* Decorative curved dashed line */}
-      <path
-        d="M115 50 Q 130 30 140 35 Q 155 42 150 25"
-        stroke="#9CA3AF"
-        strokeWidth="1.5"
-        strokeDasharray="4 3"
-        fill="none"
-      />
-
-      {/* Small decorative element */}
-      <circle cx="152" cy="22" r="4" fill="#8B5CF6" />
-      <ellipse cx="152" cy="22" rx="2" ry="3" fill="#A78BFA" />
-    </svg>
   );
 }
