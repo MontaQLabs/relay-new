@@ -21,7 +21,7 @@ import { getWalletAddress, encryptWallet } from "@/app/utils/wallet";
 import { getUserByWallet } from "@/app/db/supabase";
 import { signOut, getAuthToken } from "@/app/utils/auth";
 import { validate } from "@/app/utils/password";
-import { WALLET_KEY, WALLET_SEED_KEY, IS_ENCRYPTED_KEY, USER_KEY, IS_BACKED_UP_KEY } from "@/app/types/constants";
+import { WALLET_KEY, WALLET_SEED_KEY, IS_ENCRYPTED_KEY, USER_KEY, IS_BACKED_UP_KEY, ENCRYPTED_WALLET_KEY } from "@/app/types/constants";
 import type { User, Wallet } from "@/app/types/frontend_type";
 import {
   Sheet,
@@ -69,6 +69,9 @@ export default function SettingsPage() {
   
   // Seed phrase sheet state
   const [isSeedPhraseOpen, setIsSeedPhraseOpen] = useState(false);
+
+  // Logout sheet state
+  const [isLogoutSheetOpen, setIsLogoutSheetOpen] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -133,8 +136,13 @@ export default function SettingsPage() {
     }
   };
 
-  // Handle logout
-  const handleLogout = async () => {
+  // Open logout sheet
+  const handleLogoutClick = () => {
+    setIsLogoutSheetOpen(true);
+  };
+
+  // Handle confirm logout (keeps encrypted wallet)
+  const handleConfirmLogout = async () => {
     try {
       // Delete all non-auth related storage items except for the encrypted wallet
       if (typeof window !== "undefined") {
@@ -152,6 +160,29 @@ export default function SettingsPage() {
       router.push("/login");
     } catch (error) {
       console.error("Logout failed:", error);
+    }
+  };
+
+  // Handle delete wallet (deletes everything)
+  const handleDeleteWallet = async () => {
+    try {
+      // Delete ALL relay-related storage items
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(WALLET_KEY);
+        localStorage.removeItem(WALLET_SEED_KEY);
+        localStorage.removeItem(ENCRYPTED_WALLET_KEY);
+        localStorage.removeItem(IS_ENCRYPTED_KEY);
+        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(IS_BACKED_UP_KEY);
+        // Remove any app-specific storage items
+        localStorage.removeItem("community-draft");
+      }
+      
+      // Then call signOut to handle auth-related cleanup
+      await signOut();
+      router.push("/");
+    } catch (error) {
+      console.error("Delete wallet failed:", error);
     }
   };
 
@@ -606,7 +637,7 @@ export default function SettingsPage() {
 
       {/* Logout Button */}
       <button
-        onClick={handleLogout}
+        onClick={handleLogoutClick}
         className="flex items-center gap-3 px-5 py-4 text-red-500 font-semibold hover:bg-red-50 rounded-2xl transition-colors"
       >
         <LogOut className="w-5 h-5" />
@@ -623,6 +654,14 @@ export default function SettingsPage() {
       <SeedPhraseSheet
         isOpen={isSeedPhraseOpen}
         onClose={() => setIsSeedPhraseOpen(false)}
+      />
+
+      {/* Logout Sheet */}
+      <LogoutSheet
+        isOpen={isLogoutSheetOpen}
+        onClose={() => setIsLogoutSheetOpen(false)}
+        onConfirmLogout={handleConfirmLogout}
+        onDeleteWallet={handleDeleteWallet}
       />
     </div>
   );
@@ -1368,6 +1407,113 @@ function SeedPhraseSheet({
         {(step === "verify1" || step === "verify2") && renderVerifyStep()}
         {step === "error" && renderErrorStep()}
         {step === "success" && renderSuccessStep()}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// Logout Sheet Component
+function LogoutSheet({
+  isOpen,
+  onClose,
+  onConfirmLogout,
+  onDeleteWallet,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirmLogout: () => Promise<void>;
+  onDeleteWallet: () => Promise<void>;
+}) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingAction, setProcessingAction] = useState<"logout" | "delete" | null>(null);
+
+  const handleConfirmLogout = async () => {
+    setIsProcessing(true);
+    setProcessingAction("logout");
+    await onConfirmLogout();
+    setIsProcessing(false);
+    setProcessingAction(null);
+    onClose();
+  };
+
+  const handleDeleteWallet = async () => {
+    setIsProcessing(true);
+    setProcessingAction("delete");
+    await onDeleteWallet();
+    setIsProcessing(false);
+    setProcessingAction(null);
+    onClose();
+  };
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="bottom" className="rounded-t-3xl px-6 pb-8">
+        <SheetHeader className="text-center pb-6">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <LogOut className="w-8 h-8 text-red-500" />
+          </div>
+          <SheetTitle className="text-2xl font-bold text-black">
+            Leaving?
+          </SheetTitle>
+          <SheetDescription className="text-gray-600">
+            Choose how you want to sign out
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-3">
+          {/* Confirm Logout Button */}
+          <button
+            onClick={handleConfirmLogout}
+            disabled={isProcessing}
+            className="w-full py-4 px-5 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                <LogOut className="w-5 h-5 text-gray-600" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-black">Confirm Logout</p>
+                <p className="text-sm text-gray-500">Keep wallet for next login</p>
+              </div>
+            </div>
+            {processingAction === "logout" ? (
+              <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {/* Delete Wallet Button */}
+          <button
+            onClick={handleDeleteWallet}
+            disabled={isProcessing}
+            className="w-full py-4 px-5 bg-red-50 hover:bg-red-100 rounded-2xl transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-red-600">Delete Wallet</p>
+                <p className="text-sm text-red-400">Remove all local data</p>
+              </div>
+            </div>
+            {processingAction === "delete" ? (
+              <Loader2 className="w-5 h-5 animate-spin text-red-500" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-red-400" />
+            )}
+          </button>
+        </div>
+
+        {/* Cancel Button */}
+        <button
+          onClick={onClose}
+          disabled={isProcessing}
+          className="w-full mt-4 py-3 text-gray-600 font-medium hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Cancel
+        </button>
       </SheetContent>
     </Sheet>
   );
