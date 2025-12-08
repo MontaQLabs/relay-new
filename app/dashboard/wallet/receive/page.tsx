@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Download } from "lucide-react";
+import { ChevronLeft, Download, Copy, Check } from "lucide-react";
 import { fetchDotCoins, calculatePortfolioValue } from "@/app/utils/crypto";
 import { getWalletAddress } from "@/app/utils/wallet";
 import { generateQRCode, downloadQRWithPromo } from "@/app/utils/qr";
 import { getKnownAssets } from "@/app/db/supabase";
-import type { Coin } from "@/app/types/frontend_type";
+import type { Coin, KnownAsset } from "@/app/types/frontend_type";
+import { POLKADOT_NETWORK_NAME } from "@/app/types/constants";
 import {
   Sheet,
   SheetContent,
@@ -22,11 +23,21 @@ const COIN_COLORS: Record<string, { bg: string; color: string }> = {
   XMR: { bg: "#ff6600", color: "#ffffff" },
   BTC: { bg: "#f7931a", color: "#ffffff" },
   USDT: { bg: "#26a17b", color: "#ffffff" },
+  USDt: { bg: "#26a17b", color: "#ffffff" },
   USDC: { bg: "#2775ca", color: "#ffffff" },
   DOT: { bg: "#e6007a", color: "#ffffff" },
   SOL: { bg: "#9945ff", color: "#ffffff" },
+  DED: { bg: "#ff4444", color: "#ffffff" },
+  PINK: { bg: "#ff69b4", color: "#ffffff" },
   DEFAULT: { bg: "#6366f1", color: "#ffffff" },
 };
+
+// Receivable token type (for display when user has no tokens)
+interface ReceivableToken {
+  ticker: string;
+  name: string;
+  symbol?: string;
+}
 
 export default function ReceivePage() {
   const router = useRouter();
@@ -34,12 +45,14 @@ export default function ReceivePage() {
   
   // Data state
   const [coins, setCoins] = useState<Coin[]>([]);
+  const [receivableTokens, setReceivableTokens] = useState<ReceivableToken[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>("");
+  const [copied, setCopied] = useState(false);
   
   // Sheet state
-  const [selectedToken, setSelectedToken] = useState<Coin | null>(null);
+  const [selectedToken, setSelectedToken] = useState<Coin | ReceivableToken | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
@@ -59,6 +72,17 @@ export default function ReceivePage() {
         
         // First fetch known assets from Supabase
         const knownAssets = await getKnownAssets();
+        
+        // Build receivable tokens list (DOT + known assets)
+        const tokens: ReceivableToken[] = [
+          { ticker: "DOT", name: "Polkadot", symbol: "https://assets.coingecko.com/coins/images/12171/small/polkadot.png" },
+          ...knownAssets.map((asset: KnownAsset) => ({
+            ticker: asset.ticker,
+            name: asset.ticker === "USDt" ? "Tether USD" : asset.ticker === "USDC" ? "USD Coin" : asset.ticker,
+            symbol: asset.symbol,
+          })),
+        ];
+        setReceivableTokens(tokens);
         
         // Then fetch coins using known assets
         const fetchedCoins = await fetchDotCoins(knownAssets);
@@ -81,12 +105,27 @@ export default function ReceivePage() {
         console.error("Failed to load data:", error);
         // Use demo address on error
         setWalletAddress("1exaAg2VJRQbyUBAeXcktChCAqjVP9TUxF3zo23R2T6EGdE");
+        // Still show default receivable tokens
+        setReceivableTokens([
+          { ticker: "DOT", name: "Polkadot", symbol: "https://assets.coingecko.com/coins/images/12171/small/polkadot.png" },
+        ]);
         setCoins([]);
         setIsLoading(false);
       }
     };
     loadData();
   }, []);
+
+  // Copy address to clipboard
+  const handleCopyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(walletAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy address:", error);
+    }
+  };
 
   const handleBack = () => {
     setIsExiting(true);
@@ -95,8 +134,8 @@ export default function ReceivePage() {
     }, 300);
   };
 
-  const handleTokenSelect = async (coin: Coin) => {
-    setSelectedToken(coin);
+  const handleTokenSelect = async (token: Coin | ReceivableToken) => {
+    setSelectedToken(token);
     setIsSheetOpen(true);
     setIsGeneratingQR(true);
     
@@ -124,6 +163,9 @@ export default function ReceivePage() {
       console.error("Failed to download QR code:", error);
     }
   };
+
+  // Check if we have owned coins
+  const hasOwnedCoins = coins.length > 0;
 
   // Format address for display (split into two lines)
   const formatAddress = (address: string) => {
@@ -160,17 +202,47 @@ export default function ReceivePage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col px-5 pt-4 gap-4 overflow-auto">
-        {/* Token Selection */}
+        {/* Wallet Address Card - Always visible */}
         <div className="animate-slide-up">
+          <div className="bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl p-5 text-white">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-violet-200 text-sm">Your Wallet Address</p>
+                <p className="text-white/80 text-xs mt-0.5">{POLKADOT_NETWORK_NAME}</p>
+              </div>
+              <button
+                onClick={handleCopyAddress}
+                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                aria-label="Copy address"
+              >
+                {copied ? (
+                  <Check className="w-5 h-5 text-white" />
+                ) : (
+                  <Copy className="w-5 h-5 text-white" />
+                )}
+              </button>
+            </div>
+            <p className="font-mono text-sm break-all text-white/90">
+              {walletAddress}
+            </p>
+            {copied && (
+              <p className="text-xs text-violet-200 mt-2">Address copied!</p>
+            )}
+          </div>
+        </div>
+
+        {/* Token Selection */}
+        <div className="animate-slide-up" style={{ animationDelay: "50ms" }}>
           <label className="text-sm font-medium text-muted-foreground mb-2 block">
-            Select Token to Receive
+            {hasOwnedCoins ? "Your Tokens" : "Select Token to Receive"}
           </label>
           <div className="bg-gray-50 rounded-2xl overflow-hidden">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="w-6 h-6 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
               </div>
-            ) : (
+            ) : hasOwnedCoins ? (
+              /* Show owned coins with balances */
               <div className="divide-y divide-gray-200">
                 {coins.map((coin) => {
                   const coinColors = COIN_COLORS[coin.ticker] || COIN_COLORS.DEFAULT;
@@ -210,9 +282,51 @@ export default function ReceivePage() {
                   );
                 })}
               </div>
+            ) : (
+              /* Show receivable tokens when user has no coins */
+              <div className="divide-y divide-gray-200">
+                {receivableTokens.map((token) => {
+                  const tokenColors = COIN_COLORS[token.ticker] || COIN_COLORS.DEFAULT;
+                  
+                  return (
+                    <button
+                      key={token.ticker}
+                      onClick={() => handleTokenSelect(token)}
+                      className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-gray-100"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: tokenColors.bg }}
+                        >
+                          <CryptoIcon symbol={token.ticker} color={tokenColors.color} />
+                        </div>
+                        <div className="text-left">
+                          <span className="font-semibold text-black block">{token.ticker}</span>
+                          <span className="text-sm text-muted-foreground">{token.name}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Tap to receive</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
+
+        {/* Info message when no coins */}
+        {!isLoading && !hasOwnedCoins && (
+          <div className="animate-slide-up bg-blue-50 border border-blue-200 rounded-xl p-4" style={{ animationDelay: "100ms" }}>
+            <p className="text-sm text-blue-800">
+              <span className="font-medium">New wallet?</span> Select a token above to view your receive address and QR code. 
+              Share it with others to receive tokens on {POLKADOT_NETWORK_NAME}.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* QR Code Sheet */}
