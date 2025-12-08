@@ -1014,11 +1014,16 @@ function SeedPhraseSheet({
   };
 
   // Initialize seed phrase when isOpen becomes true
+  // This effect intentionally sets state when the sheet opens for the first time
   const prevIsOpenRef = useRef(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      initializeSeedPhrase();
+      const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
+      if (mnemonic) {
+        const words = mnemonic.trim().split(/\s+/);
+        /* eslint-disable-next-line */
+        setSeedPhrase(words);
+      }
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen]);

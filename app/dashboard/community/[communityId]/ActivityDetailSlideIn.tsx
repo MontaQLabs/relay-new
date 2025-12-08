@@ -28,15 +28,6 @@ const formatDate = (timestamp: string): string => {
   });
 };
 
-// Format activity date for display in status badge
-const formatActivityDate = (timestamp: string): string => {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString("en-US", {
-    month: "numeric",
-    day: "numeric",
-  });
-};
-
 interface ActivityDetailSlideInProps {
   isOpen: boolean;
   onClose: () => void;

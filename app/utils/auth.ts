@@ -13,8 +13,7 @@
 
 import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady, signatureVerify } from '@polkadot/util-crypto';
-import { SS58_FORMAT, WALLET_SEED_KEY, WALLET_KEY } from '../types/constants';
-import { Wallet } from '../types/frontend_type';
+import { SS58_FORMAT, WALLET_SEED_KEY } from '../types/constants';
 import { setSupabaseAuth, clearSupabaseAuth, upsertUser } from '../db/supabase';
 
 // ============================================================================

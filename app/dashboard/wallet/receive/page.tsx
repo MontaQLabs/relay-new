@@ -237,6 +237,7 @@ export default function ReceivePage() {
                   <div className="w-8 h-8 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
                 </div>
               ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={qrCodeDataUrl}
                   alt="QR Code"

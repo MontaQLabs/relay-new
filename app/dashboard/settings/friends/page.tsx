@@ -1,16 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, UserPlus, Loader2 } from "lucide-react";
 import { getAuthToken } from "@/app/utils/auth";
 import type { Friend } from "@/app/types/frontend_type";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import AddFriendSheet from "./AddFriendSheet";
 import FriendDetailSheet from "./FriendDetailSheet";
 
@@ -23,11 +17,7 @@ export default function FriendsPage() {
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  useEffect(() => {
-    fetchFriends();
-  }, []);
-
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => {
     try {
       setIsLoading(true);
       const authToken = getAuthToken();
@@ -53,7 +43,11 @@ export default function FriendsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchFriends();
+  }, [fetchFriends]);
 
   const handleBack = () => {
     setIsExiting(true);
@@ -148,6 +142,7 @@ export default function FriendsPage() {
                 >
                   {/* Avatar */}
                   <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={getFriendAvatar(friend.walletAddress)}
                       alt={friend.nickname}
