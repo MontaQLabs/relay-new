@@ -5,20 +5,11 @@ import { ChevronLeft, Heart, MessageCircle, X, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  getActivityComments,
-  joinActivity,
-  leaveActivity,
-  createComment,
-  likeActivity,
-  subscribeToComments,
-  unsubscribe,
-  restoreSupabaseAuth,
-  setSupabaseAuth,
-} from "@/app/db/supabase";
+import { supabase } from "@/app/db/supabase";
 import { getWalletAddress } from "@/app/utils/wallet";
 import { getAuthToken } from "@/app/utils/auth";
 import type { Activity, Comment } from "@/app/types/frontend_type";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // Generate a random avatar URL using DiceBear
 const getRandomAvatar = (seed: string): string => {
@@ -51,6 +42,7 @@ interface ActivityDetailSlideInProps {
   onClose: () => void;
   activity: Activity;
   onActivityUpdated: () => void;
+  ownerNickname?: string;
 }
 
 type CommentTabType = "comments" | "my_posts";
@@ -60,6 +52,7 @@ export default function ActivityDetailSlideIn({
   onClose,
   activity,
   onActivityUpdated,
+  ownerNickname,
 }: ActivityDetailSlideInProps) {
   const [isExiting, setIsExiting] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -71,24 +64,56 @@ export default function ActivityDetailSlideIn({
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [userNicknames, setUserNicknames] = useState<Record<string, string>>({});
+  // Local attendees state to avoid full page refresh
+  const [localAttendees, setLocalAttendees] = useState<string[]>(activity.attendees);
+  const [hasAttendanceChanged, setHasAttendanceChanged] = useState(false);
   
   const walletAddress = getWalletAddress();
-  const subscriptionRef = useRef<ReturnType<typeof subscribeToComments> | null>(null);
+  const subscriptionRef = useRef<RealtimeChannel | null>(null);
 
   // Check if user is attending (excluding owner)
   useEffect(() => {
     if (walletAddress) {
-      const attending = activity.attendees.includes(walletAddress) && activity.owner !== walletAddress;
+      const attending = localAttendees.includes(walletAddress) && activity.owner !== walletAddress;
       setIsAttending(attending);
     }
-  }, [walletAddress, activity.attendees, activity.owner]);
+  }, [walletAddress, localAttendees, activity.owner]);
 
-  // Fetch comments
+  // Reset local attendees when activity prop changes
+  useEffect(() => {
+    setLocalAttendees(activity.attendees);
+    setHasAttendanceChanged(false);
+  }, [activity.attendees]);
+
+  // Fetch comments via API
   const fetchComments = useCallback(async () => {
     setIsLoadingComments(true);
     try {
-      const fetchedComments = await getActivityComments(activity.activityId);
+      const response = await fetch(`/api/activity/comments?activityId=${activity.activityId}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch comments");
+      }
+      
+      const fetchedComments: Comment[] = data.comments;
       setComments(fetchedComments);
+      
+      // Fetch nicknames for comment publishers via API
+      if (fetchedComments.length > 0) {
+        const publisherAddresses = fetchedComments.map((c) => c.publisher);
+        const nicknamesResponse = await fetch("/api/user/nicknames", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddresses: publisherAddresses }),
+        });
+        const nicknamesData = await nicknamesResponse.json();
+        
+        if (nicknamesResponse.ok) {
+          setUserNicknames(nicknamesData.nicknames);
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch comments:", error);
     } finally {
@@ -100,15 +125,43 @@ export default function ActivityDetailSlideIn({
     if (isOpen) {
       fetchComments();
       
-      // Subscribe to new comments
-      subscriptionRef.current = subscribeToComments(activity.activityId, (newComment) => {
-        setComments((prev) => [...prev, newComment]);
-      });
+      // Subscribe to new comments using base Supabase client (real-time requires client-side)
+      subscriptionRef.current = supabase
+        .channel(`comments:${activity.activityId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "comments",
+            filter: `activity_id=eq.${activity.activityId}`,
+          },
+          (payload) => {
+            const c = payload.new as {
+              comment_id: string;
+              publisher_wallet: string;
+              content: string;
+              timestamp: string;
+              likes: number;
+            };
+            setComments((prev) => [
+              ...prev,
+              {
+                commentId: c.comment_id,
+                publisher: c.publisher_wallet,
+                content: c.content,
+                timestamp: c.timestamp,
+                likes: c.likes,
+              },
+            ]);
+          }
+        )
+        .subscribe();
     }
 
     return () => {
       if (subscriptionRef.current) {
-        unsubscribe(subscriptionRef.current);
+        supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
     };
@@ -124,40 +177,49 @@ export default function ActivityDetailSlideIn({
   const handleBack = () => {
     setIsExiting(true);
     setTimeout(() => {
+      // Only refresh parent data if attendance changed
+      if (hasAttendanceChanged) {
+        onActivityUpdated();
+      }
       onClose();
     }, 300);
   };
 
-  const ensureAuth = async () => {
+  const getAuthHeaders = (): Record<string, string> => {
     const authToken = getAuthToken();
-    if (authToken) {
-      await setSupabaseAuth(authToken);
-    } else {
-      restoreSupabaseAuth();
-    }
+    return authToken ? { Authorization: `Bearer ${authToken}` } : {};
   };
 
   const handleAttend = async () => {
     if (!walletAddress || isProcessingAttend) return;
 
-    await ensureAuth();
     setIsProcessingAttend(true);
 
     try {
-      if (isAttending) {
-        // Leave activity
-        const success = await leaveActivity(activity.activityId, walletAddress);
-        if (success) {
-          setIsAttending(false);
-          onActivityUpdated();
+      const endpoint = isAttending ? "/api/activity/leave" : "/api/activity/join";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ activityId: activity.activityId }),
+      });
+
+      if (response.ok) {
+        // Update local state instead of triggering full page refresh
+        if (isAttending) {
+          // Leaving - remove from local attendees
+          setLocalAttendees((prev) => prev.filter((addr) => addr !== walletAddress));
+        } else {
+          // Joining - add to local attendees
+          setLocalAttendees((prev) => [...prev, walletAddress]);
         }
+        setIsAttending(!isAttending);
+        setHasAttendanceChanged(true);
       } else {
-        // Join activity
-        const success = await joinActivity(activity.activityId, walletAddress);
-        if (success) {
-          setIsAttending(true);
-          onActivityUpdated();
-        }
+        const data = await response.json();
+        console.error("Failed to update attendance:", data.error);
       }
     } catch (error) {
       console.error("Failed to update attendance:", error);
@@ -168,10 +230,17 @@ export default function ActivityDetailSlideIn({
 
   const handleLike = async () => {
     try {
-      await ensureAuth();
-      const success = await likeActivity(activity.activityId);
-      if (success) {
+      const response = await fetch("/api/activity/like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activityId: activity.activityId }),
+      });
+
+      if (response.ok) {
         setLikes((prev) => prev + 1);
+      } else {
+        const data = await response.json();
+        console.error("Failed to like activity:", data.error);
       }
     } catch (error) {
       console.error("Failed to like activity:", error);
@@ -181,15 +250,29 @@ export default function ActivityDetailSlideIn({
   const handleSubmitComment = async () => {
     if (!walletAddress || !commentInput.trim() || isSubmittingComment) return;
 
-    await ensureAuth();
     setIsSubmittingComment(true);
 
     try {
-      const commentId = await createComment(walletAddress, activity.activityId, commentInput.trim());
-      if (commentId) {
+      const response = await fetch("/api/activity/comment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          activityId: activity.activityId,
+          content: commentInput.trim(),
+        }),
+      });
+
+      if (response.ok) {
         setCommentInput("");
         setIsCommentSheetOpen(false);
-        // The real-time subscription will add the comment
+        // Refetch comments to include the newly posted comment
+        fetchComments();
+      } else {
+        const data = await response.json();
+        console.error("Failed to submit comment:", data.error);
       }
     } catch (error) {
       console.error("Failed to submit comment:", error);
@@ -198,8 +281,8 @@ export default function ActivityDetailSlideIn({
     }
   };
 
-  // Calculate attendees count excluding host
-  const attendeesCount = activity.attendees.filter((addr) => addr !== activity.owner).length;
+  // Calculate attendees count excluding host (using local state)
+  const attendeesCount = localAttendees.filter((addr) => addr !== activity.owner).length;
 
   // Filter comments based on active tab
   const filteredComments = activeTab === "my_posts" && walletAddress
@@ -241,7 +324,7 @@ export default function ActivityDetailSlideIn({
               />
             </div>
             <div>
-              <p className="font-semibold text-black text-sm">Username</p>
+              <p className="font-semibold text-black text-sm">{ownerNickname || `${activity.owner.slice(0, 6)}...${activity.owner.slice(-4)}`}</p>
               <p className="text-xs text-muted-foreground">
                 Posted at {formatDate(activity.timestamp)}
               </p>
@@ -329,7 +412,11 @@ export default function ActivityDetailSlideIn({
           ) : (
             <div className="space-y-4">
               {filteredComments.map((comment) => (
-                <CommentItem key={comment.commentId} comment={comment} />
+                <CommentItem 
+                  key={comment.commentId} 
+                  comment={comment} 
+                  nickname={userNicknames[comment.publisher]}
+                />
               ))}
             </div>
           )}
@@ -406,7 +493,7 @@ export default function ActivityDetailSlideIn({
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
               placeholder="Write your comment..."
-              className="flex-1 h-12 rounded-xl border-gray-200"
+              className="flex-1 h-12 rounded-xl border-gray-200 text-black"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -433,7 +520,7 @@ export default function ActivityDetailSlideIn({
 }
 
 // Comment Item Component
-function CommentItem({ comment }: { comment: Comment }) {
+function CommentItem({ comment, nickname }: { comment: Comment; nickname?: string }) {
   return (
     <div className="flex gap-3">
       <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
@@ -445,7 +532,7 @@ function CommentItem({ comment }: { comment: Comment }) {
         />
       </div>
       <div className="flex-1">
-        <p className="font-semibold text-black text-sm">Username</p>
+        <p className="font-semibold text-black text-sm">{nickname || `${comment.publisher.slice(0, 6)}...${comment.publisher.slice(-4)}`}</p>
         <p className="text-sm text-gray-700">{comment.content}</p>
         <p className="text-xs text-muted-foreground mt-1">
           {formatDate(comment.timestamp)}

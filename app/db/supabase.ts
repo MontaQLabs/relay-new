@@ -260,6 +260,59 @@ export const getUserByWallet = async (walletAddress: string): Promise<User | nul
 };
 
 /**
+ * Get user nickname by wallet address
+ * Returns the nickname if found, otherwise returns a truncated wallet address
+ */
+export const getUserNickname = async (walletAddress: string): Promise<string> => {
+  const { data, error } = await getSupabaseClient()
+    .from('users')
+    .select('nickname')
+    .eq('wallet_address', walletAddress)
+    .single();
+
+  if (error || !data || !data.nickname) {
+    // Return truncated wallet address as fallback
+    return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+  }
+
+  return data.nickname;
+};
+
+/**
+ * Get user nicknames by wallet addresses (batch)
+ * Returns a map of wallet address to nickname
+ */
+export const getUserNicknames = async (walletAddresses: string[]): Promise<Record<string, string>> => {
+  if (walletAddresses.length === 0) return {};
+
+  // Remove duplicates
+  const uniqueAddresses = [...new Set(walletAddresses)];
+
+  const { data, error } = await getSupabaseClient()
+    .from('users')
+    .select('wallet_address, nickname')
+    .in('wallet_address', uniqueAddresses);
+
+  const nicknameMap: Record<string, string> = {};
+
+  // Initialize all addresses with truncated fallback
+  uniqueAddresses.forEach((address) => {
+    nicknameMap[address] = `${address.slice(0, 6)}...${address.slice(-4)}`;
+  });
+
+  // Override with actual nicknames where available
+  if (!error && data) {
+    data.forEach((user: { wallet_address: string; nickname: string | null }) => {
+      if (user.nickname) {
+        nicknameMap[user.wallet_address] = user.nickname;
+      }
+    });
+  }
+
+  return nicknameMap;
+};
+
+/**
  * Update user profile
  */
 export const updateUserProfile = async (

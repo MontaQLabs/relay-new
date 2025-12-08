@@ -307,7 +307,7 @@ export default function CreateActivitySlideIn({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Please enter the name of your activity"
-            className="border-none bg-transparent p-0 h-auto text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-none shadow-none bg-transparent p-0 h-auto text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
 
@@ -320,7 +320,7 @@ export default function CreateActivitySlideIn({
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Please enter the detailed description of your activity"
-            className="border-none bg-transparent p-0 min-h-[60px] resize-none text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-none shadow-none bg-transparent p-0 min-h-[60px] resize-none text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <div className="text-right mt-2">
             <span className="text-sm text-muted-foreground">
@@ -331,7 +331,7 @@ export default function CreateActivitySlideIn({
 
         {/* Paid Ticket Toggle */}
         <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
-          <span className="text-sm font-medium text-black">Paid ticket?</span>
+          <span className="text-sm font-medium text-black">Paid ticket coming soon...</span>
           <Switch
             checked={isPaidTicket}
             onCheckedChange={setIsPaidTicket}
@@ -497,7 +497,7 @@ export default function CreateActivitySlideIn({
               type="date"
               value={tempDate}
               onChange={(e) => setTempDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base text-black focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
@@ -510,7 +510,7 @@ export default function CreateActivitySlideIn({
               type="time"
               value={tempTime}
               onChange={(e) => setTempTime(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base text-black focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
@@ -557,16 +557,6 @@ export default function CreateActivitySlideIn({
                 {type}
               </button>
             ))}
-          </div>
-
-          {/* Add Custom Type Link */}
-          <div className="text-center mb-8">
-            <span className="text-sm text-gray-500">
-              Couldn&apos;t find your type?{" "}
-            </span>
-            <button className="text-sm text-violet-500 font-medium hover:text-violet-600 transition-colors">
-              Click here to add
-            </button>
           </div>
 
           {/* Confirm Button */}

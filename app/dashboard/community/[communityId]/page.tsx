@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ChevronLeft, Search, Bell, Plus, MessageCircle, Heart, Check } from "lucide-react";
-import { getCommunity, getCommunityActivities } from "@/app/db/supabase";
+import { getCommunity, getCommunityActivities, getUserNicknames } from "@/app/db/supabase";
 import { getWalletAddress } from "@/app/utils/wallet";
 import type { Community, Activity } from "@/app/types/frontend_type";
 import CreateActivitySlideIn from "./CreateActivitySlideIn";
@@ -41,6 +41,7 @@ export default function CommunityDetailPage() {
   const [isCreateActivityOpen, setIsCreateActivityOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [isActivityDetailOpen, setIsActivityDetailOpen] = useState(false);
+  const [ownerNicknames, setOwnerNicknames] = useState<Record<string, string>>({});
 
   const walletAddress = getWalletAddress();
 
@@ -54,6 +55,13 @@ export default function CommunityDetailPage() {
       ]);
       setCommunity(communityData);
       setActivities(activitiesData);
+      
+      // Fetch owner nicknames for all activities
+      if (activitiesData.length > 0) {
+        const ownerAddresses = activitiesData.map((a) => a.owner);
+        const nicknames = await getUserNicknames(ownerAddresses);
+        setOwnerNicknames(nicknames);
+      }
     } catch (error) {
       console.error("Failed to fetch community data:", error);
     } finally {
@@ -250,11 +258,6 @@ export default function CommunityDetailPage() {
         </div>
       </div>
 
-      {/* Section Label */}
-      <div className="px-5 py-2">
-        <span className="text-sm text-muted-foreground">Section</span>
-      </div>
-
       {/* Content Area */}
       <div className="flex-1 overflow-auto px-5 pb-24">
         {filteredActivities.length === 0 ? (
@@ -266,6 +269,7 @@ export default function CommunityDetailPage() {
                 key={activity.activityId} 
                 activity={activity} 
                 walletAddress={walletAddress}
+                ownerNickname={ownerNicknames[activity.owner]}
                 onClick={() => handleActivityClick(activity)}
               />
             ))}
@@ -299,6 +303,7 @@ export default function CommunityDetailPage() {
           onClose={handleActivityDetailClose}
           activity={selectedActivity}
           onActivityUpdated={handleActivityUpdated}
+          ownerNickname={ownerNicknames[selectedActivity.owner]}
         />
       )}
     </div>
@@ -366,10 +371,12 @@ function EmptyState({ mainTab, subTab }: { mainTab: MainTabType; subTab: SubTabT
 function ActivityCard({ 
   activity, 
   walletAddress,
+  ownerNickname,
   onClick,
 }: { 
   activity: Activity;
   walletAddress: string | null;
+  ownerNickname?: string;
   onClick: () => void;
 }) {
   const isAttending = walletAddress && activity.attendees.includes(walletAddress);
@@ -402,7 +409,7 @@ function ActivityCard({
             />
           </div>
           <div>
-            <p className="font-semibold text-black text-sm">Username</p>
+            <p className="font-semibold text-black text-sm">{ownerNickname || `${activity.owner.slice(0, 6)}...${activity.owner.slice(-4)}`}</p>
             <p className="text-xs text-muted-foreground">
               Posted at {formatTime(activity.timestamp)}
             </p>
@@ -447,7 +454,7 @@ function ActivityCard({
       )}
 
       {/* Activity Stats */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex items-center justify-end gap-2 pt-2">
         <div className="flex items-center gap-1 text-muted-foreground">
           <MessageCircle className="w-4 h-4" />
           <span className="text-sm">{activity.comments.length}</span>
