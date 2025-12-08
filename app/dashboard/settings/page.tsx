@@ -73,6 +73,9 @@ export default function SettingsPage() {
   // Logout sheet state
   const [isLogoutSheetOpen, setIsLogoutSheetOpen] = useState(false);
 
+  // Terms sheet state
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -398,7 +401,7 @@ export default function SettingsPage() {
       icon: <FileText className="w-5 h-5" />,
       title: "Terms and Services",
       description: "",
-      href: "/dashboard/settings/terms",
+      onClick: () => setIsTermsOpen(true),
     },
   ];
 
@@ -662,6 +665,12 @@ export default function SettingsPage() {
         onClose={() => setIsLogoutSheetOpen(false)}
         onConfirmLogout={handleConfirmLogout}
         onDeleteWallet={handleDeleteWallet}
+      />
+
+      {/* Terms Sheet */}
+      <TermsSheet
+        isOpen={isTermsOpen}
+        onClose={() => setIsTermsOpen(false)}
       />
     </div>
   );
@@ -1514,6 +1523,332 @@ function LogoutSheet({
         >
           Cancel
         </button>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// Terms and Services Sheet Component
+function TermsSheet({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const lastUpdated = "December 8, 2024";
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-full sm:max-w-lg px-0 pb-0 overflow-hidden flex flex-col">
+        <SheetHeader className="text-left px-6 pb-4 border-b border-gray-100 flex-shrink-0">
+          {/* Back button */}
+          <button
+            onClick={onClose}
+            className="mb-4 -ml-2 p-2 cursor-pointer"
+            aria-label="Go back"
+          >
+            <svg
+              className="w-6 h-6"
+              style={{ color: "#1a1a1a" }}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+
+          <SheetTitle className="text-2xl font-bold tracking-tight text-left text-black">
+            Terms of Service
+          </SheetTitle>
+          <p className="text-sm text-gray-500 mt-1">
+            Last updated: {lastUpdated}
+          </p>
+        </SheetHeader>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-8 text-gray-700 text-sm leading-relaxed pb-8">
+            
+            {/* Introduction */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">1. Acceptance of Terms</h2>
+              <p className="mb-3">
+                Welcome to Relay (&quot;Company,&quot; &quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). By accessing or using our 
+                non-custodial digital wallet application and related services (collectively, the &quot;Services&quot;), 
+                you agree to be bound by these Terms of Service (&quot;Terms&quot;).
+              </p>
+              <p>
+                If you do not agree to these Terms, you may not access or use our Services. We reserve 
+                the right to modify these Terms at any time. Your continued use of the Services after 
+                any such changes constitutes your acceptance of the new Terms.
+              </p>
+            </section>
+
+            {/* Description of Services */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">2. Description of Services</h2>
+              <p className="mb-3">
+                Relay provides a non-custodial digital wallet that enables you to:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Generate and manage cryptographic key pairs</li>
+                <li>Store, send, and receive digital assets on supported blockchain networks</li>
+                <li>Create and participate in community-based activities</li>
+                <li>Interact with decentralized applications (dApps)</li>
+                <li>View transaction history and account balances</li>
+              </ul>
+              <p className="mt-3">
+                As a non-custodial wallet, <strong>you maintain complete control over your private keys 
+                and seed phrase</strong>. We do not have access to, and cannot recover, your private keys 
+                or seed phrase.
+              </p>
+            </section>
+
+            {/* Eligibility */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">3. Eligibility</h2>
+              <p>
+                You must be at least 18 years old and capable of forming a binding contract to use 
+                our Services. By using the Services, you represent and warrant that you meet these 
+                requirements and that you are not prohibited from using the Services under any 
+                applicable laws.
+              </p>
+            </section>
+
+            {/* Wallet Security */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">4. Wallet Security & Self-Custody</h2>
+              <p className="mb-3">
+                <strong>Your responsibility:</strong> You are solely responsible for maintaining the 
+                security of your wallet, including:
+              </p>
+              <ul className="list-disc pl-5 space-y-2 mb-3">
+                <li>
+                  <strong>Seed Phrase:</strong> Your 12-word seed phrase is the master key to your 
+                  wallet. Store it securely offline. Never share it with anyone. We will never ask 
+                  for your seed phrase.
+                </li>
+                <li>
+                  <strong>Password:</strong> Your local password encrypts your wallet on this device. 
+                  We cannot recover forgotten passwords.
+                </li>
+                <li>
+                  <strong>Device Security:</strong> Keep your device secure with up-to-date software 
+                  and strong device-level authentication.
+                </li>
+              </ul>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
+                <p className="text-amber-800 font-medium">
+                  ⚠️ Warning: Loss of your seed phrase means permanent loss of access to your 
+                  digital assets. We cannot recover your wallet or funds under any circumstances.
+                </p>
+              </div>
+            </section>
+
+            {/* Private Keys */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">5. Private Keys & Digital Assets</h2>
+              <p className="mb-3">
+                You acknowledge and agree that:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  Private keys are generated locally on your device and are never transmitted to 
+                  our servers
+                </li>
+                <li>
+                  You are solely responsible for all activities that occur through your wallet
+                </li>
+                <li>
+                  Blockchain transactions are irreversible once confirmed on the network
+                </li>
+                <li>
+                  Digital asset values are highly volatile and can lose all value
+                </li>
+                <li>
+                  We do not provide investment, tax, or financial advice
+                </li>
+              </ul>
+            </section>
+
+            {/* Transactions */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">6. Transactions</h2>
+              <p className="mb-3">
+                When you initiate a transaction through our Services:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  You are responsible for verifying the recipient address and transaction details
+                </li>
+                <li>
+                  Transactions broadcast to blockchain networks are irreversible
+                </li>
+                <li>
+                  Network fees (gas fees) are determined by the blockchain network, not by us
+                </li>
+                <li>
+                  We do not guarantee transaction confirmation times or success
+                </li>
+                <li>
+                  Sending assets to an incorrect address may result in permanent loss
+                </li>
+              </ul>
+            </section>
+
+            {/* Fees */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">7. Fees</h2>
+              <p>
+                Using our wallet is free. However, blockchain networks charge transaction fees 
+                (gas fees) for processing transactions. These fees are paid directly to network 
+                validators/miners and are not collected by us. Fee amounts vary based on network 
+                congestion and transaction complexity.
+              </p>
+            </section>
+
+            {/* Third Party */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">8. Third-Party Services</h2>
+              <p className="mb-3">
+                Our Services may integrate with or link to third-party services, including:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Decentralized applications (dApps)</li>
+                <li>Token swap protocols</li>
+                <li>Price data providers</li>
+                <li>Blockchain explorers</li>
+              </ul>
+              <p className="mt-3">
+                We are not responsible for the availability, accuracy, or actions of any 
+                third-party services. Your use of third-party services is at your own risk and 
+                subject to their respective terms.
+              </p>
+            </section>
+
+            {/* Prohibited Activities */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">9. Prohibited Activities</h2>
+              <p className="mb-3">
+                You agree not to use our Services to:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Violate any applicable laws or regulations</li>
+                <li>Engage in money laundering, terrorist financing, or other illegal activities</li>
+                <li>Circumvent sanctions or export controls</li>
+                <li>Infringe on intellectual property rights</li>
+                <li>Attempt to compromise the security of our Services</li>
+                <li>Interfere with other users&apos; access to the Services</li>
+                <li>Distribute malware or harmful code</li>
+              </ul>
+            </section>
+
+            {/* Disclaimers */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">10. Disclaimers</h2>
+              <p className="mb-3 uppercase text-xs tracking-wide text-gray-500">
+                THE SERVICES ARE PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF 
+                ANY KIND, EXPRESS OR IMPLIED.
+              </p>
+              <p className="mb-3">
+                We disclaim all warranties, including but not limited to:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Merchantability and fitness for a particular purpose</li>
+                <li>Uninterrupted or error-free operation</li>
+                <li>Accuracy of blockchain data or price information</li>
+                <li>Security against all potential threats</li>
+                <li>Compatibility with all devices or networks</li>
+              </ul>
+            </section>
+
+            {/* Limitation of Liability */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">11. Limitation of Liability</h2>
+              <p className="mb-3">
+                To the maximum extent permitted by law, we shall not be liable for:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Loss of digital assets due to user error, lost keys, or forgotten passwords</li>
+                <li>Unauthorized access resulting from compromised devices or credentials</li>
+                <li>Blockchain network failures, forks, or congestion</li>
+                <li>Smart contract bugs or vulnerabilities</li>
+                <li>Market volatility or changes in digital asset values</li>
+                <li>Any indirect, incidental, special, or consequential damages</li>
+              </ul>
+            </section>
+
+            {/* Indemnification */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">12. Indemnification</h2>
+              <p>
+                You agree to indemnify, defend, and hold harmless the Company and its officers, 
+                directors, employees, and agents from any claims, damages, losses, or expenses 
+                arising from your use of the Services, violation of these Terms, or infringement 
+                of any rights of third parties.
+              </p>
+            </section>
+
+            {/* Governing Law */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">13. Governing Law</h2>
+              <p>
+                These Terms shall be governed by and construed in accordance with the laws of 
+                the jurisdiction in which the Company is incorporated, without regard to its 
+                conflict of law provisions. Any disputes arising from these Terms or your use 
+                of the Services shall be resolved through binding arbitration.
+              </p>
+            </section>
+
+            {/* Termination */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">14. Termination</h2>
+              <p>
+                You may stop using our Services at any time. Since this is a non-custodial wallet, 
+                your digital assets remain accessible through your seed phrase on any compatible 
+                wallet application. We reserve the right to suspend or discontinue the Services 
+                at any time with reasonable notice.
+              </p>
+            </section>
+
+            {/* Changes */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">15. Changes to Terms</h2>
+              <p>
+                We may update these Terms from time to time. We will notify you of material changes 
+                through the application or other reasonable means. Your continued use of the Services 
+                after changes become effective constitutes acceptance of the modified Terms.
+              </p>
+            </section>
+
+            {/* Contact */}
+            <section>
+              <h2 className="text-lg font-semibold text-black mb-3">16. Contact Us</h2>
+              <p className="mb-3">
+                If you have questions about these Terms or our Services, please contact us at:
+              </p>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="font-medium text-black">Relay Support</p>
+                <p className="text-gray-600">support@montaq.org</p>
+              </div>
+            </section>
+
+            {/* Final acknowledgment */}
+            <section className="pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500 text-center">
+                By using Relay, you acknowledge that you have read, understood, and agree to 
+                be bound by these Terms of Service.
+              </p>
+            </section>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );
