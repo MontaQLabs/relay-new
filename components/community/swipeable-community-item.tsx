@@ -35,7 +35,9 @@ export interface SwipeableCommunityItemProps {
   onClick: () => void;
   currentUserWallet?: string;
   onJoin?: (communityId: string) => Promise<void>;
+  onLeave?: (communityId: string) => Promise<void>;
   isJoining?: boolean;
+  isLeaving?: boolean;
   showJoinButton?: boolean;
   isMember?: boolean;
 }
@@ -45,7 +47,9 @@ export function SwipeableCommunityItem({
   onClick,
   currentUserWallet,
   onJoin,
+  onLeave,
   isJoining = false,
+  isLeaving = false,
   showJoinButton = false,
   isMember = false,
 }: SwipeableCommunityItemProps) {
@@ -165,6 +169,15 @@ export function SwipeableCommunityItem({
     }
   };
 
+  const handleQuitClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onLeave && !isLeaving) {
+      await onLeave(community.communityId);
+      // Reset swipe offset after leaving
+      setSwipeOffset(0);
+    }
+  };
+
   // Format community ID for display
   const displayId = community.communityId.replace(/^comm_/, "").slice(0, 7);
 
@@ -183,9 +196,14 @@ export function SwipeableCommunityItem({
           <Button
             variant="ghost"
             className="text-white font-semibold hover:bg-red-600 h-full w-full rounded-none"
-            disabled
+            onClick={handleQuitClick}
+            disabled={isLeaving}
           >
-            Quit
+            {isLeaving ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              "Quit"
+            )}
           </Button>
         </div>
       )}
@@ -273,4 +291,3 @@ export function SwipeableCommunityItem({
     </div>
   );
 }
-

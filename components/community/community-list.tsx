@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Community } from "@/app/types/frontend_type";
 import { SwipeableCommunityItem } from "./swipeable-community-item";
-import { joinCommunity, getCommunityMembers } from "@/app/db/supabase";
+import { getAuthToken } from "@/app/utils/auth";
 
 export interface CommunityListProps {
   communities: Community[];
   currentUserWallet?: string;
   showJoinButton?: boolean;
   onJoinSuccess?: () => void;
+  onLeaveSuccess?: () => void;
 }
 
 export function CommunityList({ 
@@ -18,9 +19,11 @@ export function CommunityList({
   currentUserWallet,
   showJoinButton = false,
   onJoinSuccess,
+  onLeaveSuccess,
 }: CommunityListProps) {
   const router = useRouter();
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [leavingId, setLeavingId] = useState<string | null>(null);
   const [membershipMap, setMembershipMap] = useState<Record<string, boolean>>({});
   const [loadingMembership, setLoadingMembership] = useState(false);
 
@@ -30,25 +33,30 @@ export function CommunityList({
 
     const checkMembership = async () => {
       setLoadingMembership(true);
-      const newMembershipMap: Record<string, boolean> = {};
       
-      await Promise.all(
-        communities.map(async (community) => {
-          try {
-            const members = await getCommunityMembers(community.communityId);
-            const isMember = members.some(
-              (m) => m.toLowerCase() === currentUserWallet.toLowerCase()
-            );
-            newMembershipMap[community.communityId] = isMember;
-          } catch (error) {
-            console.error(`Failed to check membership for ${community.communityId}:`, error);
-            newMembershipMap[community.communityId] = false;
-          }
-        })
-      );
-      
-      setMembershipMap(newMembershipMap);
-      setLoadingMembership(false);
+      try {
+        const communityIds = communities.map((c) => c.communityId).join(",");
+        const response = await fetch(
+          `/api/community/members?communityIds=${encodeURIComponent(communityIds)}&wallet=${encodeURIComponent(currentUserWallet)}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setMembershipMap(data.membership || {});
+        } else {
+          console.error("Failed to check membership");
+          // Set all to false on error
+          const emptyMap: Record<string, boolean> = {};
+          communities.forEach((c) => {
+            emptyMap[c.communityId] = false;
+          });
+          setMembershipMap(emptyMap);
+        }
+      } catch (error) {
+        console.error("Failed to check membership:", error);
+      } finally {
+        setLoadingMembership(false);
+      }
     };
 
     checkMembership();
@@ -61,21 +69,72 @@ export function CommunityList({
   const handleJoin = async (communityId: string) => {
     if (!currentUserWallet) return;
     
+    const token = getAuthToken();
+    if (!token) {
+      console.error("No auth token available");
+      return;
+    }
+
     setJoiningId(communityId);
     try {
-      const success = await joinCommunity(communityId, currentUserWallet);
-      if (success) {
+      const response = await fetch("/api/community/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ communityId }),
+      });
+
+      if (response.ok) {
         // Update local membership map
         setMembershipMap((prev) => ({ ...prev, [communityId]: true }));
         // Notify parent of successful join
         onJoinSuccess?.();
       } else {
-        console.error("Failed to join community");
+        const error = await response.json();
+        console.error("Failed to join community:", error.error);
       }
     } catch (error) {
       console.error("Error joining community:", error);
     } finally {
       setJoiningId(null);
+    }
+  };
+
+  const handleLeave = async (communityId: string) => {
+    if (!currentUserWallet) return;
+    
+    const token = getAuthToken();
+    if (!token) {
+      console.error("No auth token available");
+      return;
+    }
+
+    setLeavingId(communityId);
+    try {
+      const response = await fetch("/api/community/leave", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ communityId }),
+      });
+
+      if (response.ok) {
+        // Update local membership map
+        setMembershipMap((prev) => ({ ...prev, [communityId]: false }));
+        // Notify parent of successful leave
+        onLeaveSuccess?.();
+      } else {
+        const error = await response.json();
+        console.error("Failed to leave community:", error.error);
+      }
+    } catch (error) {
+      console.error("Error leaving community:", error);
+    } finally {
+      setLeavingId(null);
     }
   };
 
@@ -96,7 +155,9 @@ export function CommunityList({
           onClick={() => handleCommunityClick(community.communityId)}
           currentUserWallet={currentUserWallet}
           onJoin={handleJoin}
+          onLeave={handleLeave}
           isJoining={joiningId === community.communityId}
+          isLeaving={leavingId === community.communityId}
           showJoinButton={showJoinButton}
           isMember={membershipMap[community.communityId] || false}
         />
@@ -104,4 +165,3 @@ export function CommunityList({
     </div>
   );
 }
-

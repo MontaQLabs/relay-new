@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Plus, Search, X } from "lucide-react";
 import { authenticateWithWallet, isAuthenticated } from "@/app/utils/auth";
 import { getWalletAddress } from "@/app/utils/wallet";
-import { getUserCommunities, getCreatedCommunities, searchCommunities, getAllCommunities } from "@/app/db/supabase";
 import { Community } from "@/app/types/frontend_type";
 import { EmptyState } from "@/components/empty-state";
 import { CommunityList } from "@/components/community";
@@ -63,25 +62,35 @@ export default function CommunityPage() {
     authenticate();
   }, []);
 
-  // Fetch communities after authentication
+  // Fetch communities after authentication using API routes
   const fetchCommunities = useCallback(async () => {
     const wallet = getWalletAddress();
     setIsLoading(true);
     
     try {
       // Always fetch all communities for the "all" tab
-      const all = await getAllCommunities();
-      setAllCommunities(all);
+      const allResponse = await fetch("/api/community?type=all");
+      if (allResponse.ok) {
+        const allData = await allResponse.json();
+        setAllCommunities(allData.communities || []);
+      }
 
       // Fetch user-specific communities if wallet is available
       if (wallet) {
-        const [joined, created] = await Promise.all([
-          getUserCommunities(wallet),
-          getCreatedCommunities(wallet),
+        const [joinedResponse, createdResponse] = await Promise.all([
+          fetch(`/api/community?type=joined&wallet=${encodeURIComponent(wallet)}`),
+          fetch(`/api/community?type=created&wallet=${encodeURIComponent(wallet)}`),
         ]);
-        
-        setJoinedCommunities(joined);
-        setCreatedCommunities(created);
+
+        if (joinedResponse.ok) {
+          const joinedData = await joinedResponse.json();
+          setJoinedCommunities(joinedData.communities || []);
+        }
+
+        if (createdResponse.ok) {
+          const createdData = await createdResponse.json();
+          setCreatedCommunities(createdData.communities || []);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch communities:", error);
@@ -99,7 +108,7 @@ export default function CommunityPage() {
     router.push("/dashboard/community/create-community");
   };
 
-  // Debounced search handler
+  // Debounced search handler using API route
   const handleSearch = useCallback(async (term: string) => {
     setSearchTerm(term);
     
@@ -118,8 +127,14 @@ export default function CommunityPage() {
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await searchCommunities(term);
-        setSearchResults(results);
+        const response = await fetch(`/api/community/search?q=${encodeURIComponent(term)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSearchResults(data.communities || []);
+        } else {
+          console.error("Search failed");
+          setSearchResults([]);
+        }
       } catch (error) {
         console.error("Search error:", error);
         setSearchResults([]);
@@ -136,6 +151,11 @@ export default function CommunityPage() {
 
   // Handle successful join - refresh the lists
   const handleJoinSuccess = () => {
+    fetchCommunities();
+  };
+
+  // Handle successful leave - refresh the lists
+  const handleLeaveSuccess = () => {
     fetchCommunities();
   };
 
@@ -216,6 +236,7 @@ export default function CommunityPage() {
               currentUserWallet={walletAddress}
               showJoinButton={true}
               onJoinSuccess={handleJoinSuccess}
+              onLeaveSuccess={handleLeaveSuccess}
             />
           )}
           {isSearching && (
@@ -274,6 +295,7 @@ export default function CommunityPage() {
               currentUserWallet={walletAddress}
               showJoinButton={activeTab === "all"}
               onJoinSuccess={handleJoinSuccess}
+              onLeaveSuccess={handleLeaveSuccess}
             />
           )}
         </>
