@@ -1541,40 +1541,23 @@ function TermsSheet({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const lastUpdated = "December 8, 2024";
+  const lastUpdated = "December 8, 2025";
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-lg px-0 pb-0 overflow-hidden flex flex-col">
+      <SheetContent side="bottom" className="rounded-t-3xl px-0 pb-0 max-h-[70vh] flex flex-col">
         <SheetHeader className="text-left px-6 pb-4 border-b border-gray-100 flex-shrink-0">
-          {/* Back button */}
-          <button
-            onClick={onClose}
-            className="mb-4 -ml-2 p-2 cursor-pointer"
-            aria-label="Go back"
-          >
-            <svg
-              className="w-6 h-6"
-              style={{ color: "#1a1a1a" }}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
+          {/* Drag indicator */}
+          <div className="flex justify-center pt-2 pb-4">
+            <div className="w-10 h-1 bg-gray-300 rounded-full" />
+          </div>
 
           <SheetTitle className="text-2xl font-bold tracking-tight text-left text-black">
             Terms of Service
           </SheetTitle>
-          <p className="text-sm text-gray-500 mt-1">
+          <SheetDescription className="text-sm text-gray-500 mt-1">
             Last updated: {lastUpdated}
-          </p>
+          </SheetDescription>
         </SheetHeader>
 
         {/* Scrollable content */}
