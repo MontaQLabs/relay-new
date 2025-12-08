@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { getWalletAddress, encryptWallet } from "@/app/utils/wallet";
 import { getUserByWallet } from "@/app/db/supabase";
-import { signOut, getAuthToken } from "@/app/utils/auth";
+import { signOut, getAuthToken, authenticateWithWallet, isAuthenticated } from "@/app/utils/auth";
 import { validate } from "@/app/utils/password";
 import { WALLET_KEY, WALLET_SEED_KEY, IS_ENCRYPTED_KEY, USER_KEY, IS_BACKED_UP_KEY, ENCRYPTED_WALLET_KEY } from "@/app/types/constants";
 import type { User, Wallet } from "@/app/types/frontend_type";
@@ -54,6 +54,10 @@ export default function SettingsPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  
+  // Authentication states
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Edit profile states
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -76,7 +80,42 @@ export default function SettingsPage() {
   // Terms sheet state
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
+  // Authenticate user on load
   useEffect(() => {
+    const authenticate = async () => {
+      setIsAuthenticating(true);
+      setAuthError(null);
+      
+      try {
+        // Check if already authenticated
+        if (isAuthenticated()) {
+          setIsAuthenticating(false);
+          return;
+        }
+
+        // Authenticate the user using their wallet
+        const result = await authenticateWithWallet();
+        
+        if (!result.success) {
+          // Authentication failed - user may not have a wallet set up yet
+          console.log("Authentication note:", result.error);
+          setAuthError(result.error || null);
+        }
+      } catch (error) {
+        console.error("Authentication error:", error);
+        setAuthError(error instanceof Error ? error.message : "Authentication failed");
+      } finally {
+        setIsAuthenticating(false);
+      }
+    };
+
+    authenticate();
+  }, []);
+
+  // Load user data after authentication
+  useEffect(() => {
+    if (isAuthenticating) return;
+
     const loadUserData = async () => {
       try {
         // Get wallet address from localStorage
@@ -105,7 +144,7 @@ export default function SettingsPage() {
     };
 
     loadUserData();
-  }, []);
+  }, [isAuthenticating]);
 
   // Generate DiceBear avatar URL using the wallet address as seed
   const getAvatarUrl = () => {
@@ -405,6 +444,15 @@ export default function SettingsPage() {
     },
   ];
 
+  // Show loading spinner while authenticating
+  if (isAuthenticating) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4 px-5 animate-fade-in">
@@ -442,6 +490,13 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-4 px-5 animate-fade-in">
+      {/* Auth Error Banner (if wallet not set up) */}
+      {authError && (
+        <div className="px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <p className="text-sm text-amber-800">{authError}</p>
+        </div>
+      )}
+
       {/* User Profile Header */}
       <div className="flex items-center gap-4 py-2">
         {/* Avatar */}
