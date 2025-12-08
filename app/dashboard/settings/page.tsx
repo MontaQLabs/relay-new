@@ -43,6 +43,7 @@ interface MenuItem {
   };
   href?: string;
   onClick?: () => void;
+  disabled?: boolean;
 }
 
 type ButtonState = "idle" | "processing" | "success" | "error";
@@ -156,9 +157,6 @@ export default function SettingsPage() {
 
   // Check if wallet is backed up
   const isBackedUp = wallet?.isBackedUp ?? false;
-
-  // Check if social recovery is configured
-  const hasSocialRecovery = user?.socialRecovery && user.socialRecovery.length > 0;
 
   // Open edit profile sheet
   const openEditProfile = () => {
@@ -361,9 +359,8 @@ export default function SettingsPage() {
       id: "social-recovery",
       icon: <Shield className="w-5 h-5" />,
       title: "Social Recovery",
-      description: "Recovery account through friends",
-      badge: !hasSocialRecovery ? { text: "not configured", variant: "error" } : undefined,
-      href: "/dashboard/settings/social-recovery",
+      description: "Recover your account through friends.",
+      disabled: true,
     },
     {
       id: "terms",
@@ -555,23 +552,34 @@ export default function SettingsPage() {
           <button
             key={item.id}
             onClick={() => {
+              if (item.disabled) return;
               if (item.onClick) {
                 item.onClick();
               } else if (item.href) {
                 router.push(item.href);
               }
             }}
-            className={`w-full flex items-center gap-4 px-5 py-4 hover:bg-white/50 transition-colors text-left ${
+            disabled={item.disabled}
+            className={`w-full flex items-center gap-4 px-5 py-4 transition-colors text-left ${
               index !== menuItems.length - 1 ? "border-b border-gray-100/50" : ""
+            } ${
+              item.disabled
+                ? "cursor-not-allowed opacity-50"
+                : "hover:bg-white/50"
             }`}
           >
             {/* Icon */}
-            <div className="text-gray-600">{item.icon}</div>
+            <div className={item.disabled ? "text-gray-400" : "text-gray-600"}>{item.icon}</div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-black">{item.title}</h3>
+                <h3 className={`font-semibold ${item.disabled ? "text-gray-400" : "text-black"}`}>{item.title}</h3>
+                {item.disabled && (
+                  <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">
+                    Coming soon
+                  </span>
+                )}
               </div>
               {item.description && (
                 <p className="text-sm text-muted-foreground truncate">
@@ -591,7 +599,7 @@ export default function SettingsPage() {
             )}
 
             {/* Chevron */}
-            <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            <ChevronRight className={`w-5 h-5 flex-shrink-0 ${item.disabled ? "text-gray-300" : "text-gray-400"}`} />
           </button>
         ))}
       </div>
