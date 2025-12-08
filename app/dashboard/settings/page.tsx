@@ -726,44 +726,24 @@ function ChangePasswordSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-md px-6 pb-8 overflow-auto">
-        <SheetHeader className="text-left pb-6">
-          {/* Back button */}
-          <button
-            onClick={onClose}
-            className="mb-4 -ml-2 p-2 cursor-pointer"
-            aria-label="Go back"
-          >
-            <svg
-              className="w-6 h-6"
-              style={{ color: "#1a1a1a" }}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
+      <SheetContent side="bottom" className="rounded-t-3xl px-6 pb-8 max-h-[85vh] flex flex-col">
+        <SheetHeader className="text-left pb-4 flex-shrink-0">
+          {/* Drag indicator */}
+          <div className="flex justify-center pt-2 pb-4">
+            <div className="w-10 h-1 bg-gray-300 rounded-full" />
+          </div>
 
           {/* Title */}
-          <SheetTitle className="text-3xl font-semibold tracking-tight text-left" style={{ color: "#1a1a1a" }}>
+          <SheetTitle className="text-2xl font-bold tracking-tight text-left text-black">
             Change Password
           </SheetTitle>
-          <p 
-            className="text-base mt-2"
-            style={{ color: '#8e8e93' }}
-          >
+          <SheetDescription className="text-sm text-gray-500 mt-1">
             Only for this device
-          </p>
+          </SheetDescription>
         </SheetHeader>
 
         {/* Form content */}
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto space-y-6">
           {/* Create Password field */}
           <div>
             <label 
@@ -869,7 +849,7 @@ function ChangePasswordSheet({
         </div>
 
         {/* Confirm button */}
-        <div className="pt-6 pb-4">
+        <div className="pt-6 flex-shrink-0">
           <button
             onClick={handleConfirm}
             disabled={!canSubmit || isLoading}
