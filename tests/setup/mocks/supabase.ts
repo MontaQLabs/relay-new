@@ -61,7 +61,7 @@ export const mockQueryResult = (
   data: unknown,
   error: unknown = null
 ) => {
-  mockClient.from.mockImplementation((table: string) => {
+  (mockClient.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
     if (table === tableName) {
       return createMockQueryBuilder(data, error);
     }

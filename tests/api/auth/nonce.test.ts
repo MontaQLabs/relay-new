@@ -11,7 +11,6 @@ import {
 
 // Mock Supabase
 const mockInsert = vi.fn();
-const mockDelete = vi.fn();
 const mockEq = vi.fn();
 
 vi.mock('@supabase/supabase-js', () => ({

@@ -9,7 +9,6 @@ import {
   TEST_MNEMONIC,
   validTestJwt,
   expiredTestJwt,
-  testJwtPayload,
 } from '../../setup/fixtures';
 
 // Mock the Polkadot dependencies before importing

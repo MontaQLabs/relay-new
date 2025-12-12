@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../setup/test-utils';
-import { IS_ENCRYPTED_KEY, USER_KEY, WALLET_KEY } from '@/app/types/constants';
+import { IS_ENCRYPTED_KEY, USER_KEY } from '@/app/types/constants';
 import { testWallet, testUser } from '../setup/fixtures';
 
 // Mock wallet utilities

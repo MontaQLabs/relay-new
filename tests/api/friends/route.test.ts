@@ -25,18 +25,6 @@ vi.mock('jose', () => ({
   }),
 }));
 
-// Create proper mock chain
-const createMockChain = (result: { data: unknown; error: unknown }) => {
-  const chain = {
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockResolvedValue(result),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockResolvedValue(result),
-    single: vi.fn().mockResolvedValue(result),
-  };
-  return chain;
-};
-
 // Track mock state
 let mockFriendsData = [dbFriendRecord];
 let mockExistingFriend: unknown = null;

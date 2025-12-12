@@ -16,7 +16,7 @@ export const TEST_MNEMONIC = 'abandon abandon abandon abandon abandon abandon ab
 export const mockKeypair = {
   address: TEST_WALLET_ADDRESS,
   publicKey: new Uint8Array(32).fill(1),
-  sign: vi.fn((message: Uint8Array) => new Uint8Array(64).fill(2)),
+  sign: vi.fn(() => new Uint8Array(64).fill(2)),
 };
 
 // Mock Keyring

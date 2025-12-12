@@ -6,7 +6,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import {
   TEST_WALLET_ADDRESS,
-  TEST_WALLET_ADDRESS_2,
   dbCommunityRecord,
   validTestJwt,
 } from '../../setup/fixtures';

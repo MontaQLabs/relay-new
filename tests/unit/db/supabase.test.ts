@@ -17,20 +17,6 @@ const mockRpc = vi.fn();
 const mockChannel = vi.fn();
 const mockRemoveChannel = vi.fn();
 
-// Create proper mock chain function
-const createMockChain = (result: { data: unknown; error: unknown; count?: number | null }) => ({
-  select: vi.fn().mockReturnValue({
-    eq: vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        single: vi.fn().mockResolvedValue(result),
-      }),
-      single: vi.fn().mockResolvedValue(result),
-      in: vi.fn().mockResolvedValue(result),
-    }),
-    in: vi.fn().mockResolvedValue(result),
-  }),
-});
-
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     from: (...args: unknown[]) => mockFrom(...args),

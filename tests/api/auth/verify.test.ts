@@ -7,7 +7,6 @@ import { NextRequest } from 'next/server';
 import {
   TEST_WALLET_ADDRESS,
   dbNonceRecord,
-  dbExpiredNonceRecord,
 } from '../../setup/fixtures';
 
 // Mock Polkadot crypto
@@ -20,7 +19,6 @@ vi.mock('@polkadot/util-crypto', () => ({
 
 // Track mock calls
 const mockSelect = vi.fn();
-const mockInsertNonce = vi.fn();
 const mockDeleteNonce = vi.fn();
 const mockUpsertUser = vi.fn();
 

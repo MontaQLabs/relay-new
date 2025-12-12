@@ -32,9 +32,7 @@ vi.mock('next/image', () => ({
 }));
 
 // Custom render function with providers
-interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
-  // Add custom options here if needed
-}
+type CustomRenderOptions = Omit<RenderOptions, 'wrapper'>;
 
 function customRender(
   ui: ReactElement,

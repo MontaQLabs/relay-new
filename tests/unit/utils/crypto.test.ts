@@ -7,7 +7,6 @@ import {
   TEST_WALLET_ADDRESS,
   testWallet,
   testCoins,
-  testKnownAssets,
   testTransactions,
 } from '../../setup/fixtures';
 
