@@ -13,6 +13,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { QRScanner, parseQRCodeAddress, isValidAddress } from "@/app/utils/qr";
+import { getTokenPrice } from "@/app/utils/crypto";
 
 export default function ScanPage() {
   const router = useRouter();
@@ -24,10 +25,29 @@ export default function ScanPage() {
   const [amountUsd, setAmountUsd] = useState("");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedToken] = useState("DOT"); // Default token
-  const [tokenPrice] = useState(7.5); // Mock price for DOT in USD
+  const [tokenPrice, setTokenPrice] = useState(0);
+  const [isPriceLoading, setIsPriceLoading] = useState(false);
 
   const scannerRef = useRef<QRScanner | null>(null);
   const hasScannedRef = useRef(false);
+
+  // Fetch real-time token price when sheet opens
+  useEffect(() => {
+    if (isSheetOpen && tokenPrice === 0) {
+      const fetchPrice = async () => {
+        setIsPriceLoading(true);
+        try {
+          const price = await getTokenPrice(selectedToken);
+          setTokenPrice(price);
+        } catch (error) {
+          console.error("Failed to fetch token price:", error);
+        } finally {
+          setIsPriceLoading(false);
+        }
+      };
+      fetchPrice();
+    }
+  }, [isSheetOpen, selectedToken, tokenPrice]);
 
   // Start or restart the scanner
   const startScanner = useCallback(async () => {
@@ -328,7 +348,16 @@ export default function ScanPage() {
               </div>
               {amount && (
                 <p className="text-sm text-gray-500">
-                  ≈ ${amountUsd} USD
+                  {isPriceLoading ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Fetching price...
+                    </span>
+                  ) : tokenPrice > 0 ? (
+                    `≈ $${amountUsd} USD`
+                  ) : (
+                    "Price unavailable"
+                  )}
                 </p>
               )}
             </div>
@@ -337,10 +366,10 @@ export default function ScanPage() {
             <div className="space-y-3 pt-2">
               <Button
                 onClick={handleConfirm}
-                disabled={!isValidAmount}
+                disabled={!isValidAmount || isPriceLoading || tokenPrice === 0}
                 className="w-full h-14 rounded-2xl bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white font-semibold text-base"
               >
-                Continue to Review
+                {isPriceLoading ? "Loading price..." : "Continue to Review"}
               </Button>
               <Button
                 onClick={handleSheetClose}

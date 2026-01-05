@@ -373,7 +373,7 @@ export default function SendPage() {
                 value={amount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="0.00"
-                className="flex-1 text-4xl font-bold bg-transparent border-none outline-none text-black placeholder:text-gray-300"
+                className="w-full text-4xl font-bold bg-transparent border-none outline-none text-black placeholder:text-gray-300"
                 disabled={!selectedToken}
               />
             </div>
