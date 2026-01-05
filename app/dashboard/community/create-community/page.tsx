@@ -151,20 +151,20 @@ export default function CreateCommunityPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter the name of your community"
-            className="border-none bg-transparent p-0 h-auto text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-none shadow-none bg-transparent p-0 h-auto text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
 
         {/* Description Field */}
         <div className="px-5 py-4 border-t border-gray-100">
           <label className="text-sm font-medium text-black block mb-2">
-            Description
+            Description (At least 10 words)
           </label>
           <Textarea
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Describe your community with at least 10 words"
-            className="border-none bg-transparent p-0 min-h-[60px] resize-none text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-none shadow-none bg-transparent p-0 min-h-[60px] resize-none text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <div className="text-right mt-2">
             <span className="text-sm text-muted-foreground">
@@ -182,7 +182,7 @@ export default function CreateCommunityPage() {
             value={rules}
             onChange={(e) => handleRulesChange(e.target.value)}
             placeholder="The rules your community members should adhere to"
-            className="border-none bg-transparent p-0 min-h-[60px] resize-none text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-none shadow-none bg-transparent p-0 min-h-[60px] resize-none text-base text-gray-400 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <div className="text-right mt-2">
             <span className="text-sm text-muted-foreground">
@@ -272,7 +272,7 @@ export default function CreateCommunityPage() {
                   value={type}
                   onChange={(e) => handleTypeInputChange(index, e.target.value)}
                   placeholder="Enter the name of the activity type"
-                  className="border-none bg-transparent p-0 h-auto text-base text-gray-900 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="border-none shadow-none bg-transparent p-0 h-auto text-base text-gray-900 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:cursor-text"
                 />
               </div>
             ))}

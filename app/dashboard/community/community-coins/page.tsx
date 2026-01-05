@@ -234,10 +234,11 @@ export default function CommunityCoinsPage() {
       <div className="flex-1 flex flex-col overflow-auto px-5">
         {/* Toggle Section */}
         <div className="flex items-center justify-between py-4 border-b border-gray-200">
-          <span className="text-base text-black">Issue community coins?</span>
+          <span className="text-base text-black">Issue community coins? (Coming soon...)</span>
           <Switch
             checked={issueCoins}
             onCheckedChange={setIssueCoins}
+            disabled={true}
           />
         </div>
 
