@@ -188,11 +188,28 @@ export default function SendPage() {
     }
   }, [selectedToken, amount, isUsdMode, getTokenPrice]);
 
+  // Check if entered amount exceeds available balance
+  const isAmountExceedingBalance = useCallback(() => {
+    if (!selectedToken || !amount || selectedToken.amount === 0) return false;
+    
+    const numericAmount = parseFloat(amount) || 0;
+    if (numericAmount <= 0) return false;
+    
+    if (isUsdMode) {
+      // Compare USD amount with available fiat value
+      return numericAmount > selectedToken.fiatValue;
+    } else {
+      // Compare crypto amount with available token amount
+      return numericAmount > selectedToken.amount;
+    }
+  }, [selectedToken, amount, isUsdMode]);
+
   const isFormValid = () => {
     const hasValidAddress = isAddrValid(address);
     const hasToken = selectedToken !== null;
     const hasAmount = amount !== "" && parseFloat(amount) > 0;
-    return hasValidAddress && hasToken && hasAmount;
+    const withinBalance = !isAmountExceedingBalance();
+    return hasValidAddress && hasToken && hasAmount && withinBalance;
   };
 
   const handleConfirm = () => {
@@ -333,13 +350,17 @@ export default function SendPage() {
           <label className="text-sm font-medium text-muted-foreground mb-2 block">
             Amount
           </label>
-          <div className="bg-gray-50 rounded-2xl p-4">
+          <div className={`rounded-2xl p-4 transition-all ${
+            isAmountExceedingBalance() 
+              ? "bg-red-50 border-2 border-red-300" 
+              : "bg-gray-50"
+          }`}>
             {/* Currency Toggle inside input area */}
             <div className="flex justify-end mb-2">
               <div className="inline-flex bg-gray-200 rounded-lg p-0.5">
                 <button
                   onClick={() => !isUsdMode && toggleCurrencyMode()}
-                  disabled={!selectedToken}
+                  disabled={!selectedToken || selectedToken.amount === 0}
                   className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
                     isUsdMode
                       ? "bg-white text-black shadow-sm"
@@ -350,7 +371,7 @@ export default function SendPage() {
                 </button>
                 <button
                   onClick={() => isUsdMode && toggleCurrencyMode()}
-                  disabled={!selectedToken}
+                  disabled={!selectedToken || selectedToken.amount === 0}
                   className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
                     !isUsdMode
                       ? "bg-white text-black shadow-sm"
@@ -363,8 +384,8 @@ export default function SendPage() {
             </div>
             
             {/* Amount Input */}
-            <div className="flex items-center gap-2">
-              <span className="text-4xl font-bold text-black">
+            <div className={`flex items-center gap-2 ${selectedToken?.amount === 0 ? "opacity-50" : ""}`}>
+              <span className={`text-4xl font-bold ${isAmountExceedingBalance() ? "text-red-500" : "text-black"}`}>
                 {isUsdMode ? "$" : ""}
               </span>
               <input
@@ -373,13 +394,15 @@ export default function SendPage() {
                 value={amount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="0.00"
-                className="w-full text-4xl font-bold bg-transparent border-none outline-none text-black placeholder:text-gray-300"
-                disabled={!selectedToken}
+                className={`w-full text-4xl font-bold bg-transparent border-none outline-none placeholder:text-gray-300 disabled:cursor-not-allowed ${
+                  isAmountExceedingBalance() ? "text-red-500" : "text-black"
+                }`}
+                disabled={!selectedToken || selectedToken.amount === 0}
               />
             </div>
             
             {/* Equivalent Value Display */}
-            {selectedToken && (
+            {selectedToken && selectedToken.amount > 0 && (
               <div className="mt-3 flex items-center justify-between">
                 {/* Show equivalent value when amount is entered */}
                 <div className="text-sm text-muted-foreground">
@@ -418,6 +441,30 @@ export default function SendPage() {
                 >
                   Max
                 </button>
+              </div>
+            )}
+            
+            {/* Zero Balance Warning */}
+            {selectedToken && selectedToken.amount === 0 && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-sm text-amber-700 font-medium">
+                  Insufficient balance
+                </p>
+                <p className="text-xs text-amber-600 mt-1">
+                  You don&apos;t have any {selectedToken.ticker} tokens to send. Please deposit funds first.
+                </p>
+              </div>
+            )}
+            
+            {/* Exceeds Balance Warning */}
+            {isAmountExceedingBalance() && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-700 font-medium">
+                  Amount exceeds balance
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  You only have {selectedToken?.amount} {selectedToken?.ticker} (${selectedToken?.fiatValue.toFixed(2)}) available.
+                </p>
               </div>
             )}
           </div>
