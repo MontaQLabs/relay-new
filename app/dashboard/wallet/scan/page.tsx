@@ -219,7 +219,7 @@ export default function ScanPage() {
   
   // Check if entered amount exceeds available balance
   const isAmountExceedingBalance = useCallback(() => {
-    if (!amount || tokenBalance === 0) return false;
+    if (!amount) return false;
     const numericAmount = parseFloat(amount) || 0;
     if (numericAmount <= 0) return false;
     return numericAmount > tokenBalance;
