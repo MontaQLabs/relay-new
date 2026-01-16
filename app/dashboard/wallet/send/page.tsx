@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Check } from "lucide-react";
+import { ChevronLeft, Check, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { isAddrValid } from "@/app/utils/wallet";
-import { fetchDotCoins, calculatePortfolioValue, PriceMap } from "@/app/utils/crypto";
+import { isAddrValid, getWalletAddress } from "@/app/utils/wallet";
+import { fetchDotCoins, calculatePortfolioValue, PriceMap, checkEnoughFees, FeeEstimate } from "@/app/utils/crypto";
 import { getKnownAssets } from "@/app/db/supabase";
-import type { Coin } from "@/app/types/frontend_type";
+import type { Coin, KnownAsset } from "@/app/types/frontend_type";
 
 // Color mapping for common crypto tickers
 const COIN_COLORS: Record<string, { bg: string; color: string }> = {
@@ -39,6 +39,13 @@ export default function SendPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [priceMap, setPriceMap] = useState<PriceMap>({});
+  const [knownAssets, setKnownAssets] = useState<KnownAsset[]>([]);
+  
+  // Fee checking state
+  const [feeEstimate, setFeeEstimate] = useState<FeeEstimate | null>(null);
+  const [feeError, setFeeError] = useState<string | null>(null);
+  const [isCheckingFees, setIsCheckingFees] = useState(false);
+  const feeCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load known assets and coins on mount
   useEffect(() => {
@@ -46,6 +53,7 @@ export default function SendPage() {
       try {
         // First fetch known assets from Supabase
         const assets = await getKnownAssets();
+        setKnownAssets(assets);
         
         // Then fetch coins using known assets
         const fetchedCoins = await fetchDotCoins(assets);
@@ -108,6 +116,8 @@ export default function SendPage() {
   const handleTokenSelect = (coin: Coin) => {
     setSelectedToken(coin);
     setAmount(""); // Reset amount when token changes
+    setFeeEstimate(null);
+    setFeeError(null);
   };
 
   // Update selectedToken when coins are updated with prices
@@ -204,16 +214,89 @@ export default function SendPage() {
     }
   }, [selectedToken, amount, isUsdMode]);
 
+  // Check fees when amount or address changes (debounced)
+  useEffect(() => {
+    // Clear previous timeout
+    if (feeCheckTimeoutRef.current) {
+      clearTimeout(feeCheckTimeoutRef.current);
+    }
+
+    // Reset fee state when inputs change
+    setFeeEstimate(null);
+    setFeeError(null);
+
+    // Only check fees if we have valid inputs
+    if (!address || !isAddrValid(address) || !selectedToken) {
+      return;
+    }
+
+    const numericAmount = parseFloat(amount) || 0;
+    
+    // Calculate crypto amount based on mode
+    let cryptoAmount: number;
+    if (isUsdMode) {
+      const price = getTokenPrice(selectedToken.ticker);
+      cryptoAmount = price > 0 ? numericAmount / price : 0;
+    } else {
+      cryptoAmount = numericAmount;
+    }
+
+    if (cryptoAmount <= 0 || cryptoAmount > selectedToken.amount) {
+      return;
+    }
+
+    const walletAddress = getWalletAddress();
+    if (!walletAddress) return;
+
+    // Get DOT balance for fee payment
+    const dotCoin = coins.find(c => c.ticker === "DOT");
+    const dotBalance = dotCoin?.amount || 0;
+
+    // Debounce the fee check
+    feeCheckTimeoutRef.current = setTimeout(async () => {
+      setIsCheckingFees(true);
+      try {
+        const result = await checkEnoughFees(
+          walletAddress,
+          address,
+          selectedToken.ticker,
+          cryptoAmount,
+          selectedToken.amount,
+          dotBalance,
+          knownAssets
+        );
+
+        setFeeEstimate(result.feeEstimate);
+        if (!result.hasEnoughFees) {
+          setFeeError(result.error || "Insufficient DOT for transaction fees");
+        }
+      } catch (error) {
+        console.error("Fee check failed:", error);
+        setFeeError("Failed to estimate fees");
+      } finally {
+        setIsCheckingFees(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => {
+      if (feeCheckTimeoutRef.current) {
+        clearTimeout(feeCheckTimeoutRef.current);
+      }
+    };
+  }, [amount, address, selectedToken, isUsdMode, coins, knownAssets, getTokenPrice]);
+
   const isFormValid = () => {
     const hasValidAddress = isAddrValid(address);
     const hasToken = selectedToken !== null;
     const hasAmount = amount !== "" && parseFloat(amount) > 0;
     const withinBalance = !isAmountExceedingBalance();
-    return hasValidAddress && hasToken && hasAmount && withinBalance;
+    const hasFeeEstimate = feeEstimate !== null && !feeError;
+    const notCheckingFees = !isCheckingFees;
+    return hasValidAddress && hasToken && hasAmount && withinBalance && hasFeeEstimate && notCheckingFees;
   };
 
   const handleConfirm = () => {
-    if (isFormValid() && selectedToken) {
+    if (isFormValid() && selectedToken && feeEstimate) {
       const price = getTokenPrice(selectedToken.ticker);
       const numericAmount = parseFloat(amount) || 0;
       
@@ -229,12 +312,14 @@ export default function SendPage() {
         amountUsd = numericAmount * price;
       }
       
-      // Navigate to payment review page with params
+      // Navigate to payment review page with params including fee
       const params = new URLSearchParams({
         address,
         token: selectedToken.ticker,
         amountUsd: amountUsd.toFixed(2),
         amountCrypto: amountCrypto.toFixed(6).replace(/\.?0+$/, ""),
+        fee: feeEstimate.feeFormatted,
+        feeTicker: feeEstimate.feeTicker,
       });
       
       router.push(`/dashboard/wallet/payment-review?${params.toString()}`);
@@ -467,6 +552,38 @@ export default function SendPage() {
                 </p>
               </div>
             )}
+            
+            {/* Insufficient Fees Warning */}
+            {!isAmountExceedingBalance() && feeError && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-700 font-medium">
+                  Insufficient DOT for fees
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  {feeError}
+                </p>
+              </div>
+            )}
+            
+            {/* Fee Estimate Display */}
+            {!isAmountExceedingBalance() && !feeError && feeEstimate && (
+              <div className="mt-3 p-3 bg-gray-100 border border-gray-200 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Estimated Fee</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {feeEstimate.feeFormatted} {feeEstimate.feeTicker}
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {/* Fee Loading */}
+            {!isAmountExceedingBalance() && isCheckingFees && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Estimating fees...
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -478,7 +595,7 @@ export default function SendPage() {
           disabled={!isFormValid()}
           className="w-full h-14 rounded-2xl bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          Confirm
+          {isCheckingFees ? "Checking fees..." : "Confirm"}
         </Button>
       </div>
     </div>

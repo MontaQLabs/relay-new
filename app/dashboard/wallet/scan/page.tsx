@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, X, Flashlight, SwitchCamera, Loader2 } from "lucide-react";
+import { ChevronLeft, X, Flashlight, SwitchCamera, Loader2, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,8 +13,25 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { QRScanner, parseQRCodeAddress, isValidAddress } from "@/app/utils/qr";
-import { getTokenPrice, fetchDotCoins } from "@/app/utils/crypto";
+import { fetchDotCoins, calculatePortfolioValue, checkEnoughFees, FeeEstimate } from "@/app/utils/crypto";
 import { getKnownAssets } from "@/app/db/supabase";
+import { getWalletAddress } from "@/app/utils/wallet";
+import type { Coin, KnownAsset } from "@/app/types/frontend_type";
+
+// Color mapping for common crypto tickers
+const COIN_COLORS: Record<string, { bg: string; color: string }> = {
+  ETH: { bg: "#627eea", color: "#ffffff" },
+  ETC: { bg: "#3ab83a", color: "#ffffff" },
+  ZEC: { bg: "#f4b728", color: "#1a1a1a" },
+  XMR: { bg: "#ff6600", color: "#ffffff" },
+  BTC: { bg: "#f7931a", color: "#ffffff" },
+  USDT: { bg: "#26a17b", color: "#ffffff" },
+  USDt: { bg: "#26a17b", color: "#ffffff" },
+  USDC: { bg: "#2775ca", color: "#ffffff" },
+  DOT: { bg: "#e6007a", color: "#ffffff" },
+  SOL: { bg: "#9945ff", color: "#ffffff" },
+  DEFAULT: { bg: "#6366f1", color: "#ffffff" },
+};
 
 export default function ScanPage() {
   const router = useRouter();
@@ -25,43 +42,126 @@ export default function ScanPage() {
   const [amount, setAmount] = useState("");
   const [amountUsd, setAmountUsd] = useState("");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [selectedToken] = useState("DOT"); // Default token
-  const [tokenPrice, setTokenPrice] = useState(0);
+  const [showTokenPicker, setShowTokenPicker] = useState(false);
+  
+  // Token selection state
+  const [coins, setCoins] = useState<Coin[]>([]);
+  const [selectedToken, setSelectedToken] = useState<Coin | null>(null);
+  const [isCoinsLoading, setIsCoinsLoading] = useState(false);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
-  const [tokenBalance, setTokenBalance] = useState(0);
-  const [tokenFiatValue, setTokenFiatValue] = useState(0);
+  const [knownAssets, setKnownAssets] = useState<KnownAsset[]>([]);
+  
+  // Fee checking state
+  const [feeEstimate, setFeeEstimate] = useState<FeeEstimate | null>(null);
+  const [feeError, setFeeError] = useState<string | null>(null);
+  const [isCheckingFees, setIsCheckingFees] = useState(false);
 
   const scannerRef = useRef<QRScanner | null>(null);
   const hasScannedRef = useRef(false);
+  const coinsLoadedRef = useRef(false);
+  const feeCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch real-time token price and balance when sheet opens
+  // Fetch coins when sheet opens (only once)
   useEffect(() => {
-    if (isSheetOpen && tokenPrice === 0) {
-      const fetchPriceAndBalance = async () => {
-        setIsPriceLoading(true);
+    if (isSheetOpen && !coinsLoadedRef.current) {
+      const fetchCoinsAndPrices = async () => {
+        setIsCoinsLoading(true);
         try {
-          // Fetch price
-          const price = await getTokenPrice(selectedToken);
-          setTokenPrice(price);
-          
-          // Fetch balance
+          // Fetch known assets from Supabase
           const assets = await getKnownAssets();
-          const coins = await fetchDotCoins(assets);
-          const tokenCoin = coins.find(c => c.ticker === selectedToken);
-          if (tokenCoin) {
-            setTokenBalance(tokenCoin.amount);
-            // Calculate fiat value using fetched price
-            setTokenFiatValue(tokenCoin.amount * price);
+          setKnownAssets(assets);
+          
+          // Fetch coins using known assets
+          const fetchedCoins = await fetchDotCoins(assets);
+          
+          if (fetchedCoins.length > 0) {
+            setIsPriceLoading(true);
+            try {
+              // Fetch real-time prices
+              const { coinsWithPrices } = await calculatePortfolioValue(fetchedCoins);
+              setCoins(coinsWithPrices);
+              
+              // Auto-select first coin with balance, or DOT as default
+              const dotCoin = coinsWithPrices.find(c => c.ticker === "DOT");
+              const firstWithBalance = coinsWithPrices.find(c => c.amount > 0);
+              setSelectedToken(firstWithBalance || dotCoin || coinsWithPrices[0]);
+            } catch (priceError) {
+              console.error("Failed to fetch prices:", priceError);
+              setCoins(fetchedCoins);
+              const dotCoin = fetchedCoins.find(c => c.ticker === "DOT");
+              setSelectedToken(dotCoin || fetchedCoins[0]);
+            } finally {
+              setIsPriceLoading(false);
+            }
           }
+          
+          coinsLoadedRef.current = true;
         } catch (error) {
-          console.error("Failed to fetch token price/balance:", error);
+          console.error("Failed to fetch coins:", error);
         } finally {
-          setIsPriceLoading(false);
+          setIsCoinsLoading(false);
         }
       };
-      fetchPriceAndBalance();
+      fetchCoinsAndPrices();
     }
-  }, [isSheetOpen, selectedToken, tokenPrice]);
+  }, [isSheetOpen]);
+
+  // Check fees when amount changes (debounced)
+  useEffect(() => {
+    // Clear previous timeout
+    if (feeCheckTimeoutRef.current) {
+      clearTimeout(feeCheckTimeoutRef.current);
+    }
+
+    // Reset fee state when inputs change
+    setFeeEstimate(null);
+    setFeeError(null);
+
+    // Only check fees if we have valid inputs
+    const numAmount = parseFloat(amount) || 0;
+    if (!scannedAddress || !selectedToken || numAmount <= 0 || numAmount > selectedToken.amount) {
+      return;
+    }
+
+    const walletAddress = getWalletAddress();
+    if (!walletAddress) return;
+
+    // Get DOT balance for fee payment
+    const dotCoin = coins.find(c => c.ticker === "DOT");
+    const dotBalance = dotCoin?.amount || 0;
+
+    // Debounce the fee check
+    feeCheckTimeoutRef.current = setTimeout(async () => {
+      setIsCheckingFees(true);
+      try {
+        const result = await checkEnoughFees(
+          walletAddress,
+          scannedAddress,
+          selectedToken.ticker,
+          numAmount,
+          selectedToken.amount,
+          dotBalance,
+          knownAssets
+        );
+
+        setFeeEstimate(result.feeEstimate);
+        if (!result.hasEnoughFees) {
+          setFeeError(result.error || "Insufficient DOT for transaction fees");
+        }
+      } catch (error) {
+        console.error("Fee check failed:", error);
+        setFeeError("Failed to estimate fees");
+      } finally {
+        setIsCheckingFees(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => {
+      if (feeCheckTimeoutRef.current) {
+        clearTimeout(feeCheckTimeoutRef.current);
+      }
+    };
+  }, [amount, scannedAddress, selectedToken, coins, knownAssets]);
 
   // Start or restart the scanner
   const startScanner = useCallback(async () => {
@@ -149,11 +249,36 @@ export default function ScanPage() {
     setScannedAddress(null);
     setAmount("");
     setAmountUsd("");
+    setShowTokenPicker(false);
+    setFeeEstimate(null);
+    setFeeError(null);
     hasScannedRef.current = false;
 
     // Restart scanner since we stopped it after successful scan
     startScanner();
   }, [startScanner]);
+
+  const handleTokenSelect = (coin: Coin) => {
+    setSelectedToken(coin);
+    setAmount(""); // Reset amount when token changes
+    setAmountUsd("");
+    setShowTokenPicker(false);
+    setFeeEstimate(null);
+    setFeeError(null);
+  };
+
+  // Get token price from selected coin
+  const getTokenPrice = useCallback((): number => {
+    if (!selectedToken) return 0;
+    if (selectedToken.amount > 0 && selectedToken.fiatValue > 0) {
+      return selectedToken.fiatValue / selectedToken.amount;
+    }
+    // Default for stablecoins
+    if (selectedToken.ticker === "USDT" || selectedToken.ticker === "USDt" || selectedToken.ticker === "USDC") {
+      return 1;
+    }
+    return 0;
+  }, [selectedToken]);
 
   const handleCancel = useCallback(async () => {
     // 1. Stop the QR scanner completely
@@ -188,27 +313,31 @@ export default function ScanPage() {
 
     // Calculate USD value
     const numValue = parseFloat(sanitized) || 0;
-    const usdValue = numValue * tokenPrice;
+    const price = getTokenPrice();
+    const usdValue = numValue * price;
     setAmountUsd(usdValue.toFixed(2));
   };
 
   const handleConfirm = () => {
-    if (!scannedAddress || !amount) return;
+    if (!scannedAddress || !amount || !selectedToken || !feeEstimate) return;
 
     const numAmount = parseFloat(amount) || 0;
-    const usdAmount = numAmount * tokenPrice;
+    const price = getTokenPrice();
+    const usdAmount = numAmount * price;
 
     // Stop scanner before navigating
     if (scannerRef.current) {
       scannerRef.current.stop();
     }
 
-    // Navigate to payment review with params
+    // Navigate to payment review with params including fee
     const params = new URLSearchParams({
       address: scannedAddress,
-      token: selectedToken,
+      token: selectedToken.ticker,
       amountCrypto: numAmount.toString(),
       amountUsd: usdAmount.toFixed(2),
+      fee: feeEstimate.feeFormatted,
+      feeTicker: feeEstimate.feeTicker,
     });
 
     router.push(`/dashboard/wallet/payment-review?${params.toString()}`);
@@ -216,14 +345,15 @@ export default function ScanPage() {
 
   const isValidAmount = parseFloat(amount) > 0;
   const addressValid = scannedAddress ? isValidAddress(scannedAddress) : false;
+  const tokenPrice = getTokenPrice();
   
   // Check if entered amount exceeds available balance
   const isAmountExceedingBalance = useCallback(() => {
-    if (!amount) return false;
+    if (!selectedToken || !amount) return false;
     const numericAmount = parseFloat(amount) || 0;
     if (numericAmount <= 0) return false;
-    return numericAmount > tokenBalance;
-  }, [amount, tokenBalance]);
+    return numericAmount > selectedToken.amount;
+  }, [amount, selectedToken]);
 
   return (
     <div
@@ -350,10 +480,99 @@ export default function ScanPage() {
               </div>
             </div>
 
+            {/* Token Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Select Token
+              </label>
+              {isCoinsLoading ? (
+                <div className="flex items-center justify-center py-4 bg-gray-50 rounded-xl">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  <span className="ml-2 text-sm text-gray-500">Loading tokens...</span>
+                </div>
+              ) : showTokenPicker ? (
+                <div className="bg-gray-50 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                  {coins.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                      No tokens available
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-200">
+                      {coins.map((coin) => {
+                        const coinColors = COIN_COLORS[coin.ticker] || COIN_COLORS.DEFAULT;
+                        const isSelected = selectedToken?.ticker === coin.ticker;
+                        
+                        return (
+                          <button
+                            key={coin.ticker}
+                            onClick={() => handleTokenSelect(coin)}
+                            className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${
+                              isSelected ? "bg-violet-50" : "hover:bg-gray-100"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center"
+                                style={{ backgroundColor: coinColors.bg }}
+                              >
+                                <span className="text-xs font-bold" style={{ color: coinColors.color }}>
+                                  {coin.ticker[0]}
+                                </span>
+                              </div>
+                              <span className="font-semibold text-black">{coin.ticker}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="text-right">
+                                <div className="text-sm font-medium text-black">{coin.amount.toFixed(4)}</div>
+                                <div className="text-xs text-gray-500">${coin.fiatValue.toFixed(2)}</div>
+                              </div>
+                              {isSelected && (
+                                <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                                  <Check className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowTokenPicker(true)}
+                  className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  {selectedToken ? (
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: (COIN_COLORS[selectedToken.ticker] || COIN_COLORS.DEFAULT).bg }}
+                      >
+                        <span className="text-xs font-bold" style={{ color: (COIN_COLORS[selectedToken.ticker] || COIN_COLORS.DEFAULT).color }}>
+                          {selectedToken.ticker[0]}
+                        </span>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-semibold text-black">{selectedToken.ticker}</div>
+                        <div className="text-xs text-gray-500">
+                          Balance: {selectedToken.amount.toFixed(4)} (${selectedToken.fiatValue.toFixed(2)})
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">Select a token</span>
+                  )}
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                </button>
+              )}
+            </div>
+
             {/* Amount Input */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Amount ({selectedToken})
+                Amount ({selectedToken?.ticker || "Token"})
               </label>
               <div className={`relative rounded-xl transition-all ${
                 isAmountExceedingBalance() 
@@ -366,7 +585,8 @@ export default function ScanPage() {
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => handleAmountChange(e.target.value)}
-                  className={`h-14 text-2xl font-semibold pr-16 rounded-xl border-gray-200 focus:border-gray-400 ${
+                  disabled={!selectedToken || selectedToken.amount === 0}
+                  className={`h-14 text-2xl text-gray-500 font-semibold pr-16 rounded-xl border-gray-200 focus:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed ${
                     isAmountExceedingBalance() 
                       ? "text-red-500 border-red-300 bg-transparent" 
                       : ""
@@ -374,23 +594,53 @@ export default function ScanPage() {
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
                   <span className={`font-medium ${isAmountExceedingBalance() ? "text-red-500" : "text-gray-500"}`}>
-                    {selectedToken}
+                    {selectedToken?.ticker || ""}
                   </span>
                 </div>
               </div>
-              {amount && !isAmountExceedingBalance() && (
-                <p className="text-sm text-gray-500">
-                  {isPriceLoading ? (
-                    <span className="flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Fetching price...
-                    </span>
-                  ) : tokenPrice > 0 ? (
-                    `≈ $${amountUsd} USD`
-                  ) : (
-                    "Price unavailable"
-                  )}
-                </p>
+              
+              {/* Price info and Max button */}
+              {selectedToken && selectedToken.amount > 0 && (
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    {amount && !isAmountExceedingBalance() ? (
+                      isPriceLoading ? (
+                        <span className="flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Fetching price...
+                        </span>
+                      ) : tokenPrice > 0 ? (
+                        `≈ $${amountUsd} USD`
+                      ) : (
+                        "Price unavailable"
+                      )
+                    ) : (
+                      <span className="text-gray-400">Enter amount</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setAmount(selectedToken.amount.toString());
+                      const usdValue = selectedToken.amount * tokenPrice;
+                      setAmountUsd(usdValue.toFixed(2));
+                    }}
+                    className="text-sm font-medium text-violet-500 hover:text-violet-600 transition-colors"
+                  >
+                    Max
+                  </button>
+                </div>
+              )}
+              
+              {/* Zero Balance Warning */}
+              {selectedToken && selectedToken.amount === 0 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                  <p className="text-sm text-amber-700 font-medium">
+                    Insufficient balance
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    You don&apos;t have any {selectedToken.ticker} tokens to send.
+                  </p>
+                </div>
               )}
               
               {/* Exceeds Balance Warning */}
@@ -400,8 +650,40 @@ export default function ScanPage() {
                     Amount exceeds balance
                   </p>
                   <p className="text-xs text-red-600 mt-1">
-                    You only have {tokenBalance} {selectedToken} (${tokenFiatValue.toFixed(2)}) available.
+                    You only have {selectedToken?.amount} {selectedToken?.ticker} (${selectedToken?.fiatValue.toFixed(2)}) available.
                   </p>
+                </div>
+              )}
+              
+              {/* Insufficient Fees Warning */}
+              {!isAmountExceedingBalance() && feeError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-sm text-red-700 font-medium">
+                    Insufficient DOT for fees
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">
+                    {feeError}
+                  </p>
+                </div>
+              )}
+              
+              {/* Fee Estimate Display */}
+              {!isAmountExceedingBalance() && !feeError && feeEstimate && (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Estimated Fee</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {feeEstimate.feeFormatted} {feeEstimate.feeTicker}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Fee Loading */}
+              {!isAmountExceedingBalance() && isCheckingFees && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Estimating fees...
                 </div>
               )}
             </div>
@@ -410,10 +692,10 @@ export default function ScanPage() {
             <div className="space-y-3 pt-2">
               <Button
                 onClick={handleConfirm}
-                disabled={!isValidAmount || isPriceLoading || tokenPrice === 0 || isAmountExceedingBalance()}
+                disabled={!selectedToken || !isValidAmount || isCoinsLoading || isPriceLoading || isAmountExceedingBalance() || isCheckingFees || !feeEstimate || !!feeError}
                 className="w-full h-14 rounded-2xl bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white font-semibold text-base"
               >
-                {isPriceLoading ? "Loading price..." : "Continue to Review"}
+                {isCoinsLoading || isPriceLoading ? "Loading..." : isCheckingFees ? "Checking fees..." : "Continue to Review"}
               </Button>
               <Button
                 onClick={handleSheetClose}

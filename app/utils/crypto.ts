@@ -829,3 +829,90 @@ export const calculateTransactionTotals = (
 
   return { sent, received };
 };
+
+// Result type for fee check
+export interface FeeCheckResult {
+  hasEnoughFees: boolean;
+  feeEstimate: FeeEstimate | null;
+  error?: string;
+  // For DOT transfers: amount + fee vs DOT balance
+  // For non-DOT transfers: check if DOT balance covers fees
+  dotBalanceNeeded?: number;
+  dotBalanceAvailable?: number;
+}
+
+/**
+ * Checks if the user has enough balance to cover both the transfer amount and transaction fees
+ * For DOT transfers: checks if amount + fee <= DOT balance
+ * For non-DOT transfers: checks if fee <= DOT balance (fees are always paid in DOT)
+ * 
+ * This function should be called AFTER checking if the amount exceeds the token balance
+ * 
+ * @param senderAddress - The address sending the transfer
+ * @param recipientAddress - The address receiving the transfer
+ * @param ticker - The asset ticker symbol (e.g., "DOT", "USDT", "USDC")
+ * @param amount - The amount to transfer (in human-readable units)
+ * @param tokenBalance - The available balance of the token being sent
+ * @param dotBalance - The available DOT balance (for paying fees)
+ * @param knownAssets - Array of known assets (fetched from Supabase)
+ * @returns Promise<FeeCheckResult> - Result indicating if there's enough for fees
+ */
+export const checkEnoughFees = async (
+  senderAddress: string,
+  recipientAddress: string,
+  ticker: string,
+  amount: number,
+  tokenBalance: number,
+  dotBalance: number,
+  knownAssets: KnownAsset[]
+): Promise<FeeCheckResult> => {
+  try {
+    // First, estimate the transaction fee
+    const feeEstimate = await estimateTransferFee(
+      senderAddress,
+      recipientAddress,
+      ticker,
+      amount,
+      knownAssets
+    );
+
+    // Convert fee from planck to DOT
+    const feeInDot = Number(feeEstimate.fee) / Math.pow(10, DOT_DECIMALS);
+
+    if (ticker === "DOT") {
+      // For DOT transfers: amount + fee must be <= DOT balance
+      const totalNeeded = amount + feeInDot;
+      const hasEnough = totalNeeded <= dotBalance;
+
+      return {
+        hasEnoughFees: hasEnough,
+        feeEstimate,
+        dotBalanceNeeded: totalNeeded,
+        dotBalanceAvailable: dotBalance,
+        error: hasEnough 
+          ? undefined 
+          : `Insufficient DOT balance. You need ${totalNeeded.toFixed(6)} DOT (${amount} + ${feeInDot.toFixed(6)} fee) but only have ${dotBalance.toFixed(6)} DOT.`,
+      };
+    } else {
+      // For non-DOT transfers: fee must be <= DOT balance
+      const hasEnough = feeInDot <= dotBalance;
+
+      return {
+        hasEnoughFees: hasEnough,
+        feeEstimate,
+        dotBalanceNeeded: feeInDot,
+        dotBalanceAvailable: dotBalance,
+        error: hasEnough 
+          ? undefined 
+          : `Insufficient DOT for fees. You need ${feeInDot.toFixed(6)} DOT for the transaction fee but only have ${dotBalance.toFixed(6)} DOT.`,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to check fees:", error);
+    return {
+      hasEnoughFees: false,
+      feeEstimate: null,
+      error: error instanceof Error ? error.message : "Failed to estimate fees",
+    };
+  }
+};

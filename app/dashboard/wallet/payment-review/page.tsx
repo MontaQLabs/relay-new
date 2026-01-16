@@ -4,10 +4,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { estimateTransferFee, FeeEstimate, sendTransfer, TransferResult } from "@/app/utils/crypto";
-import { WALLET_KEY } from "@/app/types/constants";
+import { sendTransfer, TransferResult } from "@/app/utils/crypto";
 import { getKnownAssets } from "@/app/db/supabase";
-import type { Wallet, KnownAsset } from "@/app/types/frontend_type";
+import type { KnownAsset } from "@/app/types/frontend_type";
 
 // Transaction states for the confirm button
 type TransactionState = "idle" | "processing" | "success" | "error";
@@ -30,68 +29,34 @@ function PaymentReviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isExiting, setIsExiting] = useState(false);
-  const [feeEstimate, setFeeEstimate] = useState<FeeEstimate | null>(null);
-  const [feeLoading, setFeeLoading] = useState(true);
-  const [feeError, setFeeError] = useState<string | null>(null);
   const [txState, setTxState] = useState<TransactionState>("idle");
   const [txError, setTxError] = useState<string | null>(null);
   const [knownAssets, setKnownAssets] = useState<KnownAsset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get payment data from search params
+  // Get payment data from search params (including pre-calculated fee)
   const address = searchParams.get("address") || "";
   const token = searchParams.get("token") || "";
   const amountUsd = parseFloat(searchParams.get("amountUsd") || "0");
   const amountCrypto = parseFloat(searchParams.get("amountCrypto") || "0");
+  const fee = searchParams.get("fee") || "";
+  const feeTicker = searchParams.get("feeTicker") || "DOT";
 
-  // Fetch known assets and transaction fee estimate on mount
+  // Fetch known assets on mount (needed for sendTransfer)
   useEffect(() => {
-    const fetchAssetsAndFee = async () => {
-      if (!address || !token || !amountCrypto) {
-        setFeeLoading(false);
-        return;
-      }
-
+    const fetchAssets = async () => {
       try {
-        // First, fetch known assets from Supabase
         const assets = await getKnownAssets();
         setKnownAssets(assets);
-
-        // Get sender address from localStorage
-        const walletData = localStorage.getItem(WALLET_KEY);
-        if (!walletData) {
-          setFeeError("Wallet not found");
-          setFeeLoading(false);
-          return;
-        }
-
-        const wallet: Wallet = JSON.parse(walletData);
-        const senderAddress = wallet.address;
-
-        if (!senderAddress) {
-          setFeeError("No sender address");
-          setFeeLoading(false);
-          return;
-        }
-
-        const estimate = await estimateTransferFee(
-          senderAddress,
-          address,
-          token,
-          amountCrypto,
-          assets
-        );
-        setFeeEstimate(estimate);
-        setFeeError(null);
       } catch (error) {
-        console.error("Failed to estimate fee:", error);
-        setFeeError("Unable to estimate fee");
+        console.error("Failed to fetch assets:", error);
       } finally {
-        setFeeLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchAssetsAndFee();
-  }, [address, token, amountCrypto]);
+    fetchAssets();
+  }, []);
 
   const handleBack = () => {
     setIsExiting(true);
@@ -233,7 +198,7 @@ function PaymentReviewContent() {
           {/* Network */}
           <div className="py-4 animate-slide-up animation-delay-300">
             <div className="text-sm text-muted-foreground mb-1">Network</div>
-            <div className="text-base text-muted-foreground">{token}</div>
+            <div className="text-base text-muted-foreground">Polkadot Asset Hub</div>
           </div>
 
           {/* Transaction Fee */}
@@ -242,17 +207,8 @@ function PaymentReviewContent() {
               Transaction Fee
             </div>
             <div className="text-base text-muted-foreground">
-              {feeLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
-                  <span>Estimating...</span>
-                </div>
-              ) : feeError ? (
-                <span className="text-red-500">{feeError}</span>
-              ) : feeEstimate ? (
-                <span>
-                  {feeEstimate.feeFormatted} {feeEstimate.feeTicker}
-                </span>
+              {fee ? (
+                <span>{fee} {feeTicker}</span>
               ) : (
                 <span>—</span>
               )}
@@ -272,7 +228,7 @@ function PaymentReviewContent() {
         
         <Button
           onClick={handleConfirm}
-          disabled={txState === "processing" || txState === "success"}
+          disabled={txState === "processing" || txState === "success" || isLoading}
           className={`w-full h-14 rounded-2xl font-semibold text-base transition-all ${
             txState === "success"
               ? "bg-emerald-500 hover:bg-emerald-500 text-white"
@@ -281,7 +237,12 @@ function PaymentReviewContent() {
               : "bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white"
           }`}
         >
-          {txState === "processing" ? (
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Loading...
+            </>
+          ) : txState === "processing" ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
               Processing...
