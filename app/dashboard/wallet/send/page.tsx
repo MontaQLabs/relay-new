@@ -1,104 +1,59 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, Check, Loader2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { isAddrValid, getWalletAddress } from "@/app/utils/wallet";
-import { fetchDotCoins, calculatePortfolioValue, PriceMap, checkEnoughFees, FeeEstimate } from "@/app/utils/crypto";
-import { getKnownAssets } from "@/app/db/supabase";
-import type { Coin, KnownAsset } from "@/app/types/frontend_type";
-
-// Color mapping for common crypto tickers
-const COIN_COLORS: Record<string, { bg: string; color: string }> = {
-  ETH: { bg: "#627eea", color: "#ffffff" },
-  ETC: { bg: "#3ab83a", color: "#ffffff" },
-  ZEC: { bg: "#f4b728", color: "#1a1a1a" },
-  XMR: { bg: "#ff6600", color: "#ffffff" },
-  BTC: { bg: "#f7931a", color: "#ffffff" },
-  USDT: { bg: "#26a17b", color: "#ffffff" },
-  USDC: { bg: "#2775ca", color: "#ffffff" },
-  DOT: { bg: "#e6007a", color: "#ffffff" },
-  SOL: { bg: "#9945ff", color: "#ffffff" },
-  DEFAULT: { bg: "#6366f1", color: "#ffffff" },
-};
+import { TokenList } from "@/components/crypto";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { SlideInPage } from "@/components/layout/SlideInPage";
+import { useSlideNavigation, useCoins, useFeeEstimate } from "@/hooks";
+import { isAddrValid } from "@/app/utils/wallet";
+import type { Coin } from "@/app/types/frontend_type";
 
 export default function SendPage() {
-  const router = useRouter();
-  const [isExiting, setIsExiting] = useState(false);
-  
+  const { isExiting, handleBack, router } = useSlideNavigation();
+
   // Form state
   const [address, setAddress] = useState("");
-  const [selectedToken, setSelectedToken] = useState<Coin | null>(null);
   const [amount, setAmount] = useState("");
   const [isUsdMode, setIsUsdMode] = useState(true);
-  
-  // UI state
-  const [coins, setCoins] = useState<Coin[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPriceLoading, setIsPriceLoading] = useState(false);
-  const [priceMap, setPriceMap] = useState<PriceMap>({});
-  const [knownAssets, setKnownAssets] = useState<KnownAsset[]>([]);
-  
-  // Fee checking state
-  const [feeEstimate, setFeeEstimate] = useState<FeeEstimate | null>(null);
-  const [feeError, setFeeError] = useState<string | null>(null);
-  const [isCheckingFees, setIsCheckingFees] = useState(false);
-  const feeCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load known assets and coins on mount
-  useEffect(() => {
-    const loadAssetsAndCoins = async () => {
-      try {
-        // First fetch known assets from Supabase
-        const assets = await getKnownAssets();
-        setKnownAssets(assets);
-        
-        // Then fetch coins using known assets
-        const fetchedCoins = await fetchDotCoins(assets);
-        setCoins(fetchedCoins);
-        setIsLoading(false);
+  // Use coins hook
+  const {
+    coins,
+    knownAssets,
+    isLoading,
+    isPriceLoading,
+    selectedToken,
+    setSelectedToken,
+  } = useCoins();
 
-        // Finally, fetch real-time prices and calculate portfolio value
-        if (fetchedCoins.length > 0) {
-          setIsPriceLoading(true);
-          try {
-            const { coinsWithPrices } = await calculatePortfolioValue(fetchedCoins);
-            setCoins(coinsWithPrices);
-            
-            // Build price map from coins with prices
-            const prices: PriceMap = {};
-            for (const coin of coinsWithPrices) {
-              if (coin.amount > 0) {
-                prices[coin.ticker] = {
-                  usd: coin.fiatValue / coin.amount,
-                  usd_24h_change: coin.change,
-                };
-              }
-            }
-            setPriceMap(prices);
-          } catch (priceError) {
-            console.error("Failed to fetch prices:", priceError);
-          } finally {
-            setIsPriceLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch coins:", error);
-        setCoins([]);
-        setIsLoading(false);
+  // Get token price
+  const getTokenPrice = useCallback(
+    (ticker: string): number => {
+      const coin = coins.find((c) => c.ticker === ticker);
+      if (coin && coin.amount > 0 && coin.fiatValue > 0) {
+        return coin.fiatValue / coin.amount;
       }
-    };
-    loadAssetsAndCoins();
-  }, []);
+      if (ticker === "USDT" || ticker === "USDt" || ticker === "USDC") {
+        return 1;
+      }
+      return 0;
+    },
+    [coins]
+  );
 
-  const handleBack = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      router.back();
-    }, 300);
-  };
+  // Use fee estimate hook
+  const { feeEstimate, feeError, isCheckingFees } = useFeeEstimate({
+    recipientAddress: isAddrValid(address) ? address : null,
+    selectedToken,
+    amount,
+    coins,
+    knownAssets,
+    isUsdMode,
+    getTokenPrice,
+  });
 
   const handlePasteOrClear = async () => {
     if (address) {
@@ -115,65 +70,33 @@ export default function SendPage() {
 
   const handleTokenSelect = (coin: Coin) => {
     setSelectedToken(coin);
-    setAmount(""); // Reset amount when token changes
-    setFeeEstimate(null);
-    setFeeError(null);
+    setAmount("");
   };
 
-  // Update selectedToken when coins are updated with prices
-  useEffect(() => {
-    if (selectedToken && coins.length > 0) {
-      const updatedCoin = coins.find(c => c.ticker === selectedToken.ticker);
-      if (updatedCoin && updatedCoin.fiatValue !== selectedToken.fiatValue) {
-        setSelectedToken(updatedCoin);
-      }
-    }
-  }, [coins, selectedToken]);
-
   const handleAmountChange = (value: string) => {
-    // Only allow valid number input
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setAmount(value);
     }
   };
-
-  // Get token price from price map (fallback to calculating from coin data)
-  const getTokenPrice = useCallback((ticker: string): number => {
-    if (priceMap[ticker]?.usd) {
-      return priceMap[ticker].usd;
-    }
-    // Fallback: calculate from coin data if available
-    const coin = coins.find(c => c.ticker === ticker);
-    if (coin && coin.amount > 0 && coin.fiatValue > 0) {
-      return coin.fiatValue / coin.amount;
-    }
-    // Default fallback for stablecoins
-    if (ticker === "USDT" || ticker === "USDt" || ticker === "USDC") {
-      return 1;
-    }
-    return 0;
-  }, [priceMap, coins]);
 
   const toggleCurrencyMode = () => {
     if (!selectedToken || !amount) {
       setIsUsdMode(!isUsdMode);
       return;
     }
-    
+
     const price = getTokenPrice(selectedToken.ticker);
     if (price === 0) {
       setIsUsdMode(!isUsdMode);
       return;
     }
-    
+
     const numericAmount = parseFloat(amount) || 0;
-    
+
     if (isUsdMode) {
-      // Convert USD to crypto
       const cryptoAmount = numericAmount / price;
       setAmount(cryptoAmount.toFixed(8).replace(/\.?0+$/, ""));
     } else {
-      // Convert crypto to USD
       const usdAmount = numericAmount * price;
       setAmount(usdAmount.toFixed(2));
     }
@@ -184,106 +107,30 @@ export default function SendPage() {
     if (!selectedToken || !amount) return "0";
     const price = getTokenPrice(selectedToken.ticker);
     if (price === 0) return "0";
-    
+
     const numericAmount = parseFloat(amount) || 0;
-    
+
     if (isUsdMode) {
-      // Display crypto equivalent
       const cryptoAmount = numericAmount / price;
       return cryptoAmount.toFixed(6).replace(/\.?0+$/, "");
     } else {
-      // Display USD equivalent
       const usdAmount = numericAmount * price;
       return usdAmount.toFixed(2);
     }
   }, [selectedToken, amount, isUsdMode, getTokenPrice]);
 
-  // Check if entered amount exceeds available balance
   const isAmountExceedingBalance = useCallback(() => {
     if (!selectedToken || !amount || selectedToken.amount === 0) return false;
-    
+
     const numericAmount = parseFloat(amount) || 0;
     if (numericAmount <= 0) return false;
-    
+
     if (isUsdMode) {
-      // Compare USD amount with available fiat value
       return numericAmount > selectedToken.fiatValue;
     } else {
-      // Compare crypto amount with available token amount
       return numericAmount > selectedToken.amount;
     }
   }, [selectedToken, amount, isUsdMode]);
-
-  // Check fees when amount or address changes (debounced)
-  useEffect(() => {
-    // Clear previous timeout
-    if (feeCheckTimeoutRef.current) {
-      clearTimeout(feeCheckTimeoutRef.current);
-    }
-
-    // Reset fee state when inputs change
-    setFeeEstimate(null);
-    setFeeError(null);
-
-    // Only check fees if we have valid inputs
-    if (!address || !isAddrValid(address) || !selectedToken) {
-      return;
-    }
-
-    const numericAmount = parseFloat(amount) || 0;
-    
-    // Calculate crypto amount based on mode
-    let cryptoAmount: number;
-    if (isUsdMode) {
-      const price = getTokenPrice(selectedToken.ticker);
-      cryptoAmount = price > 0 ? numericAmount / price : 0;
-    } else {
-      cryptoAmount = numericAmount;
-    }
-
-    if (cryptoAmount <= 0 || cryptoAmount > selectedToken.amount) {
-      return;
-    }
-
-    const walletAddress = getWalletAddress();
-    if (!walletAddress) return;
-
-    // Get DOT balance for fee payment
-    const dotCoin = coins.find(c => c.ticker === "DOT");
-    const dotBalance = dotCoin?.amount || 0;
-
-    // Debounce the fee check
-    feeCheckTimeoutRef.current = setTimeout(async () => {
-      setIsCheckingFees(true);
-      try {
-        const result = await checkEnoughFees(
-          walletAddress,
-          address,
-          selectedToken.ticker,
-          cryptoAmount,
-          selectedToken.amount,
-          dotBalance,
-          knownAssets
-        );
-
-        setFeeEstimate(result.feeEstimate);
-        if (!result.hasEnoughFees) {
-          setFeeError(result.error || "Insufficient DOT for transaction fees");
-        }
-      } catch (error) {
-        console.error("Fee check failed:", error);
-        setFeeError("Failed to estimate fees");
-      } finally {
-        setIsCheckingFees(false);
-      }
-    }, 500); // 500ms debounce
-
-    return () => {
-      if (feeCheckTimeoutRef.current) {
-        clearTimeout(feeCheckTimeoutRef.current);
-      }
-    };
-  }, [amount, address, selectedToken, isUsdMode, coins, knownAssets, getTokenPrice]);
 
   const isFormValid = () => {
     const hasValidAddress = isAddrValid(address);
@@ -299,11 +146,10 @@ export default function SendPage() {
     if (isFormValid() && selectedToken && feeEstimate) {
       const price = getTokenPrice(selectedToken.ticker);
       const numericAmount = parseFloat(amount) || 0;
-      
-      // Calculate both USD and crypto amounts
+
       let amountUsd: number;
       let amountCrypto: number;
-      
+
       if (isUsdMode) {
         amountUsd = numericAmount;
         amountCrypto = price > 0 ? numericAmount / price : 0;
@@ -311,8 +157,7 @@ export default function SendPage() {
         amountCrypto = numericAmount;
         amountUsd = numericAmount * price;
       }
-      
-      // Navigate to payment review page with params including fee
+
       const params = new URLSearchParams({
         address,
         token: selectedToken.ticker,
@@ -321,31 +166,14 @@ export default function SendPage() {
         fee: feeEstimate.feeFormatted,
         feeTicker: feeEstimate.feeTicker,
       });
-      
+
       router.push(`/dashboard/wallet/payment-review?${params.toString()}`);
     }
   };
 
   return (
-    <div
-      className={`fixed inset-0 z-50 bg-white flex flex-col ${
-        isExiting ? "animate-slide-out-right" : "animate-slide-in-right"
-      }`}
-    >
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-4 relative">
-        <button
-          onClick={handleBack}
-          className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="Go back"
-        >
-          <ChevronLeft className="w-6 h-6 text-black" />
-        </button>
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-black">
-          Send
-        </h1>
-        <div className="w-10" />
-      </header>
+    <SlideInPage isExiting={isExiting}>
+      <PageHeader title="Send" onBack={handleBack} />
 
       {/* Content */}
       <div className="flex-1 flex flex-col px-5 pt-4 gap-4 overflow-auto">
@@ -381,52 +209,12 @@ export default function SendPage() {
             Select Token
           </label>
           <div className="bg-gray-50 rounded-2xl overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {coins.map((coin) => {
-                  const coinColors = COIN_COLORS[coin.ticker] || COIN_COLORS.DEFAULT;
-                  const isSelected = selectedToken?.ticker === coin.ticker;
-                  
-                  return (
-                    <button
-                      key={coin.ticker}
-                      onClick={() => handleTokenSelect(coin)}
-                      className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${
-                        isSelected ? "bg-violet-50" : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: coinColors.bg }}
-                        >
-                          <CryptoIcon symbol={coin.ticker} color={coinColors.color} />
-                        </div>
-                        <span className="font-semibold text-black">{coin.ticker}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <div className="font-medium text-black">{coin.amount}</div>
-                          <div className="text-sm text-muted-foreground">
-                            ${coin.fiatValue.toFixed(2)}
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
-                            <Check className="w-3 h-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <TokenList
+              coins={coins}
+              selectedToken={selectedToken}
+              onSelect={handleTokenSelect}
+              isLoading={isLoading}
+            />
           </div>
         </div>
 
@@ -435,12 +223,14 @@ export default function SendPage() {
           <label className="text-sm font-medium text-muted-foreground mb-2 block">
             Amount
           </label>
-          <div className={`rounded-2xl p-4 transition-all ${
-            isAmountExceedingBalance() 
-              ? "bg-red-50 border-2 border-red-300" 
-              : "bg-gray-50"
-          }`}>
-            {/* Currency Toggle inside input area */}
+          <div
+            className={`rounded-2xl p-4 transition-all ${
+              isAmountExceedingBalance()
+                ? "bg-red-50 border-2 border-red-300"
+                : "bg-gray-50"
+            }`}
+          >
+            {/* Currency Toggle */}
             <div className="flex justify-end mb-2">
               <div className="inline-flex bg-gray-200 rounded-lg p-0.5">
                 <button
@@ -467,7 +257,7 @@ export default function SendPage() {
                 </button>
               </div>
             </div>
-            
+
             {/* Amount Input */}
             <div className={`flex items-center gap-2 ${selectedToken?.amount === 0 ? "opacity-50" : ""}`}>
               <span className={`text-4xl font-bold ${isAmountExceedingBalance() ? "text-red-500" : "text-black"}`}>
@@ -485,11 +275,10 @@ export default function SendPage() {
                 disabled={!selectedToken || selectedToken.amount === 0}
               />
             </div>
-            
+
             {/* Equivalent Value Display */}
             {selectedToken && selectedToken.amount > 0 && (
               <div className="mt-3 flex items-center justify-between">
-                {/* Show equivalent value when amount is entered */}
                 <div className="text-sm text-muted-foreground">
                   {amount && parseFloat(amount) > 0 ? (
                     isPriceLoading ? (
@@ -499,7 +288,8 @@ export default function SendPage() {
                       </span>
                     ) : (
                       <>
-                        ≈ {isUsdMode ? (
+                        ≈{" "}
+                        {isUsdMode ? (
                           <span>{getConvertedAmount()} {selectedToken.ticker}</span>
                         ) : (
                           <span>${getConvertedAmount()}</span>
@@ -512,7 +302,7 @@ export default function SendPage() {
                     </span>
                   )}
                 </div>
-                
+
                 {/* Max button */}
                 <button
                   onClick={() => {
@@ -528,43 +318,36 @@ export default function SendPage() {
                 </button>
               </div>
             )}
-            
+
             {/* Zero Balance Warning */}
             {selectedToken && selectedToken.amount === 0 && (
               <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                <p className="text-sm text-amber-700 font-medium">
-                  Insufficient balance
-                </p>
+                <p className="text-sm text-amber-700 font-medium">Insufficient balance</p>
                 <p className="text-xs text-amber-600 mt-1">
-                  You don&apos;t have any {selectedToken.ticker} tokens to send. Please deposit funds first.
+                  You don&apos;t have any {selectedToken.ticker} tokens to send.
                 </p>
               </div>
             )}
-            
+
             {/* Exceeds Balance Warning */}
             {isAmountExceedingBalance() && (
               <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-700 font-medium">
-                  Amount exceeds balance
-                </p>
+                <p className="text-sm text-red-700 font-medium">Amount exceeds balance</p>
                 <p className="text-xs text-red-600 mt-1">
-                  You only have {selectedToken?.amount} {selectedToken?.ticker} (${selectedToken?.fiatValue.toFixed(2)}) available.
+                  You only have {selectedToken?.amount} {selectedToken?.ticker} ($
+                  {selectedToken?.fiatValue.toFixed(2)}) available.
                 </p>
               </div>
             )}
-            
+
             {/* Insufficient Fees Warning */}
             {!isAmountExceedingBalance() && feeError && (
               <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-700 font-medium">
-                  Insufficient DOT for fees
-                </p>
-                <p className="text-xs text-red-600 mt-1">
-                  {feeError}
-                </p>
+                <p className="text-sm text-red-700 font-medium">Insufficient DOT for fees</p>
+                <p className="text-xs text-red-600 mt-1">{feeError}</p>
               </div>
             )}
-            
+
             {/* Fee Estimate Display */}
             {!isAmountExceedingBalance() && !feeError && feeEstimate && (
               <div className="mt-3 p-3 bg-gray-100 border border-gray-200 rounded-xl">
@@ -576,7 +359,7 @@ export default function SendPage() {
                 </div>
               </div>
             )}
-            
+
             {/* Fee Loading */}
             {!isAmountExceedingBalance() && isCheckingFees && (
               <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
@@ -598,80 +381,6 @@ export default function SendPage() {
           {isCheckingFees ? "Checking fees..." : "Confirm"}
         </Button>
       </div>
-    </div>
+    </SlideInPage>
   );
-}
-
-// Crypto Icon Component
-function CryptoIcon({
-  symbol,
-  color,
-  className = "",
-}: {
-  symbol: string;
-  color: string;
-  className?: string;
-}) {
-  switch (symbol) {
-    case "ETH":
-    case "ETC":
-      return (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 20 20"
-          fill="none"
-          style={{ color }}
-          className={className}
-        >
-          <path
-            d="M10 2L4 10L10 13L16 10L10 2Z"
-            fill="currentColor"
-            opacity={symbol === "ETH" ? 0.6 : 0.8}
-          />
-          <path d="M10 13L4 10L10 18L16 10L10 13Z" fill="currentColor" />
-        </svg>
-      );
-    case "BTC":
-      return (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 20 20"
-          fill="none"
-          style={{ color }}
-          className={className}
-        >
-          <text
-            x="50%"
-            y="55%"
-            dominantBaseline="middle"
-            textAnchor="middle"
-            fontSize="14"
-            fontWeight="bold"
-            fill="currentColor"
-          >
-            ₿
-          </text>
-        </svg>
-      );
-    case "ZEC":
-      return (
-        <span className={`text-lg font-bold ${className}`} style={{ color }}>
-          ⓩ
-        </span>
-      );
-    case "XMR":
-      return (
-        <span className={`text-lg font-bold ${className}`} style={{ color }}>
-          ɱ
-        </span>
-      );
-    default:
-      return (
-        <span className={`text-sm font-bold ${className}`} style={{ color }}>
-          {symbol[0]}
-        </span>
-      );
-  }
 }

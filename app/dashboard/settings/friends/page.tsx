@@ -2,17 +2,22 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2 } from "lucide-react";
 import { getAuthToken } from "@/app/utils/auth";
 import type { Friend } from "@/app/types/frontend_type";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { SlideInPage } from "@/components/layout/SlideInPage";
+import { useSlideNavigation } from "@/hooks";
+import { truncateAddress } from "@/lib/format";
+import { getDiceBearAvatar } from "@/lib/avatar";
 import AddFriendSheet from "./AddFriendSheet";
 import FriendDetailSheet from "./FriendDetailSheet";
 
 export default function FriendsPage() {
   const router = useRouter();
+  const { isExiting, handleBack } = useSlideNavigation();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExiting, setIsExiting] = useState(false);
   const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -49,13 +54,6 @@ export default function FriendsPage() {
     fetchFriends();
   }, [fetchFriends]);
 
-  const handleBack = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      router.back();
-    }, 300);
-  };
-
   const handleFriendClick = (friend: Friend) => {
     setSelectedFriend(friend);
     setIsDetailOpen(true);
@@ -78,39 +76,10 @@ export default function FriendsPage() {
     fetchFriends();
   };
 
-  // Generate avatar URL for friend
-  const getFriendAvatar = (walletAddress: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(walletAddress)}`;
-  };
-
-  // Truncate address for display
-  const truncateAddress = (address: string) => {
-    if (!address) return "";
-    if (address.length <= 16) return address;
-    return `${address.slice(0, 8)}...${address.slice(-6)}`;
-  };
-
   return (
     <>
-      <div
-        className={`fixed inset-0 z-50 bg-white flex flex-col ${
-          isExiting ? "animate-slide-out-right" : "animate-slide-in-right"
-        }`}
-      >
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-4 relative border-b border-gray-100">
-          <button
-            onClick={handleBack}
-            className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label="Go back"
-          >
-            <ChevronLeft className="w-6 h-6 text-black" />
-          </button>
-          <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-black">
-            Your Friends
-          </h1>
-          <div className="w-10" />
-        </header>
+      <SlideInPage isExiting={isExiting}>
+        <PageHeader title="Your Friends" onBack={handleBack} className="border-b border-gray-100" />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
@@ -119,20 +88,14 @@ export default function FriendsPage() {
               <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
             </div>
           ) : friends.length === 0 ? (
-            // Empty state
             <div className="flex flex-col items-center justify-center h-full px-5 py-12">
               <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                 <UserPlus className="w-12 h-12 text-gray-400" />
               </div>
-              <h2 className="text-xl font-semibold text-black mb-2">
-                No Friends Yet
-              </h2>
-              <p className="text-sm text-gray-500 text-center mb-8">
-                Add your first friend to get started
-              </p>
+              <h2 className="text-xl font-semibold text-black mb-2">No Friends Yet</h2>
+              <p className="text-sm text-gray-500 text-center mb-8">Add your first friend to get started</p>
             </div>
           ) : (
-            // Friends list
             <div className="px-5 py-4">
               {friends.map((friend, index) => (
                 <button
@@ -140,27 +103,18 @@ export default function FriendsPage() {
                   onClick={() => handleFriendClick(friend)}
                   className="w-full flex items-center gap-4 py-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors text-left"
                 >
-                  {/* Avatar */}
                   <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={getFriendAvatar(friend.walletAddress)}
+                      src={getDiceBearAvatar(friend.walletAddress)}
                       alt={friend.nickname}
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${friend.walletAddress}`;
-                      }}
                     />
                   </div>
 
-                  {/* Friend Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-black truncate">
-                      {friend.nickname}
-                    </h3>
-                    <p className="text-sm text-gray-500 truncate">
-                      {truncateAddress(friend.walletAddress)}
-                    </p>
+                    <h3 className="font-semibold text-black truncate">{friend.nickname}</h3>
+                    <p className="text-sm text-gray-500 truncate">{truncateAddress(friend.walletAddress)}</p>
                   </div>
                 </button>
               ))}
@@ -178,14 +132,10 @@ export default function FriendsPage() {
             <span>Add New Friend</span>
           </button>
         </div>
-      </div>
+      </SlideInPage>
 
       {/* Add Friend Sheet */}
-      <AddFriendSheet
-        isOpen={isAddFriendOpen}
-        onClose={() => setIsAddFriendOpen(false)}
-        onSuccess={handleAddFriendSuccess}
-      />
+      <AddFriendSheet isOpen={isAddFriendOpen} onClose={() => setIsAddFriendOpen(false)} onSuccess={handleAddFriendSuccess} />
 
       {/* Friend Detail Sheet */}
       <FriendDetailSheet
