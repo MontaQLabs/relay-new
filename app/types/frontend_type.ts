@@ -147,3 +147,70 @@ export type ActivityId = Activity["activityId"];
 export type CommentId = Comment["commentId"];
 export type ActivityStatus = "open" | "attending" | "full" | "finished" | "cancelled";
 export type WalletStatus = "active" | "inactive" | "marked";
+
+// ===== Staking Types =====
+
+/**
+ * Nomination Pool information from the Staking SDK
+ * Represents a pool that users can join to stake their DOT
+ */
+export interface NominationPoolInfo {
+    id: number;
+    name: string;
+    state: "Open" | "Blocked" | "Destroying";
+    memberCount: number;
+    bond: string; // Total bonded amount as string (for bigint precision)
+    commission: number; // Commission rate in 0-1 range
+    addresses: {
+        stash: string;
+        reward: string;
+        bouncer: string;
+    };
+}
+
+/**
+ * User's staking status in a nomination pool
+ */
+export interface UserStakingStatus {
+    pool: number | null; // Pool ID if staked, null otherwise
+    currentBond: string; // Current bonded amount as string
+    points: string; // Pool points as string
+    pendingRewards: string; // Claimable rewards as string
+    unlocks: StakingUnlock[];
+}
+
+/**
+ * Unlock schedule entry for unbonding funds
+ */
+export interface StakingUnlock {
+    value: string; // Amount being unlocked as string
+    era: number; // Era when funds will be unlocked
+}
+
+/**
+ * Account balance information for staking
+ */
+export interface StakingBalance {
+    total: string;
+    locked: string;
+    spendable: string;
+    existentialDeposit: string;
+}
+
+/**
+ * Combined account status for staking operations
+ */
+export interface StakingAccountStatus {
+    balance: StakingBalance;
+    nominationPool: UserStakingStatus;
+}
+
+/**
+ * Result of a staking transaction
+ */
+export interface StakingTransactionResult {
+    success: boolean;
+    txHash?: string;
+    blockHash?: string;
+    error?: string;
+}

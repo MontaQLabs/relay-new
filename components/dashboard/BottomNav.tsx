@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { House, Send, CircleUser } from "lucide-react";
+import { House, Send, CircleUser, Coins } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -18,6 +18,11 @@ export default function BottomNav() {
       label: "Home",
       href: "/dashboard/wallet",
       Icon: House,
+    },
+    {
+      label: "Stake",
+      href: "/dashboard/staking",
+      Icon: Coins,
     },
     {
       label: "Community",
