@@ -1,17 +1,35 @@
 "use client";
 
-import { Users, Percent, ChevronRight } from "lucide-react";
-import { formatCommission, formatMemberCount, formatPoolBond } from "@/lib/format";
-import { planckToDot } from "@/app/utils/staking";
-import type { NominationPoolInfo } from "@/app/types/frontend_type";
+import { Users, ChevronRight, ChevronLeft } from "lucide-react";
+import { formatMemberCount } from "@/lib/format";
+import type { PoolSummary } from "@/app/types/frontend_type";
 
 interface PoolListProps {
-  pools: NominationPoolInfo[];
-  onPoolSelect: (pool: NominationPoolInfo) => void;
+  pools: PoolSummary[];
+  onPoolSelect: (poolId: number) => void;
   isLoading?: boolean;
+  // Pagination props
+  currentPage?: number;
+  totalPages?: number;
+  totalPools?: number;
+  onNextPage?: () => void;
+  onPreviousPage?: () => void;
+  onGoToPage?: (page: number) => void;
 }
 
-export function PoolList({ pools, onPoolSelect, isLoading }: PoolListProps) {
+export function PoolList({
+  pools,
+  onPoolSelect,
+  isLoading,
+  currentPage = 1,
+  totalPages = 1,
+  totalPools = 0,
+  onNextPage,
+  onPreviousPage,
+  // onGoToPage is available for page number buttons if needed in the future
+}: PoolListProps) {
+  const hasPagination = totalPages > 1;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -20,7 +38,7 @@ export function PoolList({ pools, onPoolSelect, isLoading }: PoolListProps) {
     );
   }
 
-  if (pools.length === 0) {
+  if (pools.length === 0 && totalPools === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center px-5">
         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
@@ -35,28 +53,64 @@ export function PoolList({ pools, onPoolSelect, isLoading }: PoolListProps) {
   }
 
   return (
-    <div className="divide-y divide-gray-100">
-      {pools.map((pool, index) => (
-        <PoolRow
-          key={pool.id}
-          pool={pool}
-          index={index}
-          onSelect={() => onPoolSelect(pool)}
-        />
-      ))}
+    <div>
+      {/* Pool list */}
+      <div className="divide-y divide-gray-100">
+        {pools.map((pool, index) => (
+          <PoolRow
+            key={pool.id}
+            pool={pool}
+            index={index}
+            onSelect={() => onPoolSelect(pool.id)}
+          />
+        ))}
+      </div>
+
+      {/* Pagination controls */}
+      {hasPagination && (
+        <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50">
+          {/* Previous button */}
+          <button
+            onClick={onPreviousPage}
+            disabled={currentPage <= 1}
+            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </button>
+
+          {/* Page indicator */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <span className="text-xs text-gray-400">
+              ({totalPools} pools)
+            </span>
+          </div>
+
+          {/* Next button */}
+          <button
+            onClick={onNextPage}
+            disabled={currentPage >= totalPages}
+            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 interface PoolRowProps {
-  pool: NominationPoolInfo;
+  pool: PoolSummary;
   index: number;
   onSelect: () => void;
 }
 
 function PoolRow({ pool, index, onSelect }: PoolRowProps) {
-  const bondInDot = planckToDot(pool.bond);
-
   return (
     <button
       onClick={onSelect}
@@ -77,24 +131,15 @@ function PoolRow({ pool, index, onSelect }: PoolRowProps) {
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Users className="w-3 h-3" />
-              {formatMemberCount(pool.memberCount)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Percent className="w-3 h-3" />
-              {formatCommission(pool.commission)}
+              {formatMemberCount(pool.memberCount)} members
             </span>
           </div>
         </div>
       </div>
 
-      {/* Bond Amount & Arrow */}
+      {/* Arrow - details loaded on click */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div className="text-right">
-          <p className="font-semibold text-black text-sm">
-            {formatPoolBond(bondInDot)}
-          </p>
-          <p className="text-xs text-muted-foreground">Total Staked</p>
-        </div>
+        <span className="text-xs text-muted-foreground">Tap for details</span>
         <ChevronRight className="w-5 h-5 text-gray-400" />
       </div>
     </button>

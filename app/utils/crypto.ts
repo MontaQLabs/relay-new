@@ -192,8 +192,8 @@ export interface TransferResult {
 
 // Polkadot Asset Hub WebSocket endpoints
 const ASSET_HUB_WS_ENDPOINTS = [
-  "wss://polkadot-asset-hub-rpc.polkadot.io",
-  "wss://statemint.api.onfinality.io/public-ws",
+  // "wss://polkadot-asset-hub-rpc.polkadot.io",
+  "wss://statemint.api.onfinality.io/ws?apikey=15e1e599-9329-42ea-a32c-3b486e5a709c",
 ];
 
 // Asset details returned from Polkadot Asset Hub

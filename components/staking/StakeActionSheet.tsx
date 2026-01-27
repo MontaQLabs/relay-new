@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import {
   Sheet,
@@ -32,13 +32,16 @@ export function StakeActionSheet({
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Reset state when sheet opens/closes
-  useEffect(() => {
-    if (isOpen) {
+  // Handle sheet open/close - reset state when opening
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (open) {
+      // Reset state when sheet opens
       setAmount("");
       setError(null);
+    } else {
+      onClose();
     }
-  }, [isOpen]);
+  }, [onClose]);
 
   const handleAmountChange = (value: string) => {
     if (/^\d*\.?\d*$/.test(value)) {
@@ -92,7 +95,7 @@ export function StakeActionSheet({
   const maxLabel = actionType === "stake" ? "Available" : "Staked";
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent side="bottom" className="px-5 pb-8">
         <SheetTitle className="text-xl font-bold text-black mb-1">
           {title}

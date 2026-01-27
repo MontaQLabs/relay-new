@@ -151,8 +151,45 @@ export type WalletStatus = "active" | "inactive" | "marked";
 // ===== Staking Types =====
 
 /**
+ * Lightweight pool summary for list display (lazy loading)
+ * Contains only the essential data needed for the pool card
+ */
+export interface PoolSummary {
+    id: number;
+    name: string;
+    state: "Open" | "Blocked" | "Destroying";
+    memberCount: number;
+}
+
+/**
+ * Paginated response for pool summaries
+ */
+export interface PaginatedPoolSummaries {
+    pools: PoolSummary[];
+    currentPage: number;
+    totalPages: number;
+    totalPools: number;
+    pageSize: number;
+}
+
+/**
+ * Full nomination pool details (fetched on demand)
+ * Extends PoolSummary with additional expensive-to-fetch data
+ */
+export interface PoolDetails extends PoolSummary {
+    bond: string; // Total bonded amount as string (for bigint precision)
+    commission: number; // Commission rate in 0-1 range
+    addresses: {
+        stash: string;
+        reward: string;
+        bouncer: string;
+    };
+}
+
+/**
  * Nomination Pool information from the Staking SDK
  * Represents a pool that users can join to stake their DOT
+ * @deprecated Use PoolSummary for list and PoolDetails for detail view
  */
 export interface NominationPoolInfo {
     id: number;

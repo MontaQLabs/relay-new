@@ -1,13 +1,13 @@
 "use client";
 
-import { Coins, Gift, Clock, ChevronRight } from "lucide-react";
+import { Coins, Gift, Clock } from "lucide-react";
 import { formatStakingAmount, formatUnlockTime } from "@/lib/format";
-import type { StakingAccountStatus, NominationPoolInfo, StakingUnlock } from "@/app/types/frontend_type";
+import type { StakingAccountStatus, PoolSummary, StakingUnlock } from "@/app/types/frontend_type";
 import { planckToDot } from "@/app/utils/staking";
 
 interface StakingStatusCardProps {
   accountStatus: StakingAccountStatus;
-  currentPool: NominationPoolInfo | null;
+  currentPool: PoolSummary | null;
   currentEra?: number;
   onStakeMore?: () => void;
   onUnbond?: () => void;

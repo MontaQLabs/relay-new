@@ -10,28 +10,37 @@ import {
   StakeActionSheet,
 } from "@/components/staking";
 import { useStaking, useStakingActions } from "@/hooks";
-import type { NominationPoolInfo } from "@/app/types/frontend_type";
 
 type TabType = "My Stake" | "Pools";
 
 export default function StakingPage() {
   const [activeTab, setActiveTab] = useState<TabType>("Pools");
-  const [selectedPool, setSelectedPool] = useState<NominationPoolInfo | null>(null);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [actionSheetType, setActionSheetType] = useState<"stake" | "unbond" | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Staking data hook
+  // Staking data hook (with lazy loading and pagination)
   const {
-    pools,
+    poolSummaries,
+    currentPage,
+    totalPages,
+    totalPools,
+    selectedPoolDetails,
     accountStatus,
     isStaking,
-    currentPool,
+    currentPoolId,
     stakedAmount,
     spendableBalance,
     isLoading,
     isLoadingPools,
+    isLoadingPoolDetails,
     error,
     refetch,
+    loadPoolDetails,
+    clearPoolDetails,
+    nextPage,
+    previousPage,
+    goToPage,
   } = useStaking();
 
   // Staking actions hook
@@ -44,22 +53,30 @@ export default function StakingPage() {
     isSubmitting,
   } = useStakingActions();
 
-  // Handle refresh
+  // Handle refresh - force refresh bypasses cache
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await refetch();
+    await refetch(true); // Force refresh to bypass localStorage cache
     setIsRefreshing(false);
   }, [refetch]);
 
-  // Handle pool selection
-  const handlePoolSelect = (pool: NominationPoolInfo) => {
-    setSelectedPool(pool);
-  };
+  // Handle pool selection - lazy load details
+  const handlePoolSelect = useCallback(async (poolId: number) => {
+    setIsDetailSheetOpen(true);
+    await loadPoolDetails(poolId);
+  }, [loadPoolDetails]);
+
+  // Handle closing the detail sheet
+  const handleCloseDetailSheet = useCallback(() => {
+    setIsDetailSheetOpen(false);
+    clearPoolDetails();
+  }, [clearPoolDetails]);
 
   // Handle join pool
   const handleJoinPool = async (poolId: number, amount: number) => {
     const result = await joinPool(poolId, amount);
     if (result.success) {
+      handleCloseDetailSheet();
       await refetch();
       setActiveTab("My Stake");
     } else {
@@ -161,7 +178,11 @@ export default function StakingPage() {
               {isStaking && accountStatus ? (
                 <StakingStatusCard
                   accountStatus={accountStatus}
-                  currentPool={currentPool}
+                  currentPool={
+                    currentPoolId
+                      ? poolSummaries.find((p) => p.id === currentPoolId) ?? null
+                      : null
+                  }
                   onStakeMore={() => setActionSheetType("stake")}
                   onUnbond={() => setActionSheetType("unbond")}
                   onClaimRewards={handleClaimRewards}
@@ -181,24 +202,31 @@ export default function StakingPage() {
                   Available Pools
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {pools.length} open pool{pools.length !== 1 ? "s" : ""} available
+                  {totalPools} open pool{totalPools !== 1 ? "s" : ""} available
                 </p>
               </div>
               <PoolList
-                pools={pools}
+                pools={poolSummaries}
                 onPoolSelect={handlePoolSelect}
                 isLoading={isLoadingPools}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalPools={totalPools}
+                onNextPage={nextPage}
+                onPreviousPage={previousPage}
+                onGoToPage={goToPage}
               />
             </div>
           )}
         </>
       )}
 
-      {/* Pool Detail Sheet */}
+      {/* Pool Detail Sheet (lazy loaded) */}
       <PoolDetailSheet
-        pool={selectedPool}
-        isOpen={selectedPool !== null}
-        onClose={() => setSelectedPool(null)}
+        poolDetails={selectedPoolDetails}
+        isOpen={isDetailSheetOpen}
+        isLoadingDetails={isLoadingPoolDetails}
+        onClose={handleCloseDetailSheet}
         onJoin={handleJoinPool}
         spendableBalance={spendableBalance}
         isSubmitting={isSubmitting}
