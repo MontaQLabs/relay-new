@@ -151,3 +151,72 @@ export const formatUnlockTime = (currentEra: number, unlockEra: number): string 
   const daysRemaining = Math.ceil(hoursRemaining / 24);
   return `~${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`;
 };
+
+// ===== DOT / Planck Conversion Helpers =====
+
+/** 1 DOT = 10^10 planck */
+const PLANCK_PER_DOT = 10_000_000_000;
+
+/**
+ * Convert a DOT amount (human-readable, e.g. "1.5") to planck (string).
+ * Handles up to 10 decimal places without floating-point drift.
+ * @param dot - DOT amount as a string, e.g. "1.5", "0.001"
+ * @returns planck value as a string, e.g. "15000000000"
+ */
+export const dotToPlanck = (dot: string): string => {
+  if (!dot || dot.trim() === "") return "0";
+
+  const trimmed = dot.trim();
+  const parts = trimmed.split(".");
+  const whole = parts[0] || "0";
+  const frac = (parts[1] || "").padEnd(10, "0").slice(0, 10); // exactly 10 decimals
+
+  // whole * 10^10  +  fractional part (already scaled)
+  const wholeBig = BigInt(whole) * BigInt(PLANCK_PER_DOT);
+  const fracBig = BigInt(frac);
+
+  return (wholeBig + fracBig).toString();
+};
+
+/**
+ * Convert a planck amount (string) to DOT (human-readable string).
+ * @param planck - planck value as a string, e.g. "15000000000"
+ * @returns DOT amount as a string, e.g. "1.5"
+ */
+export const planckToDot = (planck: string): string => {
+  if (!planck || planck.trim() === "" || planck === "0") return "0";
+
+  try {
+    const val = BigInt(planck);
+    const whole = val / BigInt(PLANCK_PER_DOT);
+    const remainder = val % BigInt(PLANCK_PER_DOT);
+
+    if (remainder === BigInt(0)) {
+      return whole.toString();
+    }
+
+    // Pad remainder to 10 digits, then strip trailing zeros
+    const fracStr = remainder.toString().padStart(10, "0").replace(/0+$/, "");
+    return `${whole}.${fracStr}`;
+  } catch {
+    return "0";
+  }
+};
+
+/**
+ * Format a planck amount as a human-readable DOT string for display.
+ * @param planck - planck value as a string
+ * @returns formatted string like "1.50 DOT" or "0.0012 DOT"
+ */
+export const formatPlanckAsDot = (planck: string): string => {
+  if (!planck || planck === "0") return "0 DOT";
+
+  try {
+    const val = Number(BigInt(planck)) / PLANCK_PER_DOT;
+    if (val >= 1) return `${val.toFixed(2)} DOT`;
+    if (val > 0) return `${val.toFixed(4)} DOT`;
+    return "0 DOT";
+  } catch {
+    return "0 DOT";
+  }
+};

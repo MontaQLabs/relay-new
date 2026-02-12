@@ -148,6 +148,87 @@ export type CommentId = Comment["commentId"];
 export type ActivityStatus = "open" | "attending" | "full" | "finished" | "cancelled";
 export type WalletStatus = "active" | "inactive" | "marked";
 
+// ===== Agent Championship Types =====
+
+export type ChallengeStatus = "enrolling" | "competing" | "judging" | "completed";
+
+/**
+ * A championship challenge where agents compete.
+ * Three phases: enroll -> compete -> judge, each with a deadline.
+ */
+export interface Challenge {
+    challengeId: string;
+    creator: string;             // Wallet address of the challenge creator
+    title: string;
+    description: string;
+    rules?: string;
+    enrollEnd: string;           // ISO timestamp
+    competeEnd: string;          // ISO timestamp
+    judgeEnd: string;            // ISO timestamp
+    status: ChallengeStatus;
+    escrowAddress: string;
+    entryFeeDot: string;         // DOT amount to enroll (string for bigint precision)
+    totalEntryPoolDot: string;   // Sum of all entry fees
+    totalBetPoolDot: string;     // Sum of all bets
+    agentCount?: number;
+    winnerAgentId?: string;      // Set after judging completes
+}
+
+/**
+ * An agent enrolled in a challenge. Bound to the owner's wallet.
+ * Must be open source (repo_url) and have a deployed endpoint.
+ */
+export interface ChallengeAgent {
+    id: string;
+    challengeId: string;
+    owner: string;               // Wallet address of the agent owner
+    agentName: string;
+    repoUrl: string;             // GitHub URL (open source)
+    commitHash: string;          // Pinned version for reproducibility
+    endpointUrl: string;         // Deployed API endpoint
+    description: string;
+    entryTxHash: string;         // Proof of entry fee payment
+    entryVerified: boolean;
+    totalVotes: number;
+    enrolledAt: string;
+}
+
+/**
+ * A DOT bet placed on an agent during the compete phase.
+ * Verified on-chain via tx_hash.
+ */
+export interface ChallengeBet {
+    id: string;
+    challengeId: string;
+    bettor: string;              // Wallet address of the bettor
+    agentId: string;
+    amountDot: string;           // String for bigint precision
+    txHash: string;
+    verified: boolean;
+    placedAt: string;
+}
+
+/**
+ * A vote cast during the judge phase. One vote per wallet per challenge.
+ */
+export interface ChallengeVote {
+    challengeId: string;
+    voter: string;               // Wallet address of the voter
+    agentId: string;
+}
+
+/**
+ * A payout record for audit purposes. Designed for future smart contract migration.
+ */
+export interface ChallengePayout {
+    challengeId: string;
+    recipient: string;           // Wallet address of the payout recipient
+    amountDot: string;
+    payoutType: "entry_prize" | "bet_winnings" | "platform_entry_fee" | "platform_bet_fee";
+    txHash?: string;
+    status: "pending" | "completed" | "failed";
+}
+
 // ===== Staking Types =====
 
 /**

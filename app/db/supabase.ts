@@ -19,6 +19,11 @@ import {
   Comment,
   ActivityStatus,
   KnownAsset,
+  Challenge,
+  ChallengeAgent,
+  ChallengeVote,
+  ChallengePayout,
+  ChallengeStatus,
 } from '../types/frontend_type';
 
 // ============================================================================
@@ -1456,6 +1461,401 @@ export const recordTransaction = async (
     });
 
   return !error;
+};
+
+// ============================================================================
+// Championship Operations
+// ============================================================================
+
+interface DbChallenge {
+  id: string;
+  challenge_id: string;
+  creator_wallet: string;
+  title: string;
+  description: string;
+  rules: string | null;
+  enroll_end: string;
+  compete_end: string;
+  judge_end: string;
+  status: ChallengeStatus;
+  escrow_address: string | null;
+  entry_fee_dot: string;
+  total_entry_pool_dot: string;
+  total_bet_pool_dot: string;
+  winner_agent_id: string | null;
+  created_at: string;
+}
+
+interface DbChallengeAgent {
+  id: string;
+  challenge_id: string;
+  owner_wallet: string;
+  agent_name: string;
+  repo_url: string;
+  commit_hash: string;
+  endpoint_url: string;
+  description: string | null;
+  entry_tx_hash: string;
+  entry_verified: boolean;
+  total_votes: number;
+  enrolled_at: string;
+}
+
+interface DbChallengeVote {
+  id: string;
+  challenge_id: string;
+  voter_wallet: string;
+  agent_id: string;
+  voted_at: string;
+}
+
+interface DbChallengePayout {
+  id: string;
+  challenge_id: string;
+  recipient_wallet: string;
+  amount_dot: string;
+  payout_type: string;
+  tx_hash: string | null;
+  status: string;
+  created_at: string;
+}
+
+// Helper to map DB challenge to frontend type
+const mapDbChallengeToChallenge = (c: DbChallenge): Challenge => ({
+  challengeId: c.challenge_id,
+  creator: c.creator_wallet,
+  title: c.title,
+  description: c.description,
+  rules: c.rules || undefined,
+  enrollEnd: c.enroll_end,
+  competeEnd: c.compete_end,
+  judgeEnd: c.judge_end,
+  status: c.status,
+  escrowAddress: c.escrow_address || '',
+  entryFeeDot: c.entry_fee_dot,
+  totalEntryPoolDot: c.total_entry_pool_dot,
+  totalBetPoolDot: c.total_bet_pool_dot,
+  winnerAgentId: c.winner_agent_id || undefined,
+});
+
+// Helper to map DB agent to frontend type
+const mapDbAgentToAgent = (a: DbChallengeAgent): ChallengeAgent => ({
+  id: a.id,
+  challengeId: a.challenge_id,
+  owner: a.owner_wallet,
+  agentName: a.agent_name,
+  repoUrl: a.repo_url,
+  commitHash: a.commit_hash,
+  endpointUrl: a.endpoint_url,
+  description: a.description || '',
+  entryTxHash: a.entry_tx_hash,
+  entryVerified: a.entry_verified,
+  totalVotes: a.total_votes,
+  enrolledAt: a.enrolled_at,
+});
+
+/**
+ * Get all challenges, optionally filtered by status
+ */
+export const getAllChallenges = async (status?: ChallengeStatus): Promise<Challenge[]> => {
+  let query = getSupabaseClient()
+    .from('challenges')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (status) {
+    query = query.eq('status', status);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  // Get agent counts for each challenge
+  const challenges = data.map(mapDbChallengeToChallenge);
+  const challengeIds = challenges.map(c => c.challengeId);
+
+  if (challengeIds.length > 0) {
+    const { data: agentCounts } = await getSupabaseClient()
+      .from('challenge_agents')
+      .select('challenge_id')
+      .in('challenge_id', challengeIds);
+
+    if (agentCounts) {
+      const countMap: Record<string, number> = {};
+      agentCounts.forEach((a: { challenge_id: string }) => {
+        countMap[a.challenge_id] = (countMap[a.challenge_id] || 0) + 1;
+      });
+      challenges.forEach(c => {
+        c.agentCount = countMap[c.challengeId] || 0;
+      });
+    }
+  }
+
+  return challenges;
+};
+
+/**
+ * Get a single challenge by ID
+ */
+export const getChallenge = async (challengeId: string): Promise<Challenge | null> => {
+  const { data, error } = await getSupabaseClient()
+    .from('challenges')
+    .select('*')
+    .eq('challenge_id', challengeId)
+    .single();
+
+  if (error || !data) return null;
+
+  const challenge = mapDbChallengeToChallenge(data);
+
+  // Get agent count
+  const { count } = await getSupabaseClient()
+    .from('challenge_agents')
+    .select('*', { count: 'exact', head: true })
+    .eq('challenge_id', challengeId);
+
+  challenge.agentCount = count || 0;
+
+  return challenge;
+};
+
+/**
+ * Create a new challenge
+ */
+export const createChallenge = async (
+  creatorWallet: string,
+  challenge: {
+    title: string;
+    description: string;
+    rules?: string;
+    enrollEnd: string;
+    competeEnd: string;
+    judgeEnd: string;
+    entryFeeDot: string;
+    escrowAddress?: string;
+  }
+): Promise<string | null> => {
+  const challengeId = `ch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  const { error } = await getSupabaseClient()
+    .from('challenges')
+    .insert({
+      challenge_id: challengeId,
+      creator_wallet: creatorWallet,
+      title: challenge.title,
+      description: challenge.description,
+      rules: challenge.rules || null,
+      enroll_end: challenge.enrollEnd,
+      compete_end: challenge.competeEnd,
+      judge_end: challenge.judgeEnd,
+      entry_fee_dot: challenge.entryFeeDot,
+      escrow_address: challenge.escrowAddress || null,
+      status: 'enrolling',
+    });
+
+  if (error) {
+    console.error('Failed to create challenge:', error.message);
+    return null;
+  }
+
+  return challengeId;
+};
+
+/**
+ * Update a challenge's status
+ */
+export const updateChallengeStatus = async (
+  challengeId: string,
+  status: ChallengeStatus,
+  winnerAgentId?: string
+): Promise<boolean> => {
+  const updates: Record<string, unknown> = { status };
+  if (winnerAgentId) {
+    updates.winner_agent_id = winnerAgentId;
+  }
+
+  const { error } = await getSupabaseClient()
+    .from('challenges')
+    .update(updates)
+    .eq('challenge_id', challengeId);
+
+  return !error;
+};
+
+/**
+ * Enroll an agent in a challenge
+ */
+export const enrollAgent = async (
+  challengeId: string,
+  ownerWallet: string,
+  agent: {
+    agentName: string;
+    repoUrl: string;
+    commitHash: string;
+    endpointUrl: string;
+    description?: string;
+    entryTxHash: string;
+  }
+): Promise<string | null> => {
+  const { data, error } = await getSupabaseClient()
+    .from('challenge_agents')
+    .insert({
+      challenge_id: challengeId,
+      owner_wallet: ownerWallet,
+      agent_name: agent.agentName,
+      repo_url: agent.repoUrl,
+      commit_hash: agent.commitHash,
+      endpoint_url: agent.endpointUrl,
+      description: agent.description || null,
+      entry_tx_hash: agent.entryTxHash,
+      entry_verified: false,
+      total_votes: 0,
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    console.error('Failed to enroll agent:', error?.message);
+    return null;
+  }
+
+  return data.id;
+};
+
+/**
+ * Get all agents enrolled in a challenge
+ */
+export const getChallengeAgents = async (challengeId: string): Promise<ChallengeAgent[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('challenge_agents')
+    .select('*')
+    .eq('challenge_id', challengeId)
+    .order('enrolled_at', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map(mapDbAgentToAgent);
+};
+
+/**
+ * Get a single agent by ID
+ */
+export const getChallengeAgent = async (agentId: string): Promise<ChallengeAgent | null> => {
+  const { data, error } = await getSupabaseClient()
+    .from('challenge_agents')
+    .select('*')
+    .eq('id', agentId)
+    .single();
+
+  if (error || !data) return null;
+
+  return mapDbAgentToAgent(data);
+};
+
+/**
+ * Cast a vote for an agent (one vote per wallet per challenge)
+ */
+export const castVote = async (
+  challengeId: string,
+  voterWallet: string,
+  agentId: string
+): Promise<boolean> => {
+  // Insert the vote (UNIQUE constraint prevents duplicates)
+  const { error: voteError } = await getSupabaseClient()
+    .from('challenge_votes')
+    .insert({
+      challenge_id: challengeId,
+      voter_wallet: voterWallet,
+      agent_id: agentId,
+    });
+
+  if (voteError) {
+    console.error('Failed to cast vote:', voteError.message);
+    return false;
+  }
+
+  // Increment the agent's vote count
+  const { error: rpcError } = await getSupabaseClient().rpc('increment_agent_votes', {
+    p_agent_id: agentId,
+  });
+
+  if (rpcError) {
+    console.error('Failed to increment agent votes:', rpcError.message);
+  }
+
+  return true;
+};
+
+/**
+ * Check if a user has already voted in a challenge
+ */
+export const hasVoted = async (
+  challengeId: string,
+  voterWallet: string
+): Promise<boolean> => {
+  const { data, error } = await getSupabaseClient()
+    .from('challenge_votes')
+    .select('id')
+    .eq('challenge_id', challengeId)
+    .eq('voter_wallet', voterWallet)
+    .single();
+
+  return !error && !!data;
+};
+
+/**
+ * Get challenge results (agents sorted by total votes)
+ */
+export const getChallengeResults = async (challengeId: string): Promise<ChallengeAgent[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('challenge_agents')
+    .select('*')
+    .eq('challenge_id', challengeId)
+    .order('total_votes', { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map(mapDbAgentToAgent);
+};
+
+/**
+ * Get all votes for a challenge
+ */
+export const getChallengeVotes = async (challengeId: string): Promise<ChallengeVote[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('challenge_votes')
+    .select('*')
+    .eq('challenge_id', challengeId);
+
+  if (error || !data) return [];
+
+  return data.map((v: DbChallengeVote) => ({
+    challengeId: v.challenge_id,
+    voter: v.voter_wallet,
+    agentId: v.agent_id,
+  }));
+};
+
+/**
+ * Get all payouts for a challenge
+ */
+export const getChallengePayouts = async (challengeId: string): Promise<ChallengePayout[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('challenge_payouts')
+    .select('*')
+    .eq('challenge_id', challengeId)
+    .order('created_at', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map((p: DbChallengePayout) => ({
+    challengeId: p.challenge_id,
+    recipient: p.recipient_wallet,
+    amountDot: p.amount_dot,
+    payoutType: p.payout_type as ChallengePayout['payoutType'],
+    txHash: p.tx_hash || undefined,
+    status: p.status as ChallengePayout['status'],
+  }));
 };
 
 // ============================================================================
