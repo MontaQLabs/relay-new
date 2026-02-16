@@ -19,7 +19,6 @@ import type {
   ChainFeeEstimate,
   ChainTransferResult,
   ChainTransaction,
-  TransferParams,
   SignedTransferParams,
 } from "../types";
 
@@ -108,7 +107,7 @@ export class NearChainAdapter implements ChainAdapter {
 
   // -- Transfers ------------------------------------------------------------
 
-  async estimateFee(_params: TransferParams): Promise<ChainFeeEstimate> {
+  async estimateFee(): Promise<ChainFeeEstimate> {
     // A NEAR transfer uses ~4.5 TGas at ~100 Mgas per yoctoNEAR.
     // Approximate cost: 4.5e12 × 1e8 = 4.5e20 yoctoNEAR ≈ 0.00045 NEAR.
     const fee = BigInt("450000000000000000000");

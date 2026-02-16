@@ -43,7 +43,6 @@ export function PhaseTimeline({ status, enrollEnd, competeEnd, judgeEnd }: Phase
       {phases.map((phase, i) => {
         const isActive = phase.key === status;
         const isPast = statusOrder.indexOf(phase.key) < currentIndex;
-        const isFuture = statusOrder.indexOf(phase.key) > currentIndex;
         const { Icon } = phase;
 
         return (

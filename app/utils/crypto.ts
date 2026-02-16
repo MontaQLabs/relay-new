@@ -7,7 +7,7 @@ import { getPolkadotSigner } from "@polkadot-api/signer";
 import { Keyring } from "@polkadot/keyring";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import { SS58_FORMAT } from "../types/constants";
-import { getChainRegistry, initChainRegistry } from "../chains/registry";
+import { initChainRegistry } from "../chains/registry";
 import type { ChainId, ChainCoin, ChainFeeEstimate, ChainTransferResult, ChainTransaction } from "../chains/types";
 
 // CoinGecko API endpoint for price fetching

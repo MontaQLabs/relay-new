@@ -9,7 +9,6 @@
 import { Keyring } from "@polkadot/keyring";
 import {
   cryptoWaitReady,
-  mnemonicValidate,
   decodeAddress,
   encodeAddress,
 } from "@polkadot/util-crypto";

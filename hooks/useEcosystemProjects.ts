@@ -53,21 +53,14 @@ export function useEcosystemProjects(
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-
     try {
-      // Fetch curated projects from Supabase
       const dbProjects: EcosystemProject[] = await getEcosystemProjects();
-
-      // Start with projects as-is (no TVL yet)
       const projectsWithStats: ProjectWithStats[] = dbProjects.map((p) => ({ ...p }));
       setProjects(projectsWithStats);
       setIsLoading(false);
-
-      // Enrich with DeFiLlama TVL data in the background
       const slugs = dbProjects
         .map((p) => p.defillamaSlug)
         .filter((s): s is string => !!s);
-
       if (slugs.length > 0) {
         try {
           const tvlMap = await fetchProtocolsTvl(slugs);
@@ -75,11 +68,7 @@ export function useEcosystemProjects(
             if (p.defillamaSlug) {
               const tvlInfo = tvlMap.get(p.defillamaSlug);
               if (tvlInfo) {
-                return {
-                  ...p,
-                  tvl: tvlInfo.tvl,
-                  tvlChange24h: tvlInfo.change_1d ?? undefined,
-                };
+                return { ...p, tvl: tvlInfo.tvl, tvlChange24h: tvlInfo.change_1d ?? undefined };
               }
             }
             return p;
@@ -87,7 +76,6 @@ export function useEcosystemProjects(
           setProjects(enriched);
         } catch (tvlError) {
           console.error("Failed to fetch TVL data:", tvlError);
-          // Keep projects without TVL enrichment
         }
       }
     } catch (err) {
@@ -99,10 +87,53 @@ export function useEcosystemProjects(
   }, []);
 
   useEffect(() => {
-    if (autoFetch) {
-      fetchProjects();
-    }
-  }, [autoFetch]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!autoFetch) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const dbProjects: EcosystemProject[] = await getEcosystemProjects();
+        if (cancelled) return;
+
+        const projectsWithStats: ProjectWithStats[] = dbProjects.map((p) => ({ ...p }));
+        setProjects(projectsWithStats);
+        setIsLoading(false);
+
+        const slugs = dbProjects
+          .map((p) => p.defillamaSlug)
+          .filter((s): s is string => !!s);
+
+        if (slugs.length > 0) {
+          try {
+            const tvlMap = await fetchProtocolsTvl(slugs);
+            if (cancelled) return;
+            const enriched = projectsWithStats.map((p) => {
+              if (p.defillamaSlug) {
+                const tvlInfo = tvlMap.get(p.defillamaSlug);
+                if (tvlInfo) {
+                  return {
+                    ...p,
+                    tvl: tvlInfo.tvl,
+                    tvlChange24h: tvlInfo.change_1d ?? undefined,
+                  };
+                }
+              }
+              return p;
+            });
+            setProjects(enriched);
+          } catch (tvlError) {
+            console.error("Failed to fetch TVL data:", tvlError);
+          }
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Failed to fetch ecosystem projects:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch projects");
+        setProjects([]);
+        setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [autoFetch]);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Check, AlertCircle, EyeOff, ChevronLeft } from "lucide-react";
 import {
   Sheet,
@@ -34,26 +34,22 @@ export function SeedPhraseSheet({ isOpen, onClose }: SeedPhraseSheetProps) {
     return [...new Set(wordsToFill)];
   }, [step, seedPhrase]);
 
-  // Initialize seed phrase when sheet opens
-  const initializeSeedPhrase = useCallback(() => {
-    const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
-    if (mnemonic) {
-      const words = mnemonic.trim().split(/\s+/);
-      setSeedPhrase(words);
-    }
-  }, []);
-
-  // Reset & load seed phrase whenever the sheet opens (via parent prop)
-  useEffect(() => {
+  // Reset & load seed phrase whenever the sheet opens (React render-time adjustment)
+  const [prevIsOpen, setPrevIsOpen] = useState(false);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setStep("reveal");
       setIsRevealed(false);
       setVerificationFields({});
       setActiveField(null);
       setLastVerifyStep("verify1");
-      initializeSeedPhrase();
+      const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
+      if (mnemonic) {
+        setSeedPhrase(mnemonic.trim().split(/\s+/));
+      }
     }
-  }, [isOpen, initializeSeedPhrase]);
+  }
 
   // Handle sheet close (onOpenChange only fires for user-initiated close)
   const handleOpenChange = (open: boolean) => {

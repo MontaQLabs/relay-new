@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Download, Copy, Check } from "lucide-react";
 import { fetchDotCoins, calculatePortfolioValue, fetchAllChainBalances } from "@/app/utils/crypto";
-import { getWalletAddress } from "@/app/utils/wallet";
 import { generateQRCode, downloadQRWithPromo } from "@/app/utils/qr";
 import { getKnownAssets } from "@/app/db/supabase";
 import type { Coin, KnownAsset, Wallet } from "@/app/types/frontend_type";

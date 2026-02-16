@@ -13,7 +13,6 @@ import {
   Transaction,
   sendAndConfirmTransaction,
   LAMPORTS_PER_SOL,
-  clusterApiUrl,
 } from "@solana/web3.js";
 import { derivePath } from "ed25519-hd-key";
 import { mnemonicToSeedSync } from "@scure/bip39";
@@ -235,7 +234,6 @@ export class SolanaChainAdapter implements ChainAdapter {
 
   async fetchTransactions(
     address: string,
-    _page = 0
   ): Promise<ChainTransaction[]> {
     try {
       const connection = getConnection();

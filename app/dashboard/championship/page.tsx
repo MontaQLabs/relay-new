@@ -21,7 +21,7 @@ export default function ChampionshipPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("Active");
   const { isAuthenticating, authError } = useAuth();
-  const { challenges, isLoading, refetch } = useChallenges(tabToStatus[activeTab]);
+  const { challenges, isLoading } = useChallenges(tabToStatus[activeTab]);
 
   // For "Active" tab, filter to non-completed
   const displayChallenges =

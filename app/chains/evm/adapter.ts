@@ -11,7 +11,6 @@ import {
   http,
   formatEther,
   parseEther,
-  formatUnits,
   parseUnits,
   isAddress,
   type Chain,
@@ -219,8 +218,6 @@ export class EVMChainAdapter implements ChainAdapter {
           abi: ERC20_ABI,
           functionName: "decimals",
         });
-
-        const amountWei = parseUnits(params.amount.toString(), decimals);
 
         txHash = await client.sendTransaction({
           to: tokenAddress as `0x${string}`,

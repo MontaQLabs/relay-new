@@ -20,13 +20,6 @@ export function ResultsPanel({
   totalEntryPool,
   totalBetPool,
 }: ResultsPanelProps) {
-  const entryPayouts = payouts.filter(
-    (p) => p.payoutType === "entry_prize" || p.payoutType === "platform_entry_fee"
-  );
-  const betPayouts = payouts.filter(
-    (p) => p.payoutType === "bet_winnings" || p.payoutType === "platform_bet_fee"
-  );
-
   return (
     <div className="space-y-4">
       {/* Pool summary */}

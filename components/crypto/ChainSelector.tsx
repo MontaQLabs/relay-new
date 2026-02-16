@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import type { ChainId } from "@/app/chains/types";
 
 interface ChainOption {

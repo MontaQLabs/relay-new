@@ -12,7 +12,7 @@ import { dotToPlanck } from "@/lib/format";
 
 export default function CreateChallengePage() {
   const router = useRouter();
-  const { isAuthenticating, walletAddress } = useAuth();
+  const { isAuthenticating } = useAuth();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
