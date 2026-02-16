@@ -150,6 +150,37 @@ export interface KnownAsset {
     category?: string; // Optional category (e.g., "stablecoin", "meme", "utility", "bridged")
 }
 
+// ===== Ecosystem Explorer Types =====
+
+/** Category for ecosystem projects displayed in the Explore section. */
+export type ProjectCategory = "dex" | "lending" | "nft" | "bridge" | "staking" | "infra" | "gaming";
+
+/**
+ * A curated DApp/protocol entry stored in Supabase.
+ * Displayed in the multi-chain Explore section of the wallet page.
+ */
+export interface EcosystemProject {
+    id: string;
+    name: string;
+    slug: string;
+    description: string;
+    chainId: import("../chains/types").ChainId;
+    category: string;
+    logoUrl: string;
+    websiteUrl: string;
+    twitterUrl?: string;
+    defillamaSlug?: string;
+    featured: boolean;
+}
+
+/**
+ * An EcosystemProject enriched with live stats from DeFiLlama.
+ */
+export interface ProjectWithStats extends EcosystemProject {
+    tvl?: number;
+    tvlChange24h?: number;
+}
+
 export type ActivityId = Activity["activityId"];
 export type CommentId = Comment["commentId"];
 export type ActivityStatus = "open" | "attending" | "full" | "finished" | "cancelled";

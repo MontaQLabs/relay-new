@@ -18,8 +18,8 @@ export const SOL_DECIMALS = 9;
 export const ICON_URL =
   "https://assets.coingecko.com/coins/images/4128/small/solana.png";
 
-/** JSON-RPC endpoint (mainnet-beta). */
-export const RPC_URL = "https://api.mainnet-beta.solana.com";
+/** JSON-RPC endpoint (mainnet-beta). Public, CORS-friendly endpoint. */
+export const RPC_URL = "https://solana-rpc.publicnode.com";
 
 /** BIP-44 derivation path for Solana. */
 export const DERIVATION_PATH = "m/44'/501'/0'/0'";

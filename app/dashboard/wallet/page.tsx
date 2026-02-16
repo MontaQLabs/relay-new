@@ -10,8 +10,10 @@ import {
   BellIcon,
   XIcon,
   HandCoins,
-  Loader2,
-  Store,
+  Compass,
+  ExternalLink,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import {
   Sheet,
@@ -21,10 +23,12 @@ import {
 } from "@/components/ui/sheet";
 import { ActionButton } from "@/components/action-button";
 import { CoinAvatar, ChainSelector } from "@/components/crypto";
-import { useCoins } from "@/hooks";
-import { fetchAssetDetails, AssetDetails, fetchAllChainBalances } from "@/app/utils/crypto";
+import { useCoins, useEcosystemProjects } from "@/hooks";
+import { PROJECT_CATEGORIES } from "@/hooks/useEcosystemProjects";
+import { fetchAllChainBalances } from "@/app/utils/crypto";
+import { formatTvl } from "@/app/utils/defillama";
 import { IS_BACKED_UP_KEY, WALLET_KEY } from "@/app/types/constants";
-import type { KnownAsset, Coin, Wallet } from "@/app/types/frontend_type";
+import type { Coin, Wallet, ProjectWithStats } from "@/app/types/frontend_type";
 import type { ChainId, ChainCoin } from "@/app/chains/types";
 import { formatCurrency, formatCryptoAmount } from "@/lib/format";
 
@@ -38,12 +42,20 @@ export default function WalletPage() {
   const [isLoadingMultiChain, setIsLoadingMultiChain] = useState(false);
 
   // Use the custom hook for Polkadot coins (backward compat)
-  const { coins, knownAssets, isLoading, isPriceLoading, totalBalance } = useCoins();
+  const { coins, isLoading, isPriceLoading, totalBalance } = useCoins();
 
-  // Polkadot Bazaar state
-  const [selectedAsset, setSelectedAsset] = useState<KnownAsset | null>(null);
-  const [assetDetails, setAssetDetails] = useState<AssetDetails | null>(null);
-  const [isLoadingAsset, setIsLoadingAsset] = useState(false);
+  // Multi-chain Explore section
+  const {
+    isLoading: isLoadingProjects,
+    selectedChain: exploreChain,
+    setSelectedChain: setExploreChain,
+    selectedCategory,
+    setSelectedCategory,
+    filteredProjects,
+    featuredProjects,
+  } = useEcosystemProjects();
+
+  const [selectedProject, setSelectedProject] = useState<ProjectWithStats | null>(null);
 
   // Check if wallet is backed up
   useEffect(() => {
@@ -52,27 +64,6 @@ export default function WalletPage() {
       setIsBackedUp(true);
     }
   }, []);
-
-  // Fetch asset details when an asset is selected
-  const handleAssetClick = async (asset: KnownAsset) => {
-    setSelectedAsset(asset);
-    setAssetDetails(null);
-    setIsLoadingAsset(true);
-
-    try {
-      const details = await fetchAssetDetails(asset.id, asset.symbol, asset);
-      setAssetDetails(details);
-    } catch (error) {
-      console.error("Failed to fetch asset details:", error);
-    } finally {
-      setIsLoadingAsset(false);
-    }
-  };
-
-  const handleCloseAssetSheet = () => {
-    setSelectedAsset(null);
-    setAssetDetails(null);
-  };
 
   // Fetch balances for non-Polkadot chains
   useEffect(() => {
@@ -234,177 +225,201 @@ export default function WalletPage() {
         )}
       </div>
 
-      {/* Polkadot Bazaar Section */}
+      {/* Explore Ecosystems Section */}
       <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
         <div className="px-5 py-4 flex items-center gap-2">
-          <Store className="w-5 h-5 text-pink-500" />
-          <h2 className="text-lg font-semibold text-black">Polkadot Bazaar</h2>
+          <Compass className="w-5 h-5 text-violet-500" />
+          <h2 className="text-lg font-semibold text-black">Explore</h2>
         </div>
 
-        <div className="px-5 pb-4">
-          {isLoading ? (
-            <div className="py-8 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin" />
+        {/* Chain Filter */}
+        <div className="px-5 pb-2">
+          <ChainSelector
+            selectedChain={exploreChain as ChainId}
+            onSelect={(id) => setExploreChain(id)}
+            showAll
+          />
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="px-5 pb-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          {PROJECT_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                selectedCategory === cat.id
+                  ? "bg-violet-100 text-violet-700"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Featured Projects (horizontal scroll) */}
+        {featuredProjects.length > 0 && (
+          <div className="px-5 pb-3">
+            <div className="flex gap-3 overflow-x-auto no-scrollbar">
+              {featuredProjects.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => setSelectedProject(project)}
+                  className="flex-shrink-0 w-[200px] bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-2xl p-4 text-left transition-all hover:shadow-md"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <ProjectLogo project={project} size="sm" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-black truncate">{project.name}</p>
+                      <ChainBadge chainId={project.chainId} />
+                    </div>
+                  </div>
+                  {project.tvl !== undefined && (
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-muted-foreground">TVL</span>
+                      <span className="text-sm font-semibold text-black">{formatTvl(project.tvl)}</span>
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
-          ) : knownAssets.length === 0 ? (
+          </div>
+        )}
+
+        {/* Project List */}
+        <div className="px-5 pb-4">
+          {isLoadingProjects ? (
+            <div className="py-8 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
+            </div>
+          ) : filteredProjects.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              No assets available
+              No projects found
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-3">
-              {[...knownAssets]
-                .sort((a, b) => {
-                  const priority: Record<string, number> = { USDt: 0, USDC: 1 };
-                  const aPriority = priority[a.ticker] ?? 999;
-                  const bPriority = priority[b.ticker] ?? 999;
-                  return aPriority - bPriority;
-                })
-                .map((asset, index) => (
-                  <button
-                    key={asset.id}
-                    onClick={() => handleAssetClick(asset)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-gray-50 transition-colors animate-fade-in"
-                    style={{ animationDelay: `${index * 30}ms` }}
-                  >
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                      {asset.symbol ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={asset.symbol}
-                          alt={asset.ticker}
-                          className="w-8 h-8 object-contain"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <span className="text-sm font-bold text-gray-500">
-                          {asset.ticker[0]}
-                        </span>
-                      )}
+            <div className="space-y-2">
+              {filteredProjects.map((project, index) => (
+                <button
+                  key={project.id}
+                  onClick={() => setSelectedProject(project)}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors animate-fade-in text-left"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <ProjectLogo project={project} size="md" />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-black truncate">{project.name}</span>
+                      <CategoryBadge category={project.category} />
                     </div>
-                    <span className="text-xs font-medium text-gray-700 truncate w-full text-center">
-                      {asset.ticker}
-                    </span>
-                  </button>
-                ))}
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {project.description}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-end shrink-0">
+                    {project.tvl !== undefined ? (
+                      <>
+                        <span className="text-sm font-semibold text-black">{formatTvl(project.tvl)}</span>
+                        {project.tvlChange24h != null && (
+                          <span className={`flex items-center gap-0.5 text-xs font-medium ${
+                            project.tvlChange24h >= 0 ? "text-emerald-600" : "text-red-500"
+                          }`}>
+                            {project.tvlChange24h >= 0 ? (
+                              <TrendingUp className="w-3 h-3" />
+                            ) : (
+                              <TrendingDown className="w-3 h-3" />
+                            )}
+                            {Math.abs(project.tvlChange24h).toFixed(1)}%
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <ChainBadge chainId={project.chainId} />
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Asset Details Bottom Sheet */}
+      {/* Project Details Bottom Sheet */}
       <Sheet
-        open={selectedAsset !== null}
-        onOpenChange={(open) => !open && handleCloseAssetSheet()}
+        open={selectedProject !== null}
+        onOpenChange={(open) => !open && setSelectedProject(null)}
       >
         <SheetContent side="bottom" className="px-5 pb-8 max-h-[70vh] overflow-auto">
-          {selectedAsset && (
+          {selectedProject && (
             <>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {selectedAsset.symbol ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={selectedAsset.symbol}
-                      alt={selectedAsset.ticker}
-                      className="w-10 h-10 object-contain"
-                    />
-                  ) : (
-                    <span className="text-2xl font-bold text-gray-500">
-                      {selectedAsset.ticker[0]}
-                    </span>
-                  )}
-                </div>
-                <div>
+              <div className="flex items-center gap-4 mb-5">
+                <ProjectLogo project={selectedProject} size="lg" />
+                <div className="min-w-0">
                   <SheetTitle className="text-xl font-bold text-black">
-                    {assetDetails?.name || selectedAsset.ticker}
+                    {selectedProject.name}
                   </SheetTitle>
-                  <SheetDescription className="text-sm text-muted-foreground">
-                    {selectedAsset.ticker} • Asset ID: {selectedAsset.id}
+                  <SheetDescription className="flex items-center gap-2 mt-1">
+                    <ChainBadge chainId={selectedProject.chainId} />
+                    <CategoryBadge category={selectedProject.category} />
                   </SheetDescription>
                 </div>
               </div>
 
-              {isLoadingAsset && (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
+              <p className="text-sm text-gray-700 leading-relaxed mb-5">
+                {selectedProject.description}
+              </p>
+
+              {/* Stats */}
+              {selectedProject.tvl !== undefined && (
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-gray-50 rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground mb-1">Total Value Locked</p>
+                    <p className="text-lg font-semibold text-black">{formatTvl(selectedProject.tvl)}</p>
+                  </div>
+                  {selectedProject.tvlChange24h != null && (
+                    <div className="bg-gray-50 rounded-2xl p-4">
+                      <p className="text-xs text-muted-foreground mb-1">24h Change</p>
+                      <p className={`text-lg font-semibold flex items-center gap-1 ${
+                        selectedProject.tvlChange24h >= 0 ? "text-emerald-600" : "text-red-500"
+                      }`}>
+                        {selectedProject.tvlChange24h >= 0 ? (
+                          <TrendingUp className="w-4 h-4" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4" />
+                        )}
+                        {Math.abs(selectedProject.tvlChange24h).toFixed(2)}%
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {!isLoadingAsset && assetDetails && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 rounded-2xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Total Supply</p>
-                      <p className="text-lg font-semibold text-black">{assetDetails.supply}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-2xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Holders</p>
-                      <p className="text-lg font-semibold text-black">
-                        {assetDetails.accounts.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-2xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Decimals</p>
-                      <p className="text-lg font-semibold text-black">{assetDetails.decimals}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-2xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Min Balance</p>
-                      <p className="text-lg font-semibold text-black">{assetDetails.minBalance}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        assetDetails.isFrozen
-                          ? "bg-red-100 text-red-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {assetDetails.isFrozen ? "Frozen" : "Active"}
-                    </span>
-                    {assetDetails.isSufficient && (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                        Sufficient
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Owner</p>
-                      <p className="text-sm font-mono text-black bg-gray-50 px-3 py-2 rounded-xl truncate">
-                        {assetDetails.owner}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Admin</p>
-                      <p className="text-sm font-mono text-black bg-gray-50 px-3 py-2 rounded-xl truncate">
-                        {assetDetails.admin}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Issuer</p>
-                      <p className="text-sm font-mono text-black bg-gray-50 px-3 py-2 rounded-xl truncate">
-                        {assetDetails.issuer}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!isLoadingAsset && !assetDetails && (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                    <XIcon className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Unable to fetch asset details. Please try again later.
-                  </p>
-                </div>
-              )}
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                {selectedProject.websiteUrl && (
+                  <a
+                    href={selectedProject.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-2xl py-3 px-4 text-sm font-semibold hover:bg-black/80 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Open App
+                  </a>
+                )}
+                {selectedProject.twitterUrl && (
+                  <a
+                    href={selectedProject.twitterUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 rounded-2xl py-3 px-4 text-sm font-semibold hover:bg-gray-200 transition-colors"
+                  >
+                    𝕏
+                  </a>
+                )}
+              </div>
             </>
           )}
         </SheetContent>
@@ -459,7 +474,7 @@ function EmptyPortfolio() {
 function CoinRow({ coin, index }: { coin: Coin; index: number }) {
   return (
     <div
-      className="flex items-center justify-between px-5 pb-4 hover:bg-gray-50 transition-colors cursor-pointer animate-slide-up"
+      className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer animate-slide-up"
       style={{ animationDelay: `${index * 50}ms` }}
     >
       <div className="flex items-center gap-3">
@@ -497,5 +512,88 @@ function WalletEmptyIcon({ className }: { className?: string }) {
         d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"
       />
     </svg>
+  );
+}
+
+// Project Logo Component
+function ProjectLogo({ project, size }: { project: ProjectWithStats; size: "sm" | "md" | "lg" }) {
+  const sizeClasses = { sm: "w-10 h-10", md: "w-11 h-11", lg: "w-14 h-14" };
+  const imgClasses = { sm: "w-6 h-6", md: "w-7 h-7", lg: "w-9 h-9" };
+  const textClasses = { sm: "text-xs", md: "text-sm", lg: "text-lg" };
+
+  return (
+    <div className={`${sizeClasses[size]} rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0`}>
+      {project.logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={project.logoUrl}
+          alt={project.name}
+          className={`${imgClasses[size]} object-contain rounded-full`}
+          onError={(e) => { e.currentTarget.style.display = "none"; }}
+        />
+      ) : (
+        <span className={`${textClasses[size]} font-bold text-gray-500`}>
+          {project.name[0]}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Chain Badge Component
+const CHAIN_COLORS: Record<string, string> = {
+  polkadot: "#e6007a",
+  base: "#0052ff",
+  solana: "#9945ff",
+  monad: "#836ef9",
+};
+
+const CHAIN_NAMES: Record<string, string> = {
+  polkadot: "Polkadot",
+  base: "Base",
+  solana: "Solana",
+  monad: "Monad",
+};
+
+function ChainBadge({ chainId }: { chainId: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500">
+      <span
+        className="w-2 h-2 rounded-full"
+        style={{ backgroundColor: CHAIN_COLORS[chainId] || "#888" }}
+      />
+      {CHAIN_NAMES[chainId] || chainId}
+    </span>
+  );
+}
+
+// Category Badge Component
+const CATEGORY_STYLES: Record<string, string> = {
+  dex: "bg-blue-50 text-blue-600",
+  lending: "bg-amber-50 text-amber-600",
+  nft: "bg-pink-50 text-pink-600",
+  bridge: "bg-cyan-50 text-cyan-600",
+  staking: "bg-emerald-50 text-emerald-600",
+  infra: "bg-slate-100 text-slate-600",
+  gaming: "bg-orange-50 text-orange-600",
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  dex: "DeFi",
+  lending: "Lending",
+  nft: "NFT",
+  bridge: "Bridge",
+  staking: "Staking",
+  infra: "Infra",
+  gaming: "Gaming",
+};
+
+function CategoryBadge({ category }: { category: string }) {
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+      CATEGORY_STYLES[category] || "bg-gray-100 text-gray-500"
+    }`}>
+      {CATEGORY_LABELS[category] || category}
+    </span>
   );
 }

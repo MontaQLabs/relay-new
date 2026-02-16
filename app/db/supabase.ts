@@ -19,6 +19,7 @@ import {
   Comment,
   ActivityStatus,
   KnownAsset,
+  EcosystemProject,
   Challenge,
   ChallengeAgent,
   ChallengeVote,
@@ -200,6 +201,23 @@ interface DbKnownAsset {
   decimals: number;
   symbol: string;
   category: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbEcosystemProject {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  chain_id: string;
+  category: string;
+  logo_url: string;
+  website_url: string;
+  twitter_url: string | null;
+  defillama_slug: string | null;
+  featured: boolean;
+  display_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -1053,6 +1071,71 @@ export const getKnownAssetsByCategory = async (category: string): Promise<KnownA
   if (error || !data) return [];
 
   return data.map(mapDbKnownAssetToKnownAsset);
+};
+
+// ============================================================================
+// Ecosystem Projects Operations (Multi-chain Explore)
+// ============================================================================
+
+/**
+ * Map database ecosystem project to frontend type
+ */
+const mapDbEcosystemProject = (db: DbEcosystemProject): EcosystemProject => ({
+  id: db.id,
+  name: db.name,
+  slug: db.slug,
+  description: db.description,
+  chainId: db.chain_id as EcosystemProject["chainId"],
+  category: db.category,
+  logoUrl: db.logo_url,
+  websiteUrl: db.website_url,
+  twitterUrl: db.twitter_url || undefined,
+  defillamaSlug: db.defillama_slug || undefined,
+  featured: db.featured,
+});
+
+/**
+ * Get all ecosystem projects ordered by display_order
+ */
+export const getEcosystemProjects = async (): Promise<EcosystemProject[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('ecosystem_projects')
+    .select('*')
+    .order('display_order', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map(mapDbEcosystemProject);
+};
+
+/**
+ * Get ecosystem projects filtered by chain
+ */
+export const getEcosystemProjectsByChain = async (chainId: string): Promise<EcosystemProject[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('ecosystem_projects')
+    .select('*')
+    .eq('chain_id', chainId)
+    .order('display_order', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map(mapDbEcosystemProject);
+};
+
+/**
+ * Get only featured ecosystem projects
+ */
+export const getFeaturedProjects = async (): Promise<EcosystemProject[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('ecosystem_projects')
+    .select('*')
+    .eq('featured', true)
+    .order('display_order', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map(mapDbEcosystemProject);
 };
 
 // ============================================================================

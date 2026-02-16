@@ -244,10 +244,111 @@ Table created: known_assets
 Initial assets inserted: 12 popular Polkadot Asset Hub tokens
 ```
 
+### Step 4d: Run Ecosystem Projects Schema (Required for Explore Section)
+
+To enable the multi-chain Explore section in the wallet page:
+
+1. Run the following SQL in a new SQL Editor query:
+
+```sql
+-- ============================================================================
+-- ECOSYSTEM PROJECTS TABLE
+-- ============================================================================
+-- Stores curated DApps/protocols across all supported chains for the Explore
+-- section. Each row represents a notable project in one of the supported
+-- ecosystems (Polkadot, Base, Solana, Monad).
+-- Live TVL stats are fetched at runtime from DeFiLlama using defillama_slug.
+
+CREATE TABLE IF NOT EXISTS ecosystem_projects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    chain_id TEXT NOT NULL,  -- polkadot | base | solana | monad
+    category TEXT NOT NULL,  -- dex, lending, nft, bridge, staking, infra, gaming
+    logo_url TEXT NOT NULL DEFAULT '',
+    website_url TEXT NOT NULL DEFAULT '',
+    twitter_url TEXT,
+    defillama_slug TEXT,     -- DeFiLlama protocol slug for live TVL enrichment
+    featured BOOLEAN NOT NULL DEFAULT false,
+    display_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_ecosystem_projects_chain ON ecosystem_projects(chain_id);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_projects_category ON ecosystem_projects(category);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_projects_featured ON ecosystem_projects(featured) WHERE featured = true;
+
+-- Enable RLS
+ALTER TABLE ecosystem_projects ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read ecosystem projects (public data)
+CREATE POLICY "Anyone can read ecosystem projects" ON ecosystem_projects
+    FOR SELECT
+    USING (true);
+
+-- Seed with initial curated projects across chains
+INSERT INTO ecosystem_projects (name, slug, description, chain_id, category, logo_url, website_url, twitter_url, defillama_slug, featured, display_order) VALUES
+  -- Polkadot ecosystem
+  ('HydraDX', 'hydradx', 'Cross-chain liquidity protocol on Polkadot with an Omnipool for efficient trading.', 'polkadot', 'dex', 'https://assets.coingecko.com/coins/images/26929/small/Hydration.jpg', 'https://hydration.net', 'https://twitter.com/hydaborat_net', 'hydradx', true, 1),
+  ('Bifrost', 'bifrost', 'Liquid staking protocol providing liquidity for staked assets across chains.', 'polkadot', 'staking', 'https://assets.coingecko.com/coins/images/15086/small/bnc.png', 'https://bifrost.finance', 'https://twitter.com/BifrostFinance', 'bifrost', false, 3),
+
+  -- Base ecosystem
+  ('Aerodrome', 'aerodrome', 'Central trading and liquidity marketplace on Base.', 'base', 'dex', 'https://assets.coingecko.com/coins/images/31745/small/token.png', 'https://aerodrome.finance', 'https://twitter.com/AeurodromeFinance', 'aerodrome-finance', true, 1),
+  ('Aave (Base)', 'aave-base', 'Leading decentralized lending and borrowing protocol, deployed on Base.', 'base', 'lending', 'https://assets.coingecko.com/coins/images/12645/small/AAVE.png', 'https://aave.com', 'https://twitter.com/aaborave', 'aave', false, 2),
+  ('Uniswap (Base)', 'uniswap-base', 'The largest decentralized exchange, available on Base for low-cost swaps.', 'base', 'dex', 'https://assets.coingecko.com/coins/images/12504/small/uniswap.png', 'https://app.uniswap.org', 'https://twitter.com/Uniswap', 'uniswap', false, 3),
+  ('Extra Finance', 'extra-finance', 'Leveraged yield farming and lending protocol on Base.', 'base', 'lending', 'https://assets.coingecko.com/coins/images/30526/small/extra.png', 'https://extra.finance', 'https://twitter.com/ExtraFi_io', 'extra-finance', false, 4),
+  ('Morpho (Base)', 'morpho-base', 'Permissionless lending protocol optimizing rates on Base.', 'base', 'lending', 'https://assets.coingecko.com/coins/images/29837/small/morpho.png', 'https://morpho.org', 'https://twitter.com/MorphoLabs', 'morpho', false, 5),
+
+  -- Solana ecosystem
+  ('Jupiter', 'jupiter', 'Leading DEX aggregator on Solana with limit orders and DCA.', 'solana', 'dex', 'https://assets.coingecko.com/coins/images/35118/small/JUP.png', 'https://jup.ag', 'https://twitter.com/JupiterExchange', 'jupiter', true, 1),
+  ('Marinade Finance', 'marinade', 'Liquid staking protocol for SOL with mSOL derivative.', 'solana', 'staking', 'https://assets.coingecko.com/coins/images/18867/small/marinade.png', 'https://marinade.finance', 'https://twitter.com/MarinadeFinance', 'marinade-finance', false, 2),
+  ('Raydium', 'raydium', 'Automated market maker and liquidity provider on Solana.', 'solana', 'dex', 'https://assets.coingecko.com/coins/images/13928/small/PSigc4ie_400x400.jpg', 'https://raydium.io', 'https://twitter.com/RaydiumProtocol', 'raydium', false, 3),
+  ('Drift', 'drift', 'Decentralized perpetual futures and spot exchange on Solana.', 'solana', 'dex', 'https://assets.coingecko.com/coins/images/36578/small/drift.png', 'https://drift.trade', 'https://twitter.com/DriftProtocol', 'drift', false, 4),
+  ('Tensor', 'tensor', 'Professional-grade NFT marketplace and aggregator on Solana.', 'solana', 'nft', 'https://assets.coingecko.com/coins/images/35141/small/tensor.png', 'https://tensor.trade', 'https://twitter.com/tensor_hq', NULL, false, 5),
+
+  -- Monad ecosystem (emerging)
+  ('Monad DEX', 'monad-dex', 'Native decentralized exchange built for Monad high-throughput EVM.', 'monad', 'dex', '', 'https://monad.xyz', 'https://twitter.com/moabornad_xyz', NULL, true, 1),
+  ('Monad Bridge', 'monad-bridge', 'Official bridge for moving assets to and from Monad.', 'monad', 'bridge', '', 'https://monad.xyz', 'https://twitter.com/moabornad_xyz', NULL, false, 2)
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  chain_id = EXCLUDED.chain_id,
+  category = EXCLUDED.category,
+  logo_url = EXCLUDED.logo_url,
+  website_url = EXCLUDED.website_url,
+  twitter_url = EXCLUDED.twitter_url,
+  defillama_slug = EXCLUDED.defillama_slug,
+  featured = EXCLUDED.featured,
+  display_order = EXCLUDED.display_order,
+  updated_at = NOW();
+
+-- Success message
+DO $$
+BEGIN
+    RAISE NOTICE '✅ Ecosystem projects table created successfully!';
+    RAISE NOTICE 'Table created: ecosystem_projects';
+    RAISE NOTICE 'Initial projects inserted: 17 curated DApps across 4 chains';
+END;
+$$;
+```
+
+2. Click **"Run"**
+
+You should see:
+
+```
+✅ Ecosystem projects table created successfully!
+Table created: ecosystem_projects
+Initial projects inserted: 17 curated DApps across 4 chains
+```
+
 ### Verify Tables
 
 1. Go to **Table Editor** in the sidebar
-2. You should see all 9 tables listed (10 with community_tokens, 11 with known_assets)
+2. You should see all 9 tables listed (10 with community_tokens, 11 with known_assets, 12 with ecosystem_projects)
 3. Click on each table to verify the columns are correct
 
 ---
@@ -468,6 +569,26 @@ app/
 - `decimals` - Number of decimal places (typically 6-18)
 - `symbol` - URL to the token icon/logo
 - `category` - Optional category: "stablecoin", "meme", "utility", "bridged"
+
+#### Ecosystem Projects (Multi-chain Explore)
+| Function | Description |
+|----------|-------------|
+| `getEcosystemProjects()` | Get all curated DApps/protocols ordered by display_order |
+| `getEcosystemProjectsByChain(chainId)` | Get projects filtered by chain (polkadot, base, solana, monad) |
+| `getFeaturedProjects()` | Get featured projects only |
+
+**EcosystemProject Fields:**
+- `id` - UUID primary key
+- `name` - Project name (e.g., "Jupiter", "Uniswap")
+- `slug` - URL-safe unique identifier
+- `description` - Short description of the project
+- `chainId` - Chain identifier: "polkadot", "base", "solana", "monad"
+- `category` - Project category: "dex", "lending", "nft", "bridge", "staking", "infra", "gaming"
+- `logoUrl` - URL to the project logo
+- `websiteUrl` - Project website URL
+- `twitterUrl` - Optional Twitter/X URL
+- `defillamaSlug` - Optional DeFiLlama slug for live TVL enrichment
+- `featured` - Whether the project is highlighted
 
 ---
 

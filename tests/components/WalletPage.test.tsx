@@ -10,19 +10,27 @@ import { testWallet, testCoins, testKnownAssets } from '../setup/fixtures';
 // Mock crypto utilities
 const mockFetchDotCoins = vi.fn();
 const mockCalculatePortfolioValue = vi.fn();
-const mockFetchAssetDetails = vi.fn();
+const mockFetchAllChainBalances = vi.fn();
 
 vi.mock('@/app/utils/crypto', () => ({
   fetchDotCoins: (...args: unknown[]) => mockFetchDotCoins(...args),
   calculatePortfolioValue: (...args: unknown[]) => mockCalculatePortfolioValue(...args),
-  fetchAssetDetails: (...args: unknown[]) => mockFetchAssetDetails(...args),
+  fetchAllChainBalances: () => mockFetchAllChainBalances(),
+}));
+
+// Mock defillama
+vi.mock('@/app/utils/defillama', () => ({
+  fetchProtocolsTvl: vi.fn().mockResolvedValue(new Map()),
+  formatTvl: (tvl: number) => `$${(tvl / 1e6).toFixed(2)}M`,
 }));
 
 // Mock supabase
 const mockGetKnownAssets = vi.fn();
+const mockGetEcosystemProjects = vi.fn();
 
 vi.mock('@/app/db/supabase', () => ({
   getKnownAssets: () => mockGetKnownAssets(),
+  getEcosystemProjects: () => mockGetEcosystemProjects(),
 }));
 
 // Import after mocking
@@ -37,26 +45,24 @@ describe('WalletPage', () => {
 
     // Default mock implementations
     mockGetKnownAssets.mockResolvedValue(testKnownAssets);
+    mockGetEcosystemProjects.mockResolvedValue([
+      {
+        id: '1',
+        name: 'Jupiter',
+        slug: 'jupiter',
+        description: 'Leading DEX aggregator on Solana',
+        chainId: 'solana',
+        category: 'dex',
+        logoUrl: 'https://example.com/jup.png',
+        websiteUrl: 'https://jup.ag',
+        featured: true,
+      },
+    ]);
+    mockFetchAllChainBalances.mockResolvedValue({});
     mockFetchDotCoins.mockResolvedValue(testCoins);
     mockCalculatePortfolioValue.mockResolvedValue({
       totalValue: 175.25,
       coinsWithPrices: testCoins,
-    });
-    mockFetchAssetDetails.mockResolvedValue({
-      assetId: 1984,
-      ticker: 'USDt',
-      name: 'Tether USD',
-      symbol: '',
-      decimals: 6,
-      owner: 'owner_address',
-      issuer: 'issuer_address',
-      admin: 'admin_address',
-      freezer: 'freezer_address',
-      supply: '1,000,000,000',
-      minBalance: '0.01',
-      accounts: 5000,
-      isFrozen: false,
-      isSufficient: true,
     });
   });
 
@@ -85,13 +91,13 @@ describe('WalletPage', () => {
       });
     });
 
-    it('should render Polkadot Bazaar section', async () => {
+    it('should render Explore section', async () => {
       await act(async () => {
         render(<WalletPage />);
       });
 
       await waitFor(() => {
-        expect(screen.getByText('Polkadot Bazaar')).toBeInTheDocument();
+        expect(screen.getByText('Explore')).toBeInTheDocument();
       });
     });
 
@@ -208,14 +214,24 @@ describe('WalletPage', () => {
     });
   });
 
-  describe('Polkadot Bazaar', () => {
-    it('should display known assets section', async () => {
+  describe('Explore Section', () => {
+    it('should display explore section with projects', async () => {
       await act(async () => {
         render(<WalletPage />);
       });
 
       await waitFor(() => {
-        expect(screen.getByText('Polkadot Bazaar')).toBeInTheDocument();
+        expect(screen.getByText('Explore')).toBeInTheDocument();
+      });
+    });
+
+    it('should show project names after loading', async () => {
+      await act(async () => {
+        render(<WalletPage />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Jupiter')).toBeInTheDocument();
       });
     });
   });
@@ -281,6 +297,7 @@ describe('WalletPage', () => {
     it('should handle fetch error gracefully', async () => {
       mockFetchDotCoins.mockRejectedValue(new Error('Network error'));
       mockGetKnownAssets.mockRejectedValue(new Error('Network error'));
+      mockGetEcosystemProjects.mockRejectedValue(new Error('Network error'));
 
       await act(async () => {
         render(<WalletPage />);
