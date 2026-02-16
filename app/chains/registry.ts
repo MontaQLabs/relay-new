@@ -91,16 +91,19 @@ export async function initChainRegistry(): Promise<ChainRegistry> {
     { PolkadotChainAdapter },
     { createBaseAdapter, createMonadAdapter },
     { SolanaChainAdapter },
+    { NearChainAdapter },
   ] = await Promise.all([
     import("./polkadot/adapter"),
     import("./evm/chains"),
     import("./solana/adapter"),
+    import("./near/adapter"),
   ]);
 
   registry.register(new PolkadotChainAdapter());
   registry.register(createBaseAdapter());
   registry.register(createMonadAdapter());
   registry.register(new SolanaChainAdapter());
+  registry.register(new NearChainAdapter());
 
   return registry;
 }

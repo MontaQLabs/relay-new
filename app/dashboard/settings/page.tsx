@@ -572,6 +572,11 @@ const CHAIN_INFO: Record<string, { name: string; color: string; explorer?: strin
     color: "#836ef9",
     explorer: "https://monadexplorer.com/address/",
   },
+  near: {
+    name: "NEAR",
+    color: "#00ec97",
+    explorer: "https://nearblocks.io/address/",
+  },
 };
 
 function WalletManagement({ wallet }: { wallet: Wallet | null }) {

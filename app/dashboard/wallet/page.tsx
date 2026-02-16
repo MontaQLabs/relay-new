@@ -52,10 +52,16 @@ export default function WalletPage() {
     selectedCategory,
     setSelectedCategory,
     filteredProjects,
-    featuredProjects,
   } = useEcosystemProjects();
 
   const [selectedProject, setSelectedProject] = useState<ProjectWithStats | null>(null);
+  const [explorePage, setExplorePage] = useState(0);
+  const PROJECTS_PER_PAGE = 5;
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setExplorePage(0);
+  }, [exploreChain, selectedCategory]);
 
   // Check if wallet is backed up
   useEffect(() => {
@@ -229,7 +235,7 @@ export default function WalletPage() {
       <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
         <div className="px-5 py-4 flex items-center gap-2">
           <Compass className="w-5 h-5 text-violet-500" />
-          <h2 className="text-lg font-semibold text-black">Explore</h2>
+          <h2 className="text-lg font-semibold text-black">Relay Bazaar</h2>
         </div>
 
         {/* Chain Filter */}
@@ -258,36 +264,7 @@ export default function WalletPage() {
           ))}
         </div>
 
-        {/* Featured Projects (horizontal scroll) */}
-        {featuredProjects.length > 0 && (
-          <div className="px-5 pb-3">
-            <div className="flex gap-3 overflow-x-auto no-scrollbar">
-              {featuredProjects.map((project) => (
-                <button
-                  key={project.id}
-                  onClick={() => setSelectedProject(project)}
-                  className="flex-shrink-0 w-[200px] bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-2xl p-4 text-left transition-all hover:shadow-md"
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <ProjectLogo project={project} size="sm" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-black truncate">{project.name}</p>
-                      <ChainBadge chainId={project.chainId} />
-                    </div>
-                  </div>
-                  {project.tvl !== undefined && (
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-muted-foreground">TVL</span>
-                      <span className="text-sm font-semibold text-black">{formatTvl(project.tvl)}</span>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Project List */}
+        {/* Project List (paginated) */}
         <div className="px-5 pb-4">
           {isLoadingProjects ? (
             <div className="py-8 flex items-center justify-center">
@@ -298,50 +275,81 @@ export default function WalletPage() {
               No projects found
             </div>
           ) : (
-            <div className="space-y-2">
-              {filteredProjects.map((project, index) => (
-                <button
-                  key={project.id}
-                  onClick={() => setSelectedProject(project)}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors animate-fade-in text-left"
-                  style={{ animationDelay: `${index * 30}ms` }}
-                >
-                  <ProjectLogo project={project} size="md" />
+            <>
+              <div className="space-y-2">
+                {filteredProjects
+                  .slice(explorePage * PROJECTS_PER_PAGE, (explorePage + 1) * PROJECTS_PER_PAGE)
+                  .map((project, index) => (
+                  <button
+                    key={project.id}
+                    onClick={() => setSelectedProject(project)}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors animate-fade-in text-left"
+                    style={{ animationDelay: `${index * 30}ms` }}
+                  >
+                    <ProjectLogo project={project} size="md" />
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-black truncate">{project.name}</span>
-                      <CategoryBadge category={project.category} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-black truncate">{project.name}</span>
+                        <CategoryBadge category={project.category} />
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {project.description}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {project.description}
-                    </p>
-                  </div>
 
-                  <div className="flex flex-col items-end shrink-0">
-                    {project.tvl !== undefined ? (
-                      <>
-                        <span className="text-sm font-semibold text-black">{formatTvl(project.tvl)}</span>
-                        {project.tvlChange24h != null && (
-                          <span className={`flex items-center gap-0.5 text-xs font-medium ${
-                            project.tvlChange24h >= 0 ? "text-emerald-600" : "text-red-500"
-                          }`}>
-                            {project.tvlChange24h >= 0 ? (
-                              <TrendingUp className="w-3 h-3" />
-                            ) : (
-                              <TrendingDown className="w-3 h-3" />
-                            )}
-                            {Math.abs(project.tvlChange24h).toFixed(1)}%
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <ChainBadge chainId={project.chainId} />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
+                    <div className="flex flex-col items-end shrink-0">
+                      {project.tvl !== undefined ? (
+                        <>
+                          <span className="text-sm font-semibold text-black">{formatTvl(project.tvl)}</span>
+                          {project.tvlChange24h != null && (
+                            <span className={`flex items-center gap-0.5 text-xs font-medium ${
+                              project.tvlChange24h >= 0 ? "text-emerald-600" : "text-red-500"
+                            }`}>
+                              {project.tvlChange24h >= 0 ? (
+                                <TrendingUp className="w-3 h-3" />
+                              ) : (
+                                <TrendingDown className="w-3 h-3" />
+                              )}
+                              {Math.abs(project.tvlChange24h).toFixed(1)}%
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <ChainBadge chainId={project.chainId} />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {filteredProjects.length > PROJECTS_PER_PAGE && (
+                <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100">
+                  <button
+                    onClick={() => setExplorePage((p) => Math.max(0, p - 1))}
+                    disabled={explorePage === 0}
+                    className="text-xs font-medium text-violet-600 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-muted-foreground">
+                    {explorePage + 1} / {Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE)}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setExplorePage((p) =>
+                        Math.min(Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE) - 1, p + 1)
+                      )
+                    }
+                    disabled={(explorePage + 1) * PROJECTS_PER_PAGE >= filteredProjects.length}
+                    className="text-xs font-medium text-violet-600 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -546,6 +554,7 @@ const CHAIN_COLORS: Record<string, string> = {
   base: "#0052ff",
   solana: "#9945ff",
   monad: "#836ef9",
+  near: "#00ec97",
 };
 
 const CHAIN_NAMES: Record<string, string> = {
@@ -553,6 +562,7 @@ const CHAIN_NAMES: Record<string, string> = {
   base: "Base",
   solana: "Solana",
   monad: "Monad",
+  near: "NEAR",
 };
 
 function ChainBadge({ chainId }: { chainId: string }) {

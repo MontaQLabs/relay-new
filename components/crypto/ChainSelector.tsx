@@ -15,6 +15,7 @@ const CHAINS: ChainOption[] = [
   { id: "base", name: "Base", icon: "BASE", color: "#0052ff" },
   { id: "solana", name: "Solana", icon: "SOL", color: "#9945ff" },
   { id: "monad", name: "Monad", icon: "MON", color: "#836ef9" },
+  { id: "near", name: "NEAR", icon: "NEAR", color: "#00ec97" },
 ];
 
 interface ChainSelectorProps {

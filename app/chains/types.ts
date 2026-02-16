@@ -10,10 +10,10 @@
 // ---------------------------------------------------------------------------
 
 /** Broad family a chain belongs to – drives shared logic (e.g. EVM wallets). */
-export type ChainType = "substrate" | "evm" | "solana";
+export type ChainType = "substrate" | "evm" | "solana" | "near";
 
 /** Unique, lowercase identifier for a chain. */
-export type ChainId = "polkadot" | "base" | "solana" | "monad";
+export type ChainId = "polkadot" | "base" | "solana" | "monad" | "near";
 
 // ---------------------------------------------------------------------------
 // Shared value types

@@ -41,6 +41,7 @@ const CHAIN_META: Record<string, { name: string; color: string }> = {
   base: { name: "Base", color: "#0052ff" },
   solana: { name: "Solana", color: "#9945ff" },
   monad: { name: "Monad", color: "#836ef9" },
+  near: { name: "NEAR", color: "#00ec97" },
 };
 
 // Well-known receivable tokens per chain (shown when the user holds nothing)
@@ -62,6 +63,8 @@ const DEFAULT_RECEIVABLE_TOKENS: ReceivableToken[] = [
   { ticker: "USDC", name: "USD Coin (Solana)", chainId: "solana", symbol: "https://assets.coingecko.com/coins/images/6319/small/usdc.png" },
   // Monad
   { ticker: "MON", name: "Monad", chainId: "monad", symbol: "https://www.monad.xyz/monad-logo.png" },
+  // NEAR
+  { ticker: "NEAR", name: "NEAR", chainId: "near", symbol: "https://assets.coingecko.com/coins/images/10365/small/near.jpg" },
 ];
 
 export default function ReceivePage() {
