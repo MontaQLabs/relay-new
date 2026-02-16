@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Check, AlertCircle, EyeOff, ChevronLeft } from "lucide-react";
 import {
   Sheet,
@@ -43,16 +43,21 @@ export function SeedPhraseSheet({ isOpen, onClose }: SeedPhraseSheetProps) {
     }
   }, []);
 
-  // Handle sheet open change
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
+  // Reset & load seed phrase whenever the sheet opens (via parent prop)
+  useEffect(() => {
+    if (isOpen) {
       setStep("reveal");
       setIsRevealed(false);
       setVerificationFields({});
       setActiveField(null);
       setLastVerifyStep("verify1");
       initializeSeedPhrase();
-    } else {
+    }
+  }, [isOpen, initializeSeedPhrase]);
+
+  // Handle sheet close (onOpenChange only fires for user-initiated close)
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
       onClose();
     }
   };
@@ -365,7 +370,12 @@ export function SeedPhraseSheet({ isOpen, onClose }: SeedPhraseSheetProps) {
     </>
   );
 
-  if (seedPhrase.length === 0 && isOpen) {
+  // Check localStorage directly to avoid false-negative on first render
+  // (useEffect hasn't populated seedPhrase state yet)
+  const hasSeedInStorage =
+    typeof window !== "undefined" && !!localStorage.getItem(WALLET_SEED_KEY);
+
+  if (seedPhrase.length === 0 && isOpen && !hasSeedInStorage) {
     return (
       <Sheet open={isOpen} onOpenChange={handleOpenChange}>
         <SheetContent side="bottom" className="rounded-t-3xl px-6 pb-8 max-h-[90vh] overflow-y-auto">

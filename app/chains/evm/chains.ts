@@ -35,23 +35,22 @@ export function createBaseAdapter(): EVMChainAdapter {
 
 /**
  * Monad is EVM-compatible at the bytecode level.
- * Chain ID and RPC are from the Monad documentation / testnet.
- * Update these once Monad mainnet launches with final values.
+ * Chain ID 143 – mainnet values from docs.monad.xyz.
  */
 const monadChain = defineChain({
-  id: 10143,
-  name: "Monad Testnet",
+  id: 143,
+  name: "Monad",
   nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://testnet.monad.xyz/v1"] },
+    default: { http: ["https://rpc.monad.xyz"] },
   },
   blockExplorers: {
     default: {
       name: "Monad Explorer",
-      url: "https://testnet.monadexplorer.com",
+      url: "https://monadexplorer.com",
     },
   },
-  testnet: true,
+  testnet: false,
 });
 
 const MONAD_CONFIG: EVMChainConfig = {
@@ -61,8 +60,7 @@ const MONAD_CONFIG: EVMChainConfig = {
   nativeDecimals: 18,
   iconUrl: "https://www.monad.xyz/monad-logo.png",
   viemChain: monadChain,
-  rpcUrl: "https://testnet.monad.xyz/v1",
-  // Explorer API not yet available; transactions will return empty for now
+  rpcUrl: "https://rpc.monad.xyz",
 };
 
 export function createMonadAdapter(): EVMChainAdapter {

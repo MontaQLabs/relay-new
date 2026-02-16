@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronRight,
@@ -16,12 +16,15 @@ import {
   AlertCircle,
   Camera,
   Loader2,
+  Wallet2,
+  ExternalLink,
 } from "lucide-react";
 import { getWalletAddress } from "@/app/utils/wallet";
 import { getUserByWallet } from "@/app/db/supabase";
 import { getAuthToken, signOut } from "@/app/utils/auth";
 import { WALLET_KEY, WALLET_SEED_KEY, IS_ENCRYPTED_KEY, USER_KEY, IS_BACKED_UP_KEY, ENCRYPTED_WALLET_KEY } from "@/app/types/constants";
 import type { User, Wallet } from "@/app/types/frontend_type";
+import type { ChainAccount } from "@/app/chains/types";
 import {
   Sheet,
   SheetContent,
@@ -81,16 +84,28 @@ export default function SettingsPage() {
         const walletAddress = getWalletAddress();
 
         if (walletAddress) {
+          // Always read local wallet – it's the source of truth for chainAccounts
+          let localWallet: Wallet | null = null;
+          const walletData = localStorage.getItem(WALLET_KEY);
+          if (walletData) {
+            try {
+              localWallet = JSON.parse(walletData) as Wallet;
+            } catch { /* corrupt data – ignore */ }
+          }
+
           const userData = await getUserByWallet(walletAddress);
           if (userData) {
             setUser(userData);
-            setWallet(userData.wallet);
+            // Merge: use DB wallet but prefer chainAccounts from localStorage
+            setWallet({
+              ...userData.wallet,
+              chainAccounts:
+                (localWallet?.chainAccounts?.length ?? 0) > 0
+                  ? localWallet!.chainAccounts
+                  : userData.wallet.chainAccounts,
+            });
           } else {
-            const walletData = localStorage.getItem(WALLET_KEY);
-            if (walletData) {
-              const parsedWallet = JSON.parse(walletData) as Wallet;
-              setWallet(parsedWallet);
-            }
+            setWallet(localWallet);
           }
         }
       } catch (error) {
@@ -466,6 +481,9 @@ export default function SettingsPage() {
         </SheetContent>
       </Sheet>
 
+      {/* Wallet Management */}
+      <WalletManagement wallet={wallet} />
+
       {/* Menu Items */}
       <div className="bg-gradient-to-br from-violet-50/50 to-pink-50/50 rounded-3xl overflow-hidden">
         {menuItems.map((item, index) => (
@@ -524,6 +542,196 @@ export default function SettingsPage() {
         onDeleteWallet={handleDeleteWallet}
       />
       <TermsSheet isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Wallet Management Section
+// ---------------------------------------------------------------------------
+
+/** Chain display metadata. */
+const CHAIN_INFO: Record<string, { name: string; color: string; explorer?: string }> = {
+  polkadot: {
+    name: "Polkadot Asset Hub",
+    color: "#e6007a",
+    explorer: "https://assethub-polkadot.subscan.io/account/",
+  },
+  base: {
+    name: "Base",
+    color: "#0052ff",
+    explorer: "https://basescan.org/address/",
+  },
+  solana: {
+    name: "Solana",
+    color: "#9945ff",
+    explorer: "https://explorer.solana.com/address/",
+  },
+  monad: {
+    name: "Monad",
+    color: "#836ef9",
+    explorer: "https://monadexplorer.com/address/",
+  },
+};
+
+function WalletManagement({ wallet }: { wallet: Wallet | null }) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const accounts: ChainAccount[] = wallet?.chainAccounts ?? [];
+
+  // Fallback: if no chainAccounts, show at least the primary Polkadot address
+  const displayAccounts =
+    accounts.length > 0
+      ? accounts
+      : wallet?.address
+        ? [{ chainId: "polkadot" as const, address: wallet.address }]
+        : [];
+
+  // Track which card is in view via IntersectionObserver
+  const observerRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const handleScroll = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const scrollLeft = container.scrollLeft;
+    const cardWidth = container.offsetWidth;
+    const index = Math.round(scrollLeft / cardWidth);
+    setActiveIndex(Math.min(index, displayAccounts.length - 1));
+  }, [displayAccounts.length]);
+
+  // Attach scroll listener
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  if (displayAccounts.length === 0) return null;
+
+  const handleCopy = async (chainId: string, address: string) => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedId(chainId);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (e) {
+      console.error("Copy failed:", e);
+    }
+  };
+
+  const scrollTo = (index: number) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const cardWidth = container.offsetWidth;
+    container.scrollTo({ left: cardWidth * index, behavior: "smooth" });
+  };
+
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
+      {/* Section header */}
+      <div className="px-5 py-4 flex items-center gap-2">
+        <Wallet2 className="w-5 h-5 text-violet-500" />
+        <h2 className="text-base font-semibold text-black">My Wallets</h2>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {displayAccounts.length} network{displayAccounts.length > 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Horizontal carousel */}
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+        >
+          {displayAccounts.map((acct, idx) => {
+            const info = CHAIN_INFO[acct.chainId] || {
+              name: acct.chainId,
+              color: "#6366f1",
+            };
+            const isCopied = copiedId === acct.chainId;
+
+            return (
+              <div
+                key={acct.chainId}
+                ref={(el) => { observerRefs.current[idx] = el; }}
+                className="w-full flex-shrink-0 snap-center px-5 py-4"
+              >
+                <div className="flex items-center gap-3">
+                  {/* Chain badge */}
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                    style={{ backgroundColor: info.color }}
+                  >
+                    {acct.chainId === "polkadot"
+                      ? "DOT"
+                      : acct.chainId.slice(0, 3).toUpperCase()}
+                  </div>
+
+                  {/* Name + address */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-black">{info.name}</p>
+                    <p className="text-xs font-mono text-muted-foreground truncate">
+                      {acct.address}
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleCopy(acct.chainId, acct.address)}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                      aria-label={`Copy ${info.name} address`}
+                    >
+                      {isCopied ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-gray-400" />
+                      )}
+                    </button>
+                    {info.explorer && (
+                      <a
+                        href={`${info.explorer}${acct.address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                        aria-label={`View on ${info.name} explorer`}
+                      >
+                        <ExternalLink className="w-4 h-4 text-gray-400" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Dot indicators */}
+      {displayAccounts.length > 1 && (
+        <div className="flex justify-center gap-1.5 pb-3">
+          {displayAccounts.map((acct, idx) => {
+            const info = CHAIN_INFO[acct.chainId] || { color: "#6366f1" };
+            const isActive = idx === activeIndex;
+            return (
+              <button
+                key={acct.chainId}
+                onClick={() => scrollTo(idx)}
+                className="transition-all duration-300 rounded-full"
+                style={{
+                  width: isActive ? 18 : 6,
+                  height: 6,
+                  backgroundColor: isActive ? info.color : "#d1d5db",
+                }}
+                aria-label={`Go to ${CHAIN_INFO[acct.chainId]?.name ?? acct.chainId}`}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
