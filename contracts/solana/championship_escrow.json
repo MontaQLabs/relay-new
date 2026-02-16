@@ -1,0 +1,1494 @@
+{
+  "address": "AvNFV1Bg6ZfngTuGdd5uDDxV22nsmumYd3JUpkQu9MPT",
+  "metadata": {
+    "name": "championship_escrow",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "bet",
+      "discriminator": [
+        94,
+        203,
+        166,
+        126,
+        20,
+        243,
+        169,
+        82
+      ],
+      "accounts": [
+        {
+          "name": "bettor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "challenge",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  108,
+                  108,
+                  101,
+                  110,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bet_record",
+          "docs": [
+            "Per-user per-agent bet accumulator."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              },
+              {
+                "kind": "account",
+                "path": "bettor"
+              },
+              {
+                "kind": "arg",
+                "path": "agent_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_bet_total",
+          "docs": [
+            "Per-user total bets in this challenge (for refunds)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  116,
+                  95,
+                  116,
+                  111,
+                  116,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              },
+              {
+                "kind": "account",
+                "path": "bettor"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "challenge_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "agent_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "cancel",
+      "discriminator": [
+        232,
+        219,
+        223,
+        41,
+        219,
+        236,
+        220,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "challenge",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  108,
+                  108,
+                  101,
+                  110,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "challenge_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "claim",
+      "docs": [
+        "Handles both finalized payouts and cancellation refunds.",
+        "",
+        "Callers must supply the correct optional accounts:",
+        "- `enroll_record`: if they enrolled (needed for entry fee refund or winner payout)",
+        "- `winner_bet_record`: if they bet on the winner (finalized only)",
+        "- `user_bet_total`: if they placed any bets (cancelled refund only)"
+      ],
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "claimant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "challenge",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  108,
+                  108,
+                  101,
+                  110,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_record",
+          "docs": [
+            "Claim record — init proves first claim."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              },
+              {
+                "kind": "account",
+                "path": "claimant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "enroll_record",
+          "docs": [
+            "EnrollRecord — optional. If it exists, the user enrolled.",
+            "We use Option so non-enrollees can still claim bet winnings."
+          ],
+          "optional": true
+        },
+        {
+          "name": "winner_bet_record",
+          "docs": [
+            "BetRecord for the winner agent — optional."
+          ],
+          "optional": true
+        },
+        {
+          "name": "user_bet_total",
+          "docs": [
+            "UserBetTotal — optional. Needed for cancelled refunds."
+          ],
+          "optional": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "challenge_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "create",
+      "discriminator": [
+        24,
+        30,
+        200,
+        40,
+        5,
+        28,
+        7,
+        119
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "platform"
+        },
+        {
+          "name": "challenge",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  108,
+                  108,
+                  101,
+                  110,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Vault PDA — a system account that holds all escrowed SOL.",
+            "Not an Anchor `Account` because it has no data — just lamports."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "challenge_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "entry_fee",
+          "type": "u64"
+        },
+        {
+          "name": "enroll_end",
+          "type": "i64"
+        },
+        {
+          "name": "compete_end",
+          "type": "i64"
+        },
+        {
+          "name": "judge_end",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "enroll",
+      "discriminator": [
+        58,
+        12,
+        36,
+        3,
+        142,
+        28,
+        1,
+        43
+      ],
+      "accounts": [
+        {
+          "name": "enrollee",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "challenge",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  108,
+                  108,
+                  101,
+                  110,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "enroll_record",
+          "docs": [
+            "EnrollRecord PDA — init proves first enrollment."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  114,
+                  111,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              },
+              {
+                "kind": "account",
+                "path": "enrollee"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "challenge_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "agent_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "finalize",
+      "discriminator": [
+        171,
+        61,
+        218,
+        56,
+        127,
+        115,
+        12,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "challenge",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  108,
+                  108,
+                  101,
+                  110,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "platform",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "challenge_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "vote",
+      "discriminator": [
+        227,
+        110,
+        155,
+        23,
+        136,
+        126,
+        172,
+        25
+      ],
+      "accounts": [
+        {
+          "name": "voter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "challenge",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  108,
+                  108,
+                  101,
+                  110,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vote_record",
+          "docs": [
+            "Vote record — init proves first vote."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "challenge_id"
+              },
+              {
+                "kind": "account",
+                "path": "voter"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "challenge_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "agent_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BetRecord",
+      "discriminator": [
+        144,
+        217,
+        102,
+        109,
+        200,
+        164,
+        66,
+        178
+      ]
+    },
+    {
+      "name": "Challenge",
+      "discriminator": [
+        119,
+        250,
+        161,
+        121,
+        119,
+        81,
+        22,
+        208
+      ]
+    },
+    {
+      "name": "ClaimRecord",
+      "discriminator": [
+        57,
+        229,
+        0,
+        9,
+        65,
+        62,
+        96,
+        7
+      ]
+    },
+    {
+      "name": "EnrollRecord",
+      "discriminator": [
+        242,
+        181,
+        77,
+        8,
+        59,
+        214,
+        51,
+        103
+      ]
+    },
+    {
+      "name": "UserBetTotal",
+      "discriminator": [
+        42,
+        17,
+        186,
+        203,
+        161,
+        33,
+        246,
+        96
+      ]
+    },
+    {
+      "name": "VoteRecord",
+      "discriminator": [
+        112,
+        9,
+        123,
+        165,
+        234,
+        9,
+        157,
+        167
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AgentEnrolled",
+      "discriminator": [
+        120,
+        38,
+        87,
+        209,
+        211,
+        88,
+        79,
+        166
+      ]
+    },
+    {
+      "name": "BetPlaced",
+      "discriminator": [
+        88,
+        88,
+        145,
+        226,
+        126,
+        206,
+        32,
+        0
+      ]
+    },
+    {
+      "name": "ChallengeCancelled",
+      "discriminator": [
+        208,
+        99,
+        93,
+        81,
+        72,
+        248,
+        132,
+        172
+      ]
+    },
+    {
+      "name": "ChallengeCreated",
+      "discriminator": [
+        166,
+        178,
+        174,
+        178,
+        11,
+        172,
+        98,
+        243
+      ]
+    },
+    {
+      "name": "ChallengeFinalized",
+      "discriminator": [
+        190,
+        192,
+        111,
+        18,
+        82,
+        126,
+        97,
+        230
+      ]
+    },
+    {
+      "name": "PayoutClaimed",
+      "discriminator": [
+        200,
+        39,
+        105,
+        112,
+        116,
+        63,
+        58,
+        149
+      ]
+    },
+    {
+      "name": "VoteCast",
+      "discriminator": [
+        39,
+        53,
+        195,
+        104,
+        188,
+        17,
+        225,
+        213
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "FeeTooLow",
+      "msg": "E3: Entry fee below minimum"
+    },
+    {
+      "code": 6001,
+      "name": "BadTimestamps",
+      "msg": "E4: Invalid timestamp ordering"
+    },
+    {
+      "code": 6002,
+      "name": "EnrollmentEnded",
+      "msg": "E6: Enrollment period ended"
+    },
+    {
+      "code": 6003,
+      "name": "Cancelled",
+      "msg": "E7: Challenge is cancelled"
+    },
+    {
+      "code": 6004,
+      "name": "WrongFee",
+      "msg": "E8: Attached SOL != entry fee"
+    },
+    {
+      "code": 6005,
+      "name": "AlreadyEnrolled",
+      "msg": "E9: Caller already enrolled"
+    },
+    {
+      "code": 6006,
+      "name": "AgentTaken",
+      "msg": "E10: Agent ID already taken"
+    },
+    {
+      "code": 6007,
+      "name": "NotActive",
+      "msg": "E11: Challenge not active"
+    },
+    {
+      "code": 6008,
+      "name": "TooFewAgents",
+      "msg": "E12: Fewer than 3 agents enrolled"
+    },
+    {
+      "code": 6009,
+      "name": "WrongPhase",
+      "msg": "E13: Wrong phase for this action"
+    },
+    {
+      "code": 6010,
+      "name": "AgentNotEnrolled",
+      "msg": "E14: Agent not enrolled"
+    },
+    {
+      "code": 6011,
+      "name": "CreatorBet",
+      "msg": "E15: Creator cannot place bets"
+    },
+    {
+      "code": 6012,
+      "name": "ZeroBet",
+      "msg": "E16: Bet amount is zero"
+    },
+    {
+      "code": 6013,
+      "name": "AlreadyVoted",
+      "msg": "E17: Already voted"
+    },
+    {
+      "code": 6014,
+      "name": "LowBalance",
+      "msg": "E18: Voter SOL balance below minimum"
+    },
+    {
+      "code": 6015,
+      "name": "NotEnded",
+      "msg": "E19: Required period has not ended yet"
+    },
+    {
+      "code": 6016,
+      "name": "CannotCancel",
+      "msg": "E20: Cannot cancel — enough agents enrolled"
+    },
+    {
+      "code": 6017,
+      "name": "NotDone",
+      "msg": "E22: Challenge neither finalized nor cancelled"
+    },
+    {
+      "code": 6018,
+      "name": "AlreadyClaimed",
+      "msg": "E23: Already claimed"
+    },
+    {
+      "code": 6019,
+      "name": "NoPayout",
+      "msg": "E24: Nothing to claim"
+    },
+    {
+      "code": 6020,
+      "name": "MaxAgents",
+      "msg": "E25: Maximum agent capacity reached"
+    },
+    {
+      "code": 6021,
+      "name": "InsufficientVault",
+      "msg": "E26: Vault balance insufficient"
+    },
+    {
+      "code": 6022,
+      "name": "Overflow",
+      "msg": "E27: Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "AgentEnrolled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "challenge_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "agent_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BetPlaced",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "challenge_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "agent_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bettor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BetRecord",
+      "docs": [
+        "Accumulates a user's bet on a specific agent in a specific challenge."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Challenge",
+      "docs": [
+        "Main challenge state — holds all per-challenge data in parallel",
+        "arrays to avoid many small PDA allocations.",
+        "",
+        "Size: 8 (discriminator) + 32 + 32 + 32 + 8 + 8*3 + 8*2 + 4 + 1*2",
+        "+ 1 + 1 + 1 + (4 + 32*64) + (4 + 32*64) + (4 + 8*64) + (4 + 8*64)",
+        "= ~4584 bytes (conservative estimate — let anchor compute exact)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "pubkey"
+          },
+          {
+            "name": "challenge_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "entry_fee",
+            "type": "u64"
+          },
+          {
+            "name": "enroll_end",
+            "type": "i64"
+          },
+          {
+            "name": "compete_end",
+            "type": "i64"
+          },
+          {
+            "name": "judge_end",
+            "type": "i64"
+          },
+          {
+            "name": "total_entry_pool",
+            "type": "u64"
+          },
+          {
+            "name": "total_bet_pool",
+            "type": "u64"
+          },
+          {
+            "name": "agent_count",
+            "type": "u32"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "cancelled",
+            "type": "bool"
+          },
+          {
+            "name": "winner_index",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          },
+          {
+            "name": "agent_ids",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          },
+          {
+            "name": "agent_owners",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "vote_counts",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "agent_bet_pools",
+            "type": {
+              "vec": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ChallengeCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "challenge_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ChallengeCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "challenge_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "entry_fee",
+            "type": "u64"
+          },
+          {
+            "name": "enroll_end",
+            "type": "i64"
+          },
+          {
+            "name": "compete_end",
+            "type": "i64"
+          },
+          {
+            "name": "judge_end",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ChallengeFinalized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "challenge_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "winner_agent_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "winner_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform_fee",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimRecord",
+      "docs": [
+        "Proves a user already claimed."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EnrollRecord",
+      "docs": [
+        "Proves a user enrolled in a specific challenge.",
+        "Existence of PDA = enrolled.  No extra data needed beyond bump."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "challenge_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserBetTotal",
+      "docs": [
+        "Tracks user's total bets across all agents in a challenge (for refunds)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VoteCast",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "challenge_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "agent_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "voter",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VoteRecord",
+      "docs": [
+        "Proves a user voted in a specific challenge."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}
