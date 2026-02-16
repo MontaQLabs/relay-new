@@ -484,6 +484,52 @@ GRANT EXECUTE ON FUNCTION increment_comment_likes(TEXT) TO authenticated;
 
 
 -- ============================================================================
+-- CHAIN ACCOUNTS TABLE (Multi-chain support)
+-- ============================================================================
+-- Stores derived chain addresses for each user.
+-- Each user (identified by their primary Polkadot wallet_address) can have
+-- one address per supported chain. This enables multi-chain account management
+-- while keeping the primary auth identity on Polkadot.
+
+CREATE TABLE IF NOT EXISTS chain_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_wallet TEXT NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
+    chain_id TEXT NOT NULL,          -- e.g. "polkadot", "base", "solana", "monad"
+    chain_address TEXT NOT NULL,     -- address on that chain
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_wallet, chain_id),
+    UNIQUE(chain_id, chain_address)  -- prevent address collisions across users
+);
+
+-- Indexes for chain account lookups
+CREATE INDEX IF NOT EXISTS idx_chain_accounts_user ON chain_accounts(user_wallet);
+CREATE INDEX IF NOT EXISTS idx_chain_accounts_chain ON chain_accounts(chain_id, chain_address);
+
+-- Enable RLS
+ALTER TABLE chain_accounts ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own chain accounts
+CREATE POLICY "Users can read own chain accounts" ON chain_accounts
+    FOR SELECT
+    USING (user_wallet = auth.jwt() ->> 'wallet_address');
+
+-- Users can insert their own chain accounts
+CREATE POLICY "Users can create own chain accounts" ON chain_accounts
+    FOR INSERT
+    WITH CHECK (user_wallet = auth.jwt() ->> 'wallet_address');
+
+-- Users can delete their own chain accounts
+CREATE POLICY "Users can delete own chain accounts" ON chain_accounts
+    FOR DELETE
+    USING (user_wallet = auth.jwt() ->> 'wallet_address');
+
+-- Allow public read of chain accounts (for address lookup)
+CREATE POLICY "Anyone can look up chain accounts" ON chain_accounts
+    FOR SELECT
+    USING (true);
+
+
+-- ============================================================================
 -- OPTIONAL: Cleanup job for expired nonces (if pg_cron is enabled)
 -- ============================================================================
 -- Uncomment if you have pg_cron extension enabled:
@@ -513,6 +559,7 @@ BEGIN
     RAISE NOTICE '  - activities';
     RAISE NOTICE '  - activity_attendees';
     RAISE NOTICE '  - comments';
+    RAISE NOTICE '  - chain_accounts';
     RAISE NOTICE '';
     RAISE NOTICE 'RLS policies enabled on all tables.';
     RAISE NOTICE 'Helper functions created for likes.';

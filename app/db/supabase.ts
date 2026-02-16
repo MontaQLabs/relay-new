@@ -253,6 +253,7 @@ export const getUserByWallet = async (walletAddress: string): Promise<User | nul
     wallet: {
       address: walletAddress,
       network: 'Polkadot Asset Hub',
+      chainAccounts: [{ chainId: 'polkadot', address: walletAddress }],
       status: 'active',
       isBackedUp: true,
     },

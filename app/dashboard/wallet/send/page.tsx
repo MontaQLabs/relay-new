@@ -4,12 +4,13 @@ import { useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { TokenList } from "@/components/crypto";
+import { TokenList, ChainSelector } from "@/components/crypto";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SlideInPage } from "@/components/layout/SlideInPage";
 import { useSlideNavigation, useCoins, useFeeEstimate } from "@/hooks";
 import { isAddrValid } from "@/app/utils/wallet";
 import type { Coin } from "@/app/types/frontend_type";
+import type { ChainId } from "@/app/chains/types";
 
 export default function SendPage() {
   const { isExiting, handleBack, router } = useSlideNavigation();
@@ -18,6 +19,7 @@ export default function SendPage() {
   const [address, setAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [isUsdMode, setIsUsdMode] = useState(true);
+  const [selectedChain, setSelectedChain] = useState<ChainId>("polkadot");
 
   // Use coins hook
   const {
@@ -46,7 +48,7 @@ export default function SendPage() {
 
   // Use fee estimate hook
   const { feeEstimate, feeError, isCheckingFees } = useFeeEstimate({
-    recipientAddress: isAddrValid(address) ? address : null,
+    recipientAddress: isAddrValid(address, selectedChain) ? address : null,
     selectedToken,
     amount,
     coins,
@@ -133,7 +135,7 @@ export default function SendPage() {
   }, [selectedToken, amount, isUsdMode]);
 
   const isFormValid = () => {
-    const hasValidAddress = isAddrValid(address);
+    const hasValidAddress = isAddrValid(address, selectedChain);
     const hasToken = selectedToken !== null;
     const hasAmount = amount !== "" && parseFloat(amount) > 0;
     const withinBalance = !isAmountExceedingBalance();
@@ -165,6 +167,7 @@ export default function SendPage() {
         amountCrypto: amountCrypto.toFixed(6).replace(/\.?0+$/, ""),
         fee: feeEstimate.feeFormatted,
         feeTicker: feeEstimate.feeTicker,
+        chainId: selectedChain,
       });
 
       router.push(`/dashboard/wallet/payment-review?${params.toString()}`);
@@ -177,6 +180,24 @@ export default function SendPage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col px-5 pt-4 gap-4 overflow-auto">
+        {/* Step 0: Chain Selection */}
+        <div className="animate-slide-up">
+          <label className="text-sm font-medium text-muted-foreground mb-2 block">
+            Network
+          </label>
+          <div className="bg-gray-50 rounded-2xl p-3">
+            <ChainSelector
+              selectedChain={selectedChain}
+              onSelect={(id) => {
+                setSelectedChain(id);
+                setAddress("");
+                setAmount("");
+              }}
+              showAll={false}
+            />
+          </div>
+        </div>
+
         {/* Step 1: Recipient Address */}
         <div className="animate-slide-up">
           <label className="text-sm font-medium text-muted-foreground mb-2 block">
@@ -198,8 +219,8 @@ export default function SendPage() {
               </button>
             </div>
           </div>
-          {address && !isAddrValid(address) && (
-            <p className="text-sm text-red-500 mt-2">Invalid address format</p>
+          {address && !isAddrValid(address, selectedChain) && (
+            <p className="text-sm text-red-500 mt-2">Invalid address format for {selectedChain}</p>
           )}
         </div>
 

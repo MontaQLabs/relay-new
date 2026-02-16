@@ -144,15 +144,6 @@ export default function LandingPage() {
 
         {/* Hero section */}
         <section className="flex flex-1 flex-col items-center justify-center py-8">
-          <div className="animate-slide-up mb-6 opacity-0 animation-delay-200">
-            <div className="relative">
-              <div className="absolute inset-0 animate-pulse rounded-3xl bg-white/10 blur-xl" />
-              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm">
-                <Wallet className="h-14 w-14 text-white" strokeWidth={1} />
-              </div>
-            </div>
-          </div>
-
           <h1 className="animate-slide-up mb-4 max-w-xs text-center text-4xl font-bold leading-tight tracking-tight text-white opacity-0 animation-delay-300">
             <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
               Build Communities

@@ -7,6 +7,8 @@ import { getPolkadotSigner } from "@polkadot-api/signer";
 import { Keyring } from "@polkadot/keyring";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import { SS58_FORMAT } from "../types/constants";
+import { getChainRegistry, initChainRegistry } from "../chains/registry";
+import type { ChainId, ChainCoin, ChainFeeEstimate, ChainTransferResult, ChainTransaction } from "../chains/types";
 
 // CoinGecko API endpoint for price fetching
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price";
@@ -914,5 +916,161 @@ export const checkEnoughFees = async (
       feeEstimate: null,
       error: error instanceof Error ? error.message : "Failed to estimate fees",
     };
+  }
+};
+
+// ============================================================================
+// Multi-chain helpers (delegate to ChainRegistry adapters)
+// ============================================================================
+
+/**
+ * Fetch balances for a given chain and address using the registered adapter.
+ * Returns ChainCoin[] which can be converted to Coin[] by the caller.
+ */
+export const fetchChainBalances = async (
+  chainId: ChainId,
+  address: string
+): Promise<ChainCoin[]> => {
+  try {
+    const registry = await initChainRegistry();
+    const adapter = registry.get(chainId);
+    return await adapter.fetchBalances(address);
+  } catch (error) {
+    console.error(`Failed to fetch ${chainId} balances:`, error);
+    return [];
+  }
+};
+
+/**
+ * Fetch balances across all chains for the current wallet.
+ * Returns a map of chainId -> ChainCoin[].
+ */
+export const fetchAllChainBalances = async (): Promise<
+  Record<string, ChainCoin[]>
+> => {
+  if (typeof window === "undefined") return {};
+
+  const walletData = localStorage.getItem(WALLET_KEY);
+  if (!walletData) return {};
+
+  let wallet: Wallet;
+  try {
+    wallet = JSON.parse(walletData) as Wallet;
+  } catch {
+    return {};
+  }
+
+  if (!wallet.chainAccounts || wallet.chainAccounts.length === 0) return {};
+
+  const registry = await initChainRegistry();
+  const results: Record<string, ChainCoin[]> = {};
+
+  await Promise.all(
+    wallet.chainAccounts.map(async (acct) => {
+      try {
+        const adapter = registry.get(acct.chainId);
+        results[acct.chainId] = await adapter.fetchBalances(acct.address);
+      } catch (error) {
+        console.error(`Failed to fetch ${acct.chainId} balances:`, error);
+        results[acct.chainId] = [];
+      }
+    })
+  );
+
+  return results;
+};
+
+/**
+ * Estimate a transfer fee on a specific chain.
+ */
+export const estimateChainFee = async (
+  chainId: ChainId,
+  senderAddress: string,
+  recipientAddress: string,
+  ticker: string,
+  amount: number,
+  tokenIdentifier?: string | number
+): Promise<ChainFeeEstimate> => {
+  const registry = await initChainRegistry();
+  const adapter = registry.get(chainId);
+  return adapter.estimateFee({
+    senderAddress,
+    recipientAddress,
+    ticker,
+    amount,
+    tokenIdentifier,
+  });
+};
+
+/**
+ * Send a transfer on a specific chain.
+ * Reads the mnemonic from localStorage.
+ */
+export const sendChainTransfer = async (
+  chainId: ChainId,
+  recipientAddress: string,
+  ticker: string,
+  amount: number,
+  tokenIdentifier?: string | number
+): Promise<ChainTransferResult> => {
+  const mnemonic = typeof window !== "undefined"
+    ? localStorage.getItem(WALLET_SEED_KEY)
+    : null;
+
+  if (!mnemonic) {
+    return {
+      success: false,
+      error: "Wallet seed not found. Please unlock your wallet first.",
+    };
+  }
+
+  // Get sender address for this chain
+  const walletData = typeof window !== "undefined"
+    ? localStorage.getItem(WALLET_KEY)
+    : null;
+
+  if (!walletData) {
+    return { success: false, error: "No wallet found." };
+  }
+
+  const wallet: Wallet = JSON.parse(walletData);
+  const chainAccount = wallet.chainAccounts?.find(
+    (a) => a.chainId === chainId
+  );
+
+  if (!chainAccount) {
+    return {
+      success: false,
+      error: `No account found for chain ${chainId}.`,
+    };
+  }
+
+  const registry = await initChainRegistry();
+  const adapter = registry.get(chainId);
+  return adapter.sendTransfer({
+    senderAddress: chainAccount.address,
+    recipientAddress,
+    ticker,
+    amount,
+    tokenIdentifier,
+    mnemonic,
+  });
+};
+
+/**
+ * Fetch transaction history for a specific chain.
+ */
+export const fetchChainTransactions = async (
+  chainId: ChainId,
+  address: string,
+  page?: number
+): Promise<ChainTransaction[]> => {
+  try {
+    const registry = await initChainRegistry();
+    const adapter = registry.get(chainId);
+    return await adapter.fetchTransactions(address, page);
+  } catch (error) {
+    console.error(`Failed to fetch ${chainId} transactions:`, error);
+    return [];
   }
 };

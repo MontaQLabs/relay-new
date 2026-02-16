@@ -20,11 +20,12 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { ActionButton } from "@/components/action-button";
-import { CoinAvatar } from "@/components/crypto";
+import { CoinAvatar, ChainSelector } from "@/components/crypto";
 import { useCoins } from "@/hooks";
-import { fetchAssetDetails, AssetDetails } from "@/app/utils/crypto";
-import { IS_BACKED_UP_KEY } from "@/app/types/constants";
-import type { KnownAsset, Coin } from "@/app/types/frontend_type";
+import { fetchAssetDetails, AssetDetails, fetchAllChainBalances } from "@/app/utils/crypto";
+import { IS_BACKED_UP_KEY, WALLET_KEY } from "@/app/types/constants";
+import type { KnownAsset, Coin, Wallet } from "@/app/types/frontend_type";
+import type { ChainId, ChainCoin } from "@/app/chains/types";
 import { formatCurrency, formatCryptoAmount } from "@/lib/format";
 
 export default function WalletPage() {
@@ -32,8 +33,11 @@ export default function WalletPage() {
   const [showBalance, setShowBalance] = useState(true);
   const [showProtectBanner, setShowProtectBanner] = useState(true);
   const [isBackedUp, setIsBackedUp] = useState(false);
+  const [selectedChain, setSelectedChain] = useState<ChainId | "all">("all");
+  const [multiChainBalances, setMultiChainBalances] = useState<Record<string, ChainCoin[]>>({});
+  const [isLoadingMultiChain, setIsLoadingMultiChain] = useState(false);
 
-  // Use the custom hook for coins
+  // Use the custom hook for Polkadot coins (backward compat)
   const { coins, knownAssets, isLoading, isPriceLoading, totalBalance } = useCoins();
 
   // Polkadot Bazaar state
@@ -69,6 +73,70 @@ export default function WalletPage() {
     setSelectedAsset(null);
     setAssetDetails(null);
   };
+
+  // Fetch balances for non-Polkadot chains
+  useEffect(() => {
+    const fetchOtherChains = async () => {
+      setIsLoadingMultiChain(true);
+      try {
+        const balances = await fetchAllChainBalances();
+        setMultiChainBalances(balances);
+      } catch (err) {
+        console.error("Failed to fetch multi-chain balances:", err);
+      } finally {
+        setIsLoadingMultiChain(false);
+      }
+    };
+    fetchOtherChains();
+  }, []);
+
+  // Get wallet chain accounts for address display
+  const [chainAccounts, setChainAccounts] = useState<{ chainId: string; address: string }[]>([]);
+  useEffect(() => {
+    try {
+      const walletData = localStorage.getItem(WALLET_KEY);
+      if (walletData) {
+        const wallet: Wallet = JSON.parse(walletData);
+        setChainAccounts(wallet.chainAccounts || []);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Build unified coin list from all chains
+  const getDisplayCoins = (): Coin[] => {
+    if (selectedChain === "all") {
+      // Show Polkadot coins from the existing hook
+      const allCoins: Coin[] = [...coins];
+      // Add coins from other chains
+      for (const [chainId, chainCoins] of Object.entries(multiChainBalances)) {
+        if (chainId === "polkadot") continue; // Already included via useCoins
+        for (const cc of chainCoins) {
+          allCoins.push({
+            ticker: cc.ticker,
+            amount: cc.amount,
+            change: 0,
+            symbol: cc.symbol,
+            fiatValue: 0,
+          });
+        }
+      }
+      return allCoins;
+    }
+
+    if (selectedChain === "polkadot") return coins;
+
+    // Show coins for the selected chain
+    const chainCoins = multiChainBalances[selectedChain] || [];
+    return chainCoins.map((cc) => ({
+      ticker: cc.ticker,
+      amount: cc.amount,
+      change: 0,
+      symbol: cc.symbol,
+      fiatValue: 0,
+    }));
+  };
+
+  const displayCoins = getDisplayCoins();
 
   const handleSaveSecret = () => {
     router.push("/dashboard/settings");
@@ -120,22 +188,47 @@ export default function WalletPage() {
         </div>
       </div>
 
+      {/* Chain Selector */}
+      <div className="bg-white rounded-3xl border border-gray-100 px-4 py-3">
+        <ChainSelector
+          selectedChain={selectedChain as ChainId}
+          onSelect={(id) => setSelectedChain(id)}
+          showAll
+        />
+      </div>
+
+      {/* Chain Accounts (addresses) */}
+      {selectedChain !== "all" && chainAccounts.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3">
+          {chainAccounts
+            .filter((a) => a.chainId === selectedChain)
+            .map((a) => (
+              <div key={a.chainId} className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Address</span>
+                <span className="text-xs font-mono text-gray-700 truncate max-w-[220px]">
+                  {a.address}
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
+
       {/* Portfolio Section */}
       <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
         <div className="px-5 py-4">
           <h2 className="text-lg font-semibold text-black">Portfolio</h2>
         </div>
 
-        {isLoading ? (
+        {isLoading || isLoadingMultiChain ? (
           <div className="px-5 py-8 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
           </div>
-        ) : coins.length === 0 ? (
+        ) : displayCoins.length === 0 ? (
           <EmptyPortfolio />
         ) : (
           <div className="divide-y divide-gray-100">
-            {coins.map((coin, index) => (
-              <CoinRow key={coin.ticker} coin={coin} index={index} />
+            {displayCoins.map((coin, index) => (
+              <CoinRow key={`${selectedChain}-${coin.ticker}`} coin={coin} index={index} />
             ))}
           </div>
         )}

@@ -2,6 +2,8 @@ import { Wallet } from "../types/frontend_type";
 import { Keyring } from "@polkadot/keyring";
 import { mnemonicGenerate, mnemonicValidate, cryptoWaitReady, decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import { POLKADOT_NETWORK_NAME, SS58_FORMAT, WALLET_KEY, WALLET_SEED_KEY, ENCRYPTED_WALLET_KEY, IS_ENCRYPTED_KEY, USER_KEY } from "../types/constants";
+import { initChainRegistry } from "../chains/registry";
+import type { ChainAccount } from "../chains/types";
 
 // Check if user already has "relay-wallet" in their browser's local storage
 export const exists = (): boolean => {
@@ -13,37 +15,47 @@ export const exists = (): boolean => {
 };
 
 /**
- * Creates a new Polkadot Asset Hub wallet using sr25519 cryptography
- * Generates a BIP39 mnemonic seed phrase and derives the keypair
- * Stores the wallet data in localStorage
+ * Derive chain accounts from a mnemonic using all registered chain adapters.
+ * Falls back to Polkadot-only if the registry fails to initialise.
+ */
+async function deriveChainAccounts(mnemonic: string): Promise<ChainAccount[]> {
+  try {
+    const registry = await initChainRegistry();
+    return await registry.deriveAllAddresses(mnemonic);
+  } catch (err) {
+    console.warn("Chain registry init failed, falling back to Polkadot only:", err);
+    const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
+    const pair = keyring.addFromMnemonic(mnemonic);
+    return [{ chainId: "polkadot", address: pair.address }];
+  }
+}
+
+/**
+ * Creates a new multi-chain relay wallet.
+ * Generates a BIP39 mnemonic and derives addresses for every registered chain.
+ * The Polkadot address is used as the primary identity for auth.
  * 
  * @returns Promise<Wallet> - The newly created wallet object
  */
 export const createWallet = async (): Promise<Wallet> => {
-  // Ensure WASM crypto is ready (required for sr25519)
   await cryptoWaitReady();
 
-  // Generate a 12-word BIP39 mnemonic seed phrase
   const mnemonic = mnemonicGenerate(12);
 
-  // Create a keyring instance with sr25519 (Polkadot's default signature scheme)
-  const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
+  // Derive addresses on all supported chains
+  const chainAccounts = await deriveChainAccounts(mnemonic);
+  const polkadotAccount = chainAccounts.find(a => a.chainId === "polkadot");
 
-  // Add the keypair from the mnemonic
-  const pair = keyring.addFromMnemonic(mnemonic);
-
-  // Create the wallet object
   const wallet: Wallet = {
-    address: pair.address,
+    address: polkadotAccount?.address ?? "",
     network: POLKADOT_NETWORK_NAME,
+    chainAccounts,
     coins: [],
-    status: "inactive", // Wallet is not yet active due to existential deposit
-    isBackedUp: false, // User needs to manually backup the seed phrase
+    status: "inactive",
+    isBackedUp: false,
   };
 
-  // Store wallet data in localStorage (mnemonic stored separately for security)
   if (typeof window !== "undefined") {
-    // First remove any possible existing wallet data
     localStorage.removeItem(WALLET_KEY);
     localStorage.removeItem(WALLET_SEED_KEY);
     localStorage.removeItem(ENCRYPTED_WALLET_KEY);
@@ -51,7 +63,6 @@ export const createWallet = async (): Promise<Wallet> => {
     localStorage.removeItem(USER_KEY);
 
     localStorage.setItem(WALLET_KEY, JSON.stringify(wallet));
-    // Store mnemonic separately
     localStorage.setItem(WALLET_SEED_KEY, mnemonic);
   }
 
@@ -59,44 +70,37 @@ export const createWallet = async (): Promise<Wallet> => {
 };
 
 /**
- * Imports an existing wallet using a space-separated seed phrase
- * Validates the mnemonic, recreates the keypair, and stores in localStorage
+ * Imports an existing wallet using a space-separated seed phrase.
+ * Validates the mnemonic, then derives addresses for every registered chain.
  * 
  * @param seedPhrase - Space-separated 12-word mnemonic seed phrase
  * @returns Promise<Wallet> - The imported wallet object
  * @throws Error if the mnemonic is invalid
  */
 export const importWallet = async (seedPhrase: string): Promise<Wallet> => {
-  // Ensure WASM crypto is ready (required for sr25519)
   await cryptoWaitReady();
 
-  // Normalize the seed phrase (trim and ensure single spaces)
   const normalizedMnemonic = seedPhrase.trim().toLowerCase().replace(/\s+/g, ' ');
 
-  // Validate the mnemonic
   const isValid = mnemonicValidate(normalizedMnemonic);
   if (!isValid) {
     throw new Error("Invalid seed phrase. Please check your words and try again.");
   }
 
-  // Create a keyring instance with sr25519 (Polkadot's default signature scheme)
-  const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
+  // Derive addresses on all supported chains
+  const chainAccounts = await deriveChainAccounts(normalizedMnemonic);
+  const polkadotAccount = chainAccounts.find(a => a.chainId === "polkadot");
 
-  // Add the keypair from the mnemonic
-  const pair = keyring.addFromMnemonic(normalizedMnemonic);
-
-  // Create the wallet object
   const wallet: Wallet = {
-    address: pair.address,
+    address: polkadotAccount?.address ?? "",
     network: POLKADOT_NETWORK_NAME,
+    chainAccounts,
     coins: [],
-    status: "inactive", // Wallet status will be determined by on-chain data
-    isBackedUp: true, // User already has the seed phrase since they imported it
+    status: "inactive",
+    isBackedUp: true,
   };
 
-  // Store wallet data in localStorage
   if (typeof window !== "undefined") {
-    // First remove any possible existing wallet data
     localStorage.removeItem(WALLET_KEY);
     localStorage.removeItem(WALLET_SEED_KEY);
     localStorage.removeItem(ENCRYPTED_WALLET_KEY);
@@ -104,7 +108,6 @@ export const importWallet = async (seedPhrase: string): Promise<Wallet> => {
     localStorage.removeItem(USER_KEY);
 
     localStorage.setItem(WALLET_KEY, JSON.stringify(wallet));
-    // Store mnemonic separately
     localStorage.setItem(WALLET_SEED_KEY, normalizedMnemonic);
   }
 
@@ -288,15 +291,28 @@ export const decryptWallet = async (password: string): Promise<Wallet | null> =>
   }
 }
 
-// Check if the address is a valid polkadot address
-export const isAddrValid = (addr: string): boolean => {
+/**
+ * Check if an address is valid on *any* supported chain.
+ * For backward-compatibility the function accepts a bare address string.
+ * To validate for a specific chain, pass the optional chainId.
+ */
+export const isAddrValid = (addr: string, chainId?: string): boolean => {
   if (!addr || addr.trim() === "") return false;
 
+  // If a specific chain is requested, delegate to its adapter
+  if (chainId) {
+    try {
+      // Lazy import to avoid circular deps at module level
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getChainRegistry } = require("../chains/registry");
+      const adapter = getChainRegistry().find(chainId);
+      if (adapter) return adapter.isValidAddress(addr);
+    } catch { /* registry not initialised – fall through */ }
+  }
+
+  // Default: check Polkadot (original behaviour)
   try {
-    // decodeAddress will throw if the address is invalid
-    // It validates the SS58 checksum and format
     const decoded = decodeAddress(addr);
-    // Re-encode to verify it's a valid SS58 address
     encodeAddress(decoded);
     return true;
   } catch {

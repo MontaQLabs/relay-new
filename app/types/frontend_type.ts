@@ -113,10 +113,17 @@ export interface Comment {
     likes: number;
 }
 
+/**
+ * A derived account on a specific chain, managed under the relay wallet.
+ * Re-exported from the chain adapter types for convenience.
+ */
+export { type ChainAccount } from "../chains/types";
+
 export interface Wallet {
-    address: string; // Public address of the wallet
-    network: string; // The name of the crypto network the wallet is on
-    coins?: Coin[];
+    address: string; // Primary address (Polkadot, used for auth)
+    network: string; // Primary network name (e.g. "Polkadot Asset Hub")
+    chainAccounts: import("../chains/types").ChainAccount[]; // All derived chain accounts
+    coins?: Coin[]; // Kept for backward compat (Polkadot coins)
     status: WalletStatus;
     isBackedUp: boolean; // Whether the wallet seed phrase has been backed up
 }

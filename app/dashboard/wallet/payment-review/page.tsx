@@ -4,9 +4,10 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { sendTransfer, TransferResult } from "@/app/utils/crypto";
+import { sendTransfer, TransferResult, sendChainTransfer } from "@/app/utils/crypto";
 import { getKnownAssets } from "@/app/db/supabase";
 import type { KnownAsset } from "@/app/types/frontend_type";
+import type { ChainId } from "@/app/chains/types";
 
 // Transaction states for the confirm button
 type TransactionState = "idle" | "processing" | "success" | "error";
@@ -41,6 +42,7 @@ function PaymentReviewContent() {
   const amountCrypto = parseFloat(searchParams.get("amountCrypto") || "0");
   const fee = searchParams.get("fee") || "";
   const feeTicker = searchParams.get("feeTicker") || "DOT";
+  const chainId = (searchParams.get("chainId") || "polkadot") as ChainId;
 
   // Fetch known assets on mount (needed for sendTransfer)
   useEffect(() => {
@@ -79,23 +81,40 @@ function PaymentReviewContent() {
     setTxError(null);
 
     try {
-      const result: TransferResult = await sendTransfer(
-        address,
-        token,
-        "Polkadot Asset Hub", // network
-        amountCrypto,
-        knownAssets
-      );
+      let success = false;
+      let error: string | undefined;
 
-      if (result.success) {
+      if (chainId === "polkadot") {
+        // Use existing Polkadot-specific transfer (supports known assets)
+        const result: TransferResult = await sendTransfer(
+          address,
+          token,
+          "Polkadot Asset Hub",
+          amountCrypto,
+          knownAssets
+        );
+        success = result.success;
+        error = result.error;
+      } else {
+        // Use multi-chain adapter
+        const result = await sendChainTransfer(
+          chainId,
+          address,
+          token,
+          amountCrypto
+        );
+        success = result.success;
+        error = result.error;
+      }
+
+      if (success) {
         setTxState("success");
-        // Navigate back to wallet after a short delay to show success state
         setTimeout(() => {
           router.push("/dashboard/wallet");
         }, 2000);
       } else {
         setTxState("error");
-        setTxError(result.error || "Transaction failed");
+        setTxError(error || "Transaction failed");
       }
     } catch (error) {
       setTxState("error");
@@ -198,7 +217,7 @@ function PaymentReviewContent() {
           {/* Network */}
           <div className="py-4 animate-slide-up animation-delay-300">
             <div className="text-sm text-muted-foreground mb-1">Network</div>
-            <div className="text-base text-muted-foreground">Polkadot Asset Hub</div>
+            <div className="text-base text-muted-foreground capitalize">{chainId === "polkadot" ? "Polkadot Asset Hub" : chainId}</div>
           </div>
 
           {/* Transaction Fee */}
