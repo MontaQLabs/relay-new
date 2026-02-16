@@ -25,7 +25,7 @@ import { ActionButton } from "@/components/action-button";
 import { CoinAvatar, ChainSelector } from "@/components/crypto";
 import { useCoins, useEcosystemProjects } from "@/hooks";
 import { PROJECT_CATEGORIES } from "@/hooks/useEcosystemProjects";
-import { fetchAllChainBalances } from "@/app/utils/crypto";
+import { fetchAllChainBalances, fetchTokenPrices, type PriceMap } from "@/app/utils/crypto";
 import { formatTvl } from "@/app/utils/defillama";
 import { IS_BACKED_UP_KEY, WALLET_KEY } from "@/app/types/constants";
 import type { Coin, Wallet, ProjectWithStats } from "@/app/types/frontend_type";
@@ -39,6 +39,7 @@ export default function WalletPage() {
   const [isBackedUp, setIsBackedUp] = useState(false);
   const [selectedChain, setSelectedChain] = useState<ChainId | "all">("all");
   const [multiChainBalances, setMultiChainBalances] = useState<Record<string, ChainCoin[]>>({});
+  const [multiChainPrices, setMultiChainPrices] = useState<PriceMap>({});
   const [isLoadingMultiChain, setIsLoadingMultiChain] = useState(false);
 
   // Use the custom hook for Polkadot coins (backward compat)
@@ -71,13 +72,26 @@ export default function WalletPage() {
     }
   }, []);
 
-  // Fetch balances for non-Polkadot chains
+  // Fetch balances for non-Polkadot chains + their USD prices
   useEffect(() => {
     const fetchOtherChains = async () => {
       setIsLoadingMultiChain(true);
       try {
         const balances = await fetchAllChainBalances();
         setMultiChainBalances(balances);
+
+        // Collect all non-Polkadot tickers and fetch their prices
+        const tickers = new Set<string>();
+        for (const [chainId, chainCoins] of Object.entries(balances)) {
+          if (chainId === "polkadot") continue;
+          for (const cc of chainCoins) {
+            tickers.add(cc.ticker);
+          }
+        }
+        if (tickers.size > 0) {
+          const prices = await fetchTokenPrices(Array.from(tickers));
+          setMultiChainPrices(prices);
+        }
       } catch (err) {
         console.error("Failed to fetch multi-chain balances:", err);
       } finally {
@@ -99,6 +113,19 @@ export default function WalletPage() {
     } catch { /* ignore */ }
   }, []);
 
+  // Helper: convert a ChainCoin to a Coin using fetched prices
+  const chainCoinToCoin = (cc: ChainCoin): Coin => {
+    const price = multiChainPrices[cc.ticker]?.usd ?? 0;
+    const change = multiChainPrices[cc.ticker]?.usd_24h_change ?? 0;
+    return {
+      ticker: cc.ticker,
+      amount: cc.amount,
+      change,
+      symbol: cc.symbol,
+      fiatValue: cc.amount * price,
+    };
+  };
+
   // Build unified coin list from all chains
   const getDisplayCoins = (): Coin[] => {
     if (selectedChain === "all") {
@@ -108,13 +135,7 @@ export default function WalletPage() {
       for (const [chainId, chainCoins] of Object.entries(multiChainBalances)) {
         if (chainId === "polkadot") continue; // Already included via useCoins
         for (const cc of chainCoins) {
-          allCoins.push({
-            ticker: cc.ticker,
-            amount: cc.amount,
-            change: 0,
-            symbol: cc.symbol,
-            fiatValue: 0,
-          });
+          allCoins.push(chainCoinToCoin(cc));
         }
       }
       return allCoins;
@@ -124,16 +145,20 @@ export default function WalletPage() {
 
     // Show coins for the selected chain
     const chainCoins = multiChainBalances[selectedChain] || [];
-    return chainCoins.map((cc) => ({
-      ticker: cc.ticker,
-      amount: cc.amount,
-      change: 0,
-      symbol: cc.symbol,
-      fiatValue: 0,
-    }));
+    return chainCoins.map(chainCoinToCoin);
   };
 
   const displayCoins = getDisplayCoins();
+
+  // Compute the combined total balance across all chains
+  const multiChainTotal = Object.entries(multiChainBalances)
+    .filter(([chainId]) => chainId !== "polkadot")
+    .flatMap(([, chainCoins]) => chainCoins)
+    .reduce((sum, cc) => {
+      const price = multiChainPrices[cc.ticker]?.usd ?? 0;
+      return sum + cc.amount * price;
+    }, 0);
+  const combinedTotalBalance = totalBalance + multiChainTotal;
 
   const handleSaveSecret = () => {
     router.push("/dashboard/settings");
@@ -169,7 +194,7 @@ export default function WalletPage() {
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 </span>
               ) : (
-                `$${formatCurrency(totalBalance)}`
+                `$${formatCurrency(combinedTotalBalance)}`
               )
             ) : (
               "••••••••"
