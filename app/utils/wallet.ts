@@ -3,7 +3,7 @@ import { Keyring } from "@polkadot/keyring";
 import { mnemonicGenerate, mnemonicValidate, cryptoWaitReady, decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import { POLKADOT_NETWORK_NAME, SS58_FORMAT, WALLET_KEY, WALLET_SEED_KEY, ENCRYPTED_WALLET_KEY, IS_ENCRYPTED_KEY, USER_KEY } from "../types/constants";
 import { initChainRegistry } from "../chains/registry";
-import type { ChainAccount } from "../chains/types";
+import type { ChainAccount, NetworkMode } from "../chains/types";
 
 // Check if user already has "relay-wallet" in their browser's local storage
 export const exists = (): boolean => {
@@ -17,10 +17,16 @@ export const exists = (): boolean => {
 /**
  * Derive chain accounts from a mnemonic using all registered chain adapters.
  * Falls back to Polkadot-only if the registry fails to initialise.
+ *
+ * @param mnemonic - BIP-39 mnemonic seed phrase
+ * @param mode - Optional network mode override; defaults to stored mode.
  */
-async function deriveChainAccounts(mnemonic: string): Promise<ChainAccount[]> {
+async function deriveChainAccounts(
+  mnemonic: string,
+  mode?: NetworkMode
+): Promise<ChainAccount[]> {
   try {
-    const registry = await initChainRegistry();
+    const registry = await initChainRegistry(mode);
     return await registry.deriveAllAddresses(mnemonic);
   } catch (err) {
     console.warn("Chain registry init failed, falling back to Polkadot only:", err);
@@ -319,6 +325,50 @@ export const isAddrValid = (addr: string, chainId?: string): boolean => {
     return false;
   }
 }
+
+/**
+ * Re-derive all chain addresses for the given network mode and update the
+ * stored wallet in localStorage. The mnemonic stays the same – only the
+ * addresses change (some chains use different formats on testnet).
+ *
+ * Call this when the user toggles between mainnet and testnet.
+ */
+export const rederiveWalletForNetwork = async (
+  mode: NetworkMode
+): Promise<Wallet | null> => {
+  if (typeof window === "undefined") return null;
+
+  const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
+  if (!mnemonic) return null;
+
+  await cryptoWaitReady();
+
+  const chainAccounts = await deriveChainAccounts(mnemonic, mode);
+  const polkadotAccount = chainAccounts.find((a) => a.chainId === "polkadot");
+
+  // Read existing wallet to preserve non-address fields
+  let existingWallet: Wallet | null = null;
+  const walletData = localStorage.getItem(WALLET_KEY);
+  if (walletData) {
+    try {
+      existingWallet = JSON.parse(walletData) as Wallet;
+    } catch { /* ignore corrupt data */ }
+  }
+
+  const wallet: Wallet = {
+    ...(existingWallet ?? {
+      network: POLKADOT_NETWORK_NAME,
+      coins: [],
+      status: "inactive" as const,
+      isBackedUp: false,
+    }),
+    address: polkadotAccount?.address ?? existingWallet?.address ?? "",
+    chainAccounts,
+  };
+
+  localStorage.setItem(WALLET_KEY, JSON.stringify(wallet));
+  return wallet;
+};
 
 /**
  * Get the wallet address from localStorage

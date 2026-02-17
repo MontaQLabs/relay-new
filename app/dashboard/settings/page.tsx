@@ -18,13 +18,15 @@ import {
   Loader2,
   Wallet2,
   ExternalLink,
+  Globe,
 } from "lucide-react";
-import { getWalletAddress } from "@/app/utils/wallet";
+import { getWalletAddress, rederiveWalletForNetwork } from "@/app/utils/wallet";
 import { getUserByWallet } from "@/app/db/supabase";
 import { getAuthToken, signOut } from "@/app/utils/auth";
 import { WALLET_KEY, WALLET_SEED_KEY, IS_ENCRYPTED_KEY, USER_KEY, IS_BACKED_UP_KEY, ENCRYPTED_WALLET_KEY } from "@/app/types/constants";
 import type { User, Wallet } from "@/app/types/frontend_type";
 import type { ChainAccount } from "@/app/chains/types";
+import { useNetworkMode } from "@/app/contexts/NetworkModeContext";
 import {
   Sheet,
   SheetContent,
@@ -61,6 +63,10 @@ export default function SettingsPage() {
   // Use auth hook
   const { isAuthenticating, authError } = useAuth();
 
+  // Network mode (mainnet / testnet)
+  const { networkMode, setNetworkMode, isTestnet } = useNetworkMode();
+  const [isNetworkSwitching, setIsNetworkSwitching] = useState(false);
+
   // Edit profile states
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editAvatar, setEditAvatar] = useState("");
@@ -75,7 +81,7 @@ export default function SettingsPage() {
   const [isLogoutSheetOpen, setIsLogoutSheetOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
-  // Load user data after authentication
+  // Load user data after authentication or network switch
   useEffect(() => {
     if (isAuthenticating) return;
 
@@ -116,7 +122,7 @@ export default function SettingsPage() {
     };
 
     loadUserData();
-  }, [isAuthenticating]);
+  }, [isAuthenticating, networkMode]);
 
   const avatarUrl = getAvatarUrl(user?.avatar, wallet?.address || "anonymous");
 
@@ -168,6 +174,27 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Delete wallet failed:", error);
     }
+  };
+
+  const handleNetworkToggle = () => {
+    if (isNetworkSwitching) return;
+    const newMode = isTestnet ? "mainnet" : "testnet";
+
+    // Update context + localStorage immediately so the toggle flips
+    setNetworkMode(newMode);
+
+    // Re-derive wallet addresses in the background (non-blocking)
+    setIsNetworkSwitching(true);
+    rederiveWalletForNetwork(newMode)
+      .then((updatedWallet) => {
+        if (updatedWallet) setWallet(updatedWallet);
+      })
+      .catch((error) => {
+        console.error("Failed to re-derive wallet for network switch:", error);
+      })
+      .finally(() => {
+        setIsNetworkSwitching(false);
+      });
   };
 
   const isBackedUp = wallet?.isBackedUp ?? false;
@@ -481,8 +508,60 @@ export default function SettingsPage() {
         </SheetContent>
       </Sheet>
 
+      {/* Network Mode Toggle */}
+      <div className="bg-gradient-to-br from-violet-50/50 to-pink-50/50 rounded-3xl overflow-hidden">
+        <button
+          onClick={handleNetworkToggle}
+          disabled={isNetworkSwitching}
+          className="w-full flex items-center gap-4 px-5 py-4 transition-colors text-left hover:bg-white/50 disabled:opacity-60"
+        >
+          <div className="text-gray-600">
+            <Globe className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-black">Network</h3>
+              {isTestnet && (
+                <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                  Testnet
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {isTestnet
+                ? "Using test networks. Tokens have no real value."
+                : "Connected to mainnet."}
+            </p>
+          </div>
+          {/* Toggle Switch */}
+          <div className="flex-shrink-0">
+            <div
+              className="relative rounded-full"
+              style={{
+                width: 48,
+                height: 28,
+                backgroundColor: isTestnet ? "#f59e0b" : "#d1d5db",
+                transition: "background-color 0.2s",
+              }}
+            >
+              <div
+                className="absolute rounded-full shadow"
+                style={{
+                  top: 2,
+                  width: 24,
+                  height: 24,
+                  backgroundColor: "#fff",
+                  transform: isTestnet ? "translateX(22px)" : "translateX(2px)",
+                  transition: "transform 0.2s",
+                }}
+              />
+            </div>
+          </div>
+        </button>
+      </div>
+
       {/* Wallet Management */}
-      <WalletManagement wallet={wallet} />
+      <WalletManagement wallet={wallet} isTestnet={isTestnet} />
 
       {/* Menu Items */}
       <div className="bg-gradient-to-br from-violet-50/50 to-pink-50/50 rounded-3xl overflow-hidden">
@@ -550,8 +629,10 @@ export default function SettingsPage() {
 // Wallet Management Section
 // ---------------------------------------------------------------------------
 
-/** Chain display metadata. */
-const CHAIN_INFO: Record<string, { name: string; color: string; explorer?: string }> = {
+/** Chain display metadata per network mode. */
+interface ChainMeta { name: string; color: string; explorer?: string }
+
+const CHAIN_INFO_MAINNET: Record<string, ChainMeta> = {
   polkadot: {
     name: "Polkadot Asset Hub",
     color: "#e6007a",
@@ -579,7 +660,36 @@ const CHAIN_INFO: Record<string, { name: string; color: string; explorer?: strin
   },
 };
 
-function WalletManagement({ wallet }: { wallet: Wallet | null }) {
+const CHAIN_INFO_TESTNET: Record<string, ChainMeta> = {
+  polkadot: {
+    name: "Westend Asset Hub",
+    color: "#e6007a",
+    explorer: "https://assethub-westend.subscan.io/account/",
+  },
+  base: {
+    name: "Base Sepolia",
+    color: "#0052ff",
+    explorer: "https://sepolia.basescan.org/address/",
+  },
+  solana: {
+    name: "Solana Testnet",
+    color: "#9945ff",
+    explorer: "https://explorer.solana.com/address/",
+  },
+  monad: {
+    name: "Monad Testnet",
+    color: "#836ef9",
+    explorer: "https://testnet.monadexplorer.com/address/",
+  },
+  near: {
+    name: "NEAR Testnet",
+    color: "#00ec97",
+    explorer: "https://testnet.nearblocks.io/address/",
+  },
+};
+
+function WalletManagement({ wallet, isTestnet }: { wallet: Wallet | null; isTestnet: boolean }) {
+  const CHAIN_INFO = isTestnet ? CHAIN_INFO_TESTNET : CHAIN_INFO_MAINNET;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);

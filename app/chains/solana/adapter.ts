@@ -25,6 +25,7 @@ import type {
   ChainTransaction,
   TransferParams,
   SignedTransferParams,
+  NetworkMode,
 } from "../types";
 
 import {
@@ -33,8 +34,8 @@ import {
   NATIVE_TICKER,
   SOL_DECIMALS,
   ICON_URL,
-  RPC_URL,
   DERIVATION_PATH,
+  getConfig,
 } from "./config";
 
 // ---------------------------------------------------------------------------
@@ -49,10 +50,6 @@ function keypairFromMnemonic(mnemonic: string): Keypair {
   return Keypair.fromSeed(derived.key);
 }
 
-function getConnection(): Connection {
-  return new Connection(RPC_URL, "confirmed");
-}
-
 // ---------------------------------------------------------------------------
 // SolanaChainAdapter
 // ---------------------------------------------------------------------------
@@ -63,6 +60,17 @@ export class SolanaChainAdapter implements ChainAdapter {
   readonly chainType = "solana" as const;
   readonly nativeTicker = NATIVE_TICKER;
   readonly iconUrl = ICON_URL;
+
+  private rpcUrl: string;
+
+  constructor(mode: NetworkMode = "mainnet") {
+    const cfg = getConfig(mode);
+    this.rpcUrl = cfg.rpcUrl;
+  }
+
+  private getConnection(): Connection {
+    return new Connection(this.rpcUrl, "confirmed");
+  }
 
   // -- Account derivation ---------------------------------------------------
 
@@ -83,7 +91,7 @@ export class SolanaChainAdapter implements ChainAdapter {
   // -- Balances -------------------------------------------------------------
 
   async fetchBalances(address: string): Promise<ChainCoin[]> {
-    const connection = getConnection();
+    const connection = this.getConnection();
     const coins: ChainCoin[] = [];
 
     // Native SOL
@@ -114,7 +122,7 @@ export class SolanaChainAdapter implements ChainAdapter {
         const tokenAmount = parsed.tokenAmount;
         if (tokenAmount.uiAmount && tokenAmount.uiAmount > 0) {
           coins.push({
-            ticker: parsed.mint, // Mint address acts as identifier
+            ticker: parsed.mint,
             name: parsed.mint,
             amount: tokenAmount.uiAmount,
             decimals: tokenAmount.decimals,
@@ -133,9 +141,8 @@ export class SolanaChainAdapter implements ChainAdapter {
   // -- Transfers ------------------------------------------------------------
 
   async estimateFee(params: TransferParams): Promise<ChainFeeEstimate> {
-    const connection = getConnection();
+    const connection = this.getConnection();
 
-    // Build a placeholder transaction to estimate fees
     const sender = new PublicKey(params.senderAddress);
     const recipient = new PublicKey(params.recipientAddress);
 
@@ -165,7 +172,7 @@ export class SolanaChainAdapter implements ChainAdapter {
     params: SignedTransferParams
   ): Promise<ChainTransferResult> {
     try {
-      const connection = getConnection();
+      const connection = this.getConnection();
       const kp = keypairFromMnemonic(params.mnemonic);
       const recipient = new PublicKey(params.recipientAddress);
 
@@ -186,7 +193,6 @@ export class SolanaChainAdapter implements ChainAdapter {
       }
 
       // SPL token transfer
-      // Dynamically import to keep the main bundle lighter
       const { getOrCreateAssociatedTokenAccount, transfer } = await import(
         "@solana/spl-token"
       );
@@ -206,7 +212,6 @@ export class SolanaChainAdapter implements ChainAdapter {
         recipient
       );
 
-      // Default to 9 decimals for SPL tokens (caller can provide more precision)
       const decimals = 9;
       const amountRaw = BigInt(
         Math.floor(params.amount * Math.pow(10, decimals))
@@ -236,7 +241,7 @@ export class SolanaChainAdapter implements ChainAdapter {
     address: string,
   ): Promise<ChainTransaction[]> {
     try {
-      const connection = getConnection();
+      const connection = this.getConnection();
       const pubkey = new PublicKey(address);
 
       const signatures = await connection.getSignaturesForAddress(pubkey, {

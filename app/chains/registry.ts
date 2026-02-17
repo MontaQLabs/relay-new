@@ -7,7 +7,8 @@
  *   const accounts = await registry.deriveAllAddresses(mnemonic);
  */
 
-import type { ChainAdapter, ChainAccount, ChainId } from "./types";
+import type { ChainAdapter, ChainAccount, ChainId, NetworkMode } from "./types";
+import { NETWORK_MODE_KEY } from "../types/constants";
 
 class ChainRegistry {
   private adapters = new Map<ChainId, ChainAdapter>();
@@ -41,6 +42,11 @@ class ChainRegistry {
     return Array.from(this.adapters.keys());
   }
 
+  /** Clear all registered adapters so the registry can be re-initialised. */
+  clear(): void {
+    this.adapters.clear();
+  }
+
   /**
    * Derive an address on every registered chain from a single BIP-39 mnemonic.
    * Returns an array of ChainAccount objects.
@@ -64,6 +70,7 @@ class ChainRegistry {
 // ---------------------------------------------------------------------------
 
 let instance: ChainRegistry | null = null;
+let currentMode: NetworkMode | null = null;
 
 /**
  * Get (or create) the global ChainRegistry singleton.
@@ -77,14 +84,44 @@ export function getChainRegistry(): ChainRegistry {
 }
 
 /**
- * Initialise the registry with all built-in adapters.
- * Call once at app startup (e.g. in a top-level layout or provider).
+ * Read the current network mode from localStorage (falls back to "mainnet").
  */
-export async function initChainRegistry(): Promise<ChainRegistry> {
+export function getStoredNetworkMode(): NetworkMode {
+  if (typeof window === "undefined") return "mainnet";
+  const stored = localStorage.getItem(NETWORK_MODE_KEY);
+  return stored === "testnet" ? "testnet" : "mainnet";
+}
+
+/**
+ * Reset the registry so the next initChainRegistry() call re-creates
+ * adapters with the (potentially changed) network mode.
+ */
+export function resetRegistry(): void {
+  if (instance) {
+    instance.clear();
+  }
+  currentMode = null;
+}
+
+/**
+ * Initialise the registry with all built-in adapters for the given network mode.
+ * Call once at app startup (e.g. in a top-level layout or provider).
+ * If mode is omitted, it reads from localStorage.
+ */
+export async function initChainRegistry(
+  mode?: NetworkMode
+): Promise<ChainRegistry> {
+  const resolvedMode = mode ?? getStoredNetworkMode();
   const registry = getChainRegistry();
 
-  // Only register once
-  if (registry.getAll().length > 0) return registry;
+  // Only register once per mode
+  if (registry.getAll().length > 0 && currentMode === resolvedMode) {
+    return registry;
+  }
+
+  // Mode changed or first init – clear and re-register
+  registry.clear();
+  currentMode = resolvedMode;
 
   // Dynamic imports keep each chain's deps out of bundles that don't use them
   const [
@@ -99,11 +136,11 @@ export async function initChainRegistry(): Promise<ChainRegistry> {
     import("./near/adapter"),
   ]);
 
-  registry.register(new PolkadotChainAdapter());
-  registry.register(createBaseAdapter());
-  registry.register(createMonadAdapter());
-  registry.register(new SolanaChainAdapter());
-  registry.register(new NearChainAdapter());
+  registry.register(new PolkadotChainAdapter(resolvedMode));
+  registry.register(createBaseAdapter(resolvedMode));
+  registry.register(createMonadAdapter(resolvedMode));
+  registry.register(new SolanaChainAdapter(resolvedMode));
+  registry.register(new NearChainAdapter(resolvedMode));
 
   return registry;
 }

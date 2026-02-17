@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChainId } from "@/app/chains/types";
+import { useNetworkMode } from "@/app/contexts/NetworkModeContext";
 
 interface ChainOption {
   id: ChainId;
@@ -29,8 +30,15 @@ export function ChainSelector({
   onSelect,
   showAll = true,
 }: ChainSelectorProps) {
+  const { isTestnet } = useNetworkMode();
+
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      {isTestnet && (
+        <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 bg-amber-100 rounded-full flex-shrink-0">
+          Testnet
+        </span>
+      )}
       {showAll && (
         <ChainPill
           label="All"

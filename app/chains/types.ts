@@ -15,6 +15,9 @@ export type ChainType = "substrate" | "evm" | "solana" | "near";
 /** Unique, lowercase identifier for a chain. */
 export type ChainId = "polkadot" | "base" | "solana" | "monad" | "near";
 
+/** Whether the app is pointed at mainnet or testnet RPCs. */
+export type NetworkMode = "mainnet" | "testnet";
+
 // ---------------------------------------------------------------------------
 // Shared value types
 // ---------------------------------------------------------------------------

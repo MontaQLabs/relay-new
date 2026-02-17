@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
+import { NetworkModeProvider } from "@/app/contexts/NetworkModeContext";
+import { TestnetBanner } from "@/components/TestnetBanner";
 
 export default function DashboardLayout({
   children,
@@ -19,11 +21,13 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col pt-safe">
-      <Header title={getHeaderTitle()} />
-      <main className="flex-1 overflow-y-auto pb-24">{children}</main>
-      <BottomNav />
-    </div>
+    <NetworkModeProvider>
+      <div className="min-h-screen bg-white flex flex-col pt-safe">
+        <TestnetBanner />
+        <Header title={getHeaderTitle()} />
+        <main className="flex-1 overflow-y-auto pb-24">{children}</main>
+        <BottomNav />
+      </div>
+    </NetworkModeProvider>
   );
 }
-

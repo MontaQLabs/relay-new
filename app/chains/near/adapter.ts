@@ -20,6 +20,7 @@ import type {
   ChainTransferResult,
   ChainTransaction,
   SignedTransferParams,
+  NetworkMode,
 } from "../types";
 
 import {
@@ -28,8 +29,7 @@ import {
   NATIVE_TICKER,
   NEAR_DECIMALS,
   ICON_URL,
-  RPC_URL,
-  NEARBLOCKS_API_URL,
+  getConfig,
 } from "./config";
 
 // ---------------------------------------------------------------------------
@@ -53,6 +53,15 @@ export class NearChainAdapter implements ChainAdapter {
   readonly chainType = "near" as const;
   readonly nativeTicker = NATIVE_TICKER;
   readonly iconUrl = ICON_URL;
+
+  private rpcUrl: string;
+  private nearblocksApiUrl: string;
+
+  constructor(mode: NetworkMode = "mainnet") {
+    const cfg = getConfig(mode);
+    this.rpcUrl = cfg.rpcUrl;
+    this.nearblocksApiUrl = cfg.nearblocksApiUrl;
+  }
 
   // -- Account derivation ---------------------------------------------------
 
@@ -80,7 +89,7 @@ export class NearChainAdapter implements ChainAdapter {
 
   async fetchBalances(address: string): Promise<ChainCoin[]> {
     try {
-      const account = new Account(address, RPC_URL);
+      const account = new Account(address, this.rpcUrl);
       const balance = await account.getBalance();
 
       if (balance <= BigInt(0)) return [];
@@ -108,8 +117,6 @@ export class NearChainAdapter implements ChainAdapter {
   // -- Transfers ------------------------------------------------------------
 
   async estimateFee(): Promise<ChainFeeEstimate> {
-    // A NEAR transfer uses ~4.5 TGas at ~100 Mgas per yoctoNEAR.
-    // Approximate cost: 4.5e12 × 1e8 = 4.5e20 yoctoNEAR ≈ 0.00045 NEAR.
     const fee = BigInt("450000000000000000000");
     return {
       fee,
@@ -124,7 +131,7 @@ export class NearChainAdapter implements ChainAdapter {
     try {
       const { keyPair, accountId } = deriveNearAccount(params.mnemonic);
 
-      const account = new Account(accountId, RPC_URL, keyPair.toString());
+      const account = new Account(accountId, this.rpcUrl, keyPair.toString());
 
       const yocto = parseNearAmount(params.amount);
       if (!yocto) throw new Error("Invalid amount");
@@ -153,7 +160,7 @@ export class NearChainAdapter implements ChainAdapter {
   ): Promise<ChainTransaction[]> {
     try {
       const response = await fetch(
-        `${NEARBLOCKS_API_URL}/account/${address}/txns?page=${page + 1}&per_page=25&order=desc`
+        `${this.nearblocksApiUrl}/account/${address}/txns?page=${page + 1}&per_page=25&order=desc`
       );
       if (!response.ok) return [];
 
@@ -175,7 +182,6 @@ export class NearChainAdapter implements ChainAdapter {
         }) => {
           const isSent = tx.signer_account_id === address;
 
-          // Extract transfer amount from actions
           let amount = 0;
           const transferAction = tx.actions?.find(
             (a) => a.action === "TRANSFER"
@@ -195,7 +201,6 @@ export class NearChainAdapter implements ChainAdapter {
             }
           }
 
-          // NearBlocks timestamps are in nanoseconds
           const timestamp = tx.block_timestamp
             ? new Date(
                 Number(BigInt(tx.block_timestamp) / BigInt(1000000))

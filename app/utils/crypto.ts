@@ -7,7 +7,7 @@ import { getPolkadotSigner } from "@polkadot-api/signer";
 import { Keyring } from "@polkadot/keyring";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import { SS58_FORMAT } from "../types/constants";
-import { initChainRegistry } from "../chains/registry";
+import { initChainRegistry, getStoredNetworkMode } from "../chains/registry";
 import type { ChainId, ChainCoin, ChainFeeEstimate, ChainTransferResult, ChainTransaction } from "../chains/types";
 
 // CoinGecko API endpoint for price fetching
@@ -50,6 +50,9 @@ export type PriceMap = Record<string, TokenPrice>;
  */
 export const fetchTokenPrices = async (tickers: string[]): Promise<PriceMap> => {
   if (tickers.length === 0) return {};
+
+  // Testnet tokens have no market value – skip the API call entirely
+  if (getStoredNetworkMode() === "testnet") return {};
 
   try {
     // Convert tickers to CoinGecko IDs

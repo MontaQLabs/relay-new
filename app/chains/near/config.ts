@@ -2,6 +2,8 @@
  * NEAR Protocol network configuration.
  */
 
+import type { NetworkMode } from "../types";
+
 /** Unique chain identifier used in the registry. */
 export const CHAIN_ID = "near" as const;
 
@@ -18,8 +20,28 @@ export const NEAR_DECIMALS = 24;
 export const ICON_URL =
   "https://assets.coingecko.com/coins/images/10365/small/near.jpg";
 
-/** JSON-RPC endpoint (mainnet). */
-export const RPC_URL = "https://rpc.mainnet.near.org";
+interface NearNetworkConfig {
+  rpcUrl: string;
+  nearblocksApiUrl: string;
+}
 
-/** NearBlocks API base URL for transaction history. */
-export const NEARBLOCKS_API_URL = "https://api.nearblocks.io/v1";
+const CONFIGS: Record<NetworkMode, NearNetworkConfig> = {
+  mainnet: {
+    rpcUrl: "https://rpc.mainnet.near.org",
+    nearblocksApiUrl: "https://api.nearblocks.io/v1",
+  },
+  testnet: {
+    rpcUrl: "https://rpc.testnet.near.org",
+    nearblocksApiUrl: "https://api-testnet.nearblocks.io/v1",
+  },
+};
+
+export function getConfig(mode: NetworkMode): NearNetworkConfig {
+  return CONFIGS[mode];
+}
+
+/** @deprecated Use getConfig(mode).rpcUrl instead. */
+export const RPC_URL = CONFIGS.mainnet.rpcUrl;
+
+/** @deprecated Use getConfig(mode).nearblocksApiUrl instead. */
+export const NEARBLOCKS_API_URL = CONFIGS.mainnet.nearblocksApiUrl;

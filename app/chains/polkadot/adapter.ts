@@ -25,28 +25,17 @@ import type {
   ChainTransaction,
   TransferParams,
   SignedTransferParams,
+  NetworkMode,
 } from "../types";
 
 import {
-  SS58_FORMAT,
   NETWORK_NAME,
   CHAIN_ID,
   NATIVE_TICKER,
   DOT_DECIMALS,
   ICON_URL,
-  WS_ENDPOINTS,
-  SUBSCAN_API_URL,
+  getConfig,
 } from "./config";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Create a short-lived WebSocket client. Caller MUST call client.destroy(). */
-function createPahClient(): PolkadotClient {
-  const provider = getWsProvider(WS_ENDPOINTS);
-  return createClient(provider);
-}
 
 // ---------------------------------------------------------------------------
 // PolkadotChainAdapter
@@ -59,11 +48,28 @@ export class PolkadotChainAdapter implements ChainAdapter {
   readonly nativeTicker = NATIVE_TICKER;
   readonly iconUrl = ICON_URL;
 
+  private ss58Format: number;
+  private wsEndpoints: string[];
+  private subscanApiUrl: string;
+
+  constructor(mode: NetworkMode = "mainnet") {
+    const cfg = getConfig(mode);
+    this.ss58Format = cfg.ss58Format;
+    this.wsEndpoints = cfg.wsEndpoints;
+    this.subscanApiUrl = cfg.subscanApiUrl;
+  }
+
+  /** Create a short-lived WebSocket client. Caller MUST call client.destroy(). */
+  private createPahClient(): PolkadotClient {
+    const provider = getWsProvider(this.wsEndpoints);
+    return createClient(provider);
+  }
+
   // -- Account derivation ---------------------------------------------------
 
   async deriveAddress(mnemonic: string): Promise<string> {
     await cryptoWaitReady();
-    const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
+    const keyring = new Keyring({ type: "sr25519", ss58Format: this.ss58Format });
     const pair = keyring.addFromMnemonic(mnemonic);
     return pair.address;
   }
@@ -82,7 +88,7 @@ export class PolkadotChainAdapter implements ChainAdapter {
   // -- Balances -------------------------------------------------------------
 
   async fetchBalances(address: string): Promise<ChainCoin[]> {
-    const client = createPahClient();
+    const client = this.createPahClient();
     try {
       const api = client.getTypedApi(pah);
       const coins: ChainCoin[] = [];
@@ -111,7 +117,7 @@ export class PolkadotChainAdapter implements ChainAdapter {
   // -- Transfers ------------------------------------------------------------
 
   async estimateFee(params: TransferParams): Promise<ChainFeeEstimate> {
-    const client = createPahClient();
+    const client = this.createPahClient();
     try {
       const api = client.getTypedApi(pah);
       const decimals =
@@ -162,10 +168,10 @@ export class PolkadotChainAdapter implements ChainAdapter {
   ): Promise<ChainTransferResult> {
     await cryptoWaitReady();
 
-    const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
+    const keyring = new Keyring({ type: "sr25519", ss58Format: this.ss58Format });
     const keypair = keyring.addFromMnemonic(params.mnemonic);
 
-    const client = createPahClient();
+    const client = this.createPahClient();
     try {
       const api = client.getTypedApi(pah);
       const decimals =
@@ -226,7 +232,7 @@ export class PolkadotChainAdapter implements ChainAdapter {
   ): Promise<ChainTransaction[]> {
     try {
       const response = await fetch(
-        `${SUBSCAN_API_URL}/api/v2/scan/transfers`,
+        `${this.subscanApiUrl}/api/v2/scan/transfers`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
