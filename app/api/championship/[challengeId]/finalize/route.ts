@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { PayoutResult } from "@/app/services/treasury";
 import { authenticateRequest, getAdminClient } from "@/app/utils/api-auth";
 import { getTreasuryService } from "@/app/services/treasury";
 
@@ -109,7 +110,7 @@ export async function POST(
     }
 
     // Calculate and record payouts
-    let payouts;
+    let payouts: PayoutResult[] = [];
     try {
       const treasury = getTreasuryService();
       const plan = await treasury.calculatePayouts(challengeId);
