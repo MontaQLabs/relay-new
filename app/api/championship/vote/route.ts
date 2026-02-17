@@ -1,137 +1,77 @@
 /**
- * API Route: Cast Vote
+ * API Route: Cast Vote (v2)
  *
  * POST /api/championship/vote
- * Requires JWT authentication.
+ * Requires auth (JWT or API key).
  *
- * Anti-sybil checks:
- * 1. One vote per wallet per challenge (DB UNIQUE constraint)
- * 2. Minimum DOT balance (1 DOT) checked via on-chain query
+ * Cannot vote for withdrawn agents.
  *
  * Body: {
- *   challengeId: string,
- *   agentId: string,
+ *   challenge_id: string,
+ *   agent_id: string,
  * }
- *
- * Response: { success: true } | { error: string }
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { jwtVerify } from "jose";
-import { TREASURY_CONFIG } from "@/app/services/treasury";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
-
-async function verifyToken(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
-
-  const token = authHeader.substring(7);
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    return (payload.wallet_address as string) || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Check if a wallet has the minimum DOT balance required to vote.
- *
- * TODO: Implement actual on-chain balance check via Polkadot API.
- * For now, this checks that the user exists in our database.
- * In production, query the chain for the free balance and compare
- * against TREASURY_CONFIG.MIN_VOTE_BALANCE_DOT.
- */
-async function checkMinimumBalance(walletAddress: string): Promise<boolean> {
-  // TODO: Replace with actual on-chain balance query:
-  // const api = await getPolkadotApi();
-  // const account = await api.query.system.account(walletAddress);
-  // const freeBalance = account.data.free;
-  // const minBalance = BigInt(TREASURY_CONFIG.MIN_VOTE_BALANCE_DOT) * BigInt(10_000_000_000); // Convert DOT to planck
-  // return freeBalance >= minBalance;
-
-  // For now, verify user exists (has authenticated at least once)
-  const { data } = await supabaseAdmin
-    .from("users")
-    .select("wallet_address")
-    .eq("wallet_address", walletAddress)
-    .single();
-
-  return !!data;
-}
-
-interface CastVoteRequest {
-  challengeId: string;
-  agentId: string;
-}
+import { authenticateRequest, getAdminClient } from "@/app/utils/api-auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const walletAddress = await verifyToken(request);
-    if (!walletAddress) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json(
         { error: "Unauthorized. Please authenticate first." },
         { status: 401 }
       );
     }
 
-    const body: CastVoteRequest = await request.json();
+    const body = await request.json();
+    const admin = getAdminClient();
 
-    if (!body.challengeId) {
-      return NextResponse.json({ error: "Challenge ID is required" }, { status: 400 });
+    const challengeId = body.challenge_id || body.challengeId;
+    const agentId = body.agent_id || body.agentId || body.agent_id_to_vote_for;
+
+    if (!challengeId) {
+      return NextResponse.json({ error: "challenge_id is required" }, { status: 400 });
     }
-    if (!body.agentId) {
-      return NextResponse.json({ error: "Agent ID is required" }, { status: 400 });
+    if (!agentId) {
+      return NextResponse.json({ error: "agent_id is required" }, { status: 400 });
     }
 
-    // Check challenge is in judge phase
-    const { data: challenge, error: challengeError } = await supabaseAdmin
+    // Check challenge is in judge phase (after end_time, before judge_end)
+    const { data: challenge, error: challengeError } = await admin
       .from("challenges")
-      .select("status, judge_end")
-      .eq("challenge_id", body.challengeId)
+      .select("*")
+      .eq("challenge_id", challengeId)
       .single();
 
     if (challengeError || !challenge) {
       return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
     }
 
-    if (challenge.status !== "judging") {
+    const now = new Date();
+    const endTime = new Date(challenge.end_time);
+    const judgeEnd = new Date(challenge.judge_end);
+
+    if (now < endTime) {
       return NextResponse.json(
-        { error: "Voting is only available during the judge phase" },
+        { error: "Voting opens after end_time" },
+        { status: 400 }
+      );
+    }
+    if (now > judgeEnd) {
+      return NextResponse.json(
+        { error: "Judging period has ended" },
         { status: 400 }
       );
     }
 
-    if (new Date(challenge.judge_end) < new Date()) {
-      return NextResponse.json(
-        { error: "Judge phase has ended" },
-        { status: 400 }
-      );
-    }
-
-    // Anti-sybil check: minimum DOT balance
-    const hasMinBalance = await checkMinimumBalance(walletAddress);
-    if (!hasMinBalance) {
-      return NextResponse.json(
-        { error: `You need at least ${TREASURY_CONFIG.MIN_VOTE_BALANCE_DOT} DOT to vote` },
-        { status: 403 }
-      );
-    }
-
-    // Verify the agent exists in this challenge
-    const { data: agent } = await supabaseAdmin
+    // Verify the agent exists and is not withdrawn
+    const { data: agent } = await admin
       .from("challenge_agents")
-      .select("id")
-      .eq("id", body.agentId)
-      .eq("challenge_id", body.challengeId)
+      .select("id, status")
+      .eq("id", agentId)
+      .eq("challenge_id", challengeId)
       .single();
 
     if (!agent) {
@@ -141,18 +81,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Anti-sybil check: one vote per wallet per challenge (UNIQUE constraint)
-    const { error: voteError } = await supabaseAdmin
+    if (agent.status === "withdrawn") {
+      return NextResponse.json(
+        { error: "Cannot vote for a withdrawn agent" },
+        { status: 400 }
+      );
+    }
+
+    // Anti-sybil: minimum balance check (user must exist)
+    const { data: user } = await admin
+      .from("users")
+      .select("wallet_address")
+      .eq("wallet_address", auth.walletAddress)
+      .single();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found — balance check failed" },
+        { status: 403 }
+      );
+    }
+
+    // Cast vote (UNIQUE constraint prevents double voting)
+    const { error: voteError } = await admin
       .from("challenge_votes")
       .insert({
-        challenge_id: body.challengeId,
-        voter_wallet: walletAddress,
-        agent_id: body.agentId,
+        challenge_id: challengeId,
+        voter_wallet: auth.walletAddress,
+        agent_id: agentId,
       });
 
     if (voteError) {
       if (voteError.code === "23505") {
-        // Unique constraint violation
         return NextResponse.json(
           { error: "You have already voted in this challenge" },
           { status: 409 }
@@ -160,20 +120,13 @@ export async function POST(request: NextRequest) {
       }
       console.error("Failed to cast vote:", voteError);
       return NextResponse.json(
-        { error: "Failed to cast vote. Please try again." },
+        { error: "Failed to cast vote" },
         { status: 500 }
       );
     }
 
-    // Increment the agent's vote count
-    const { error: rpcError } = await supabaseAdmin.rpc("increment_agent_votes", {
-      p_agent_id: body.agentId,
-    });
-
-    if (rpcError) {
-      console.error("Failed to increment votes:", rpcError);
-      // Vote was recorded, just count update failed - not critical
-    }
+    // Increment agent vote count
+    await admin.rpc("increment_agent_votes", { p_agent_id: agentId });
 
     return NextResponse.json({ success: true });
   } catch (error) {

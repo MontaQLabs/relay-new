@@ -1,57 +1,33 @@
 /**
- * API Route: Finalize Challenge
+ * API Route: Finalize Challenge (v2)
  *
  * POST /api/championship/[challengeId]/finalize
- * Requires JWT authentication. Creator only.
+ * Permissionless — anyone can call after judge_end.
  *
- * Determines the winner (most votes) and triggers payout calculation/execution.
- *
- * Response: { success: true, winnerAgentId: string, payouts: PayoutResult[] } | { error: string }
+ * Determines the winner (most votes among non-withdrawn agents).
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { jwtVerify } from "jose";
+import { authenticateRequest, getAdminClient } from "@/app/utils/api-auth";
 import { getTreasuryService } from "@/app/services/treasury";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
-
-async function verifyToken(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
-
-  const token = authHeader.substring(7);
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    return (payload.wallet_address as string) || null;
-  } catch {
-    return null;
-  }
-}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ challengeId: string }> }
 ) {
   try {
-    const walletAddress = await verifyToken(request);
-    if (!walletAddress) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json(
-        { error: "Unauthorized. Please authenticate first." },
+        { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
     const { challengeId } = await params;
+    const admin = getAdminClient();
 
-    // Get challenge and verify creator
-    const { data: challenge, error: challengeError } = await supabaseAdmin
+    const { data: challenge, error: challengeError } = await admin
       .from("challenges")
       .select("*")
       .eq("challenge_id", challengeId)
@@ -64,85 +40,92 @@ export async function POST(
       );
     }
 
-    if (challenge.creator_wallet !== walletAddress) {
+    if (challenge.status === "completed") {
       return NextResponse.json(
-        { error: "Only the challenge creator can finalize" },
-        { status: 403 }
+        { error: "Challenge already finalized" },
+        { status: 409 }
       );
     }
 
-    if (challenge.status !== "judging") {
+    const judgeEnd = new Date(challenge.judge_end);
+    if (new Date() <= judgeEnd) {
       return NextResponse.json(
-        { error: "Challenge must be in judging phase to finalize" },
+        { error: "Judging period has not ended yet" },
         { status: 400 }
       );
     }
 
-    if (new Date(challenge.judge_end) > new Date()) {
-      return NextResponse.json(
-        { error: "Judge phase has not ended yet" },
-        { status: 400 }
-      );
-    }
-
-    // Determine the winner (highest total_votes)
-    const { data: agents, error: agentsError } = await supabaseAdmin
+    // Get all agents, determine winner among non-withdrawn
+    const { data: agents, error: agentsError } = await admin
       .from("challenge_agents")
-      .select("id, total_votes, owner_wallet")
+      .select("id, total_votes, owner_wallet, status")
       .eq("challenge_id", challengeId)
-      .order("total_votes", { ascending: false })
-      .limit(1);
+      .order("total_votes", { ascending: false });
 
     if (agentsError || !agents || agents.length === 0) {
       return NextResponse.json(
-        { error: "No agents enrolled in this challenge" },
+        { error: "No agents enrolled" },
         { status: 400 }
       );
     }
 
-    const winnerAgentId = agents[0].id;
+    // Filter non-withdrawn agents
+    const activeAgents = agents.filter(
+      (a: { status?: string }) => a.status !== "withdrawn"
+    );
 
-    // Update challenge with winner and mark as completed
-    const { error: updateError } = await supabaseAdmin
+    if (activeAgents.length < 3) {
+      // Too few active agents — cancel instead
+      await admin
+        .from("challenges")
+        .update({ status: "completed" })
+        .eq("challenge_id", challengeId);
+
+      return NextResponse.json({
+        success: true,
+        cancelled: true,
+        reason: "Fewer than 3 active agents",
+      });
+    }
+
+    // Winner is the non-withdrawn agent with most votes
+    const winner = activeAgents[0];
+
+    // Update challenge
+    const { error: updateError } = await admin
       .from("challenges")
       .update({
-        winner_agent_id: winnerAgentId,
+        winner_agent_id: winner.id,
         status: "completed",
       })
       .eq("challenge_id", challengeId);
 
     if (updateError) {
-      console.error("Failed to update challenge:", updateError);
+      console.error("Failed to finalize:", updateError);
       return NextResponse.json(
         { error: "Failed to finalize challenge" },
         { status: 500 }
       );
     }
 
-    // Calculate and execute payouts via TreasuryService
-    const treasury = getTreasuryService();
+    // Calculate and record payouts
     let payouts;
     try {
-      const payoutPlan = await treasury.calculatePayouts(challengeId);
-      payouts = await treasury.executePayouts(challengeId, payoutPlan);
+      const treasury = getTreasuryService();
+      const plan = await treasury.calculatePayouts(challengeId);
+      payouts = await treasury.executePayouts(challengeId, plan);
     } catch (payoutError) {
-      console.error("Payout calculation/execution error:", payoutError);
-      // Challenge is already marked completed, payouts can be retried
-      return NextResponse.json({
-        success: true,
-        winnerAgentId,
-        warning: "Challenge finalized but payout execution failed. Payouts can be retried.",
-        payouts: [],
-      });
+      console.error("Payout error:", payoutError);
+      payouts = [];
     }
 
     return NextResponse.json({
       success: true,
-      winnerAgentId,
+      winner_agent_id: winner.id,
       payouts,
     });
   } catch (error) {
-    console.error("Finalize challenge error:", error);
+    console.error("Finalize error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

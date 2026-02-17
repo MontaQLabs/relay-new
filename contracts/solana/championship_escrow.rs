@@ -16,6 +16,9 @@ pub const BW: u64 = 95; // bet pool   → winning bettors %
 pub const BC: u64 = 2;  // bet pool   → creator %
 pub const BP: u64 = 3;  // bet pool   → platform %
 
+pub const REFUND_PCT: u64 = 98; // % of entry fee returned on withdraw
+pub const PEEK_FEE_PCT: u64 = 2; // % of entry fee kept as peek fee (→ platform)
+
 // PDA seeds
 pub const CHALLENGE_SEED: &[u8] = b"challenge";
 pub const VAULT_SEED: &[u8] = b"vault";
@@ -50,8 +53,8 @@ pub enum EscrowError {
     WrongPhase,           // 6009
     #[msg("E14: Agent not enrolled")]
     AgentNotEnrolled,     // 6010
-    #[msg("E15: Creator cannot place bets")]
-    CreatorBet,           // 6011
+    #[msg("E15: (reserved — CreatorBet removed)")]
+    Reserved6011,         // 6011
     #[msg("E16: Bet amount is zero")]
     ZeroBet,              // 6012
     #[msg("E17: Already voted")]
@@ -74,6 +77,12 @@ pub enum EscrowError {
     InsufficientVault,    // 6021
     #[msg("E27: Arithmetic overflow")]
     Overflow,             // 6022
+    #[msg("E28: Agent has been withdrawn")]
+    AgentWithdrawn,       // 6023
+    #[msg("E29: Agent already withdrawn")]
+    AlreadyWithdrawn,     // 6024
+    #[msg("E30: Not the agent owner")]
+    NotAgentOwner,        // 6025
 }
 
 // ─── Events ──────────────────────────────────────────────────────────
@@ -82,9 +91,12 @@ pub struct ChallengeCreated {
     pub challenge_id: [u8; 32],
     pub creator: Pubkey,
     pub entry_fee: u64,
-    pub enroll_end: i64,
-    pub compete_end: i64,
+    pub start_time: i64,
+    pub end_time: i64,
     pub judge_end: i64,
+    pub challenge_hash: [u8; 32],
+    pub competition_duration: i64,
+    pub refund_duration: i64,
 }
 
 #[event]
@@ -129,16 +141,21 @@ pub struct PayoutClaimed {
     pub amount: u64,
 }
 
+#[event]
+pub struct AgentWithdrawnEvent {
+    pub challenge_id: [u8; 32],
+    pub agent_id: [u8; 32],
+    pub owner: Pubkey,
+    pub refund_amount: u64,
+    pub peek_fee: u64,
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // ACCOUNT STRUCTURES
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Main challenge state — holds all per-challenge data in parallel
 /// arrays to avoid many small PDA allocations.
-///
-/// Size: 8 (discriminator) + 32 + 32 + 32 + 8 + 8*3 + 8*2 + 4 + 1*2
-///       + 1 + 1 + 1 + (4 + 32*64) + (4 + 32*64) + (4 + 8*64) + (4 + 8*64)
-///     = ~4584 bytes (conservative estimate — let anchor compute exact)
 #[account]
 pub struct Challenge {
     pub creator: Pubkey,            // 32
@@ -146,9 +163,13 @@ pub struct Challenge {
     pub challenge_id: [u8; 32],     // 32
 
     pub entry_fee: u64,             // 8
-    pub enroll_end: i64,            // 8
-    pub compete_end: i64,           // 8
+    pub start_time: i64,            // 8  (was enroll_end — enrollment closes, challenge public)
+    pub end_time: i64,              // 8  (was compete_end — competition ends, judging begins)
     pub judge_end: i64,             // 8
+
+    pub challenge_hash: [u8; 32],   // 32 (SHA-256 of full_challenge for commit-reveal integrity)
+    pub competition_duration: i64,  // 8  (seconds per agent after reveal)
+    pub refund_duration: i64,       // 8  (seconds after reveal for refund window)
 
     pub total_entry_pool: u64,      // 8
     pub total_bet_pool: u64,        // 8
@@ -166,6 +187,7 @@ pub struct Challenge {
     pub agent_owners: Vec<Pubkey>,      // 4 + 32*N
     pub vote_counts: Vec<u64>,          // 4 +  8*N
     pub agent_bet_pools: Vec<u64>,      // 4 +  8*N
+    pub withdrawn: Vec<bool>,           // 4 +  1*N (true if agent withdrew)
 }
 
 impl Challenge {
@@ -176,9 +198,12 @@ impl Challenge {
         + 32                       // platform
         + 32                       // challenge_id
         + 8                        // entry_fee
-        + 8                        // enroll_end
-        + 8                        // compete_end
+        + 8                        // start_time
+        + 8                        // end_time
         + 8                        // judge_end
+        + 32                       // challenge_hash
+        + 8                        // competition_duration
+        + 8                        // refund_duration
         + 8                        // total_entry_pool
         + 8                        // total_bet_pool
         + 4                        // agent_count
@@ -191,11 +216,17 @@ impl Challenge {
         + (4 + 32 * max)           // agent_owners
         + (4 + 8 * max)            // vote_counts
         + (4 + 8 * max)            // agent_bet_pools
+        + (4 + 1 * max)            // withdrawn
     }
 
     /// Find agent index by ID or return None.
     pub fn find_agent(&self, agent_id: &[u8; 32]) -> Option<usize> {
         self.agent_ids.iter().position(|id| id == agent_id)
+    }
+
+    /// Count active (non-withdrawn) agents.
+    pub fn active_agent_count(&self) -> u32 {
+        self.withdrawn.iter().filter(|&&w| !w).count() as u32
     }
 
     /// Return winner agent_id (panics if no agents).
@@ -210,7 +241,6 @@ impl Challenge {
 }
 
 /// Proves a user enrolled in a specific challenge.
-/// Existence of PDA = enrolled.  No extra data needed beyond bump.
 #[account]
 pub struct EnrollRecord {
     pub bump: u8, // 1
@@ -267,7 +297,16 @@ impl ClaimRecord {
 // ═══════════════════════════════════════════════════════════════════════
 
 #[derive(Accounts)]
-#[instruction(challenge_id: [u8; 32], entry_fee: u64, enroll_end: i64, compete_end: i64, judge_end: i64)]
+#[instruction(
+    challenge_id: [u8; 32],
+    entry_fee: u64,
+    start_time: i64,
+    end_time: i64,
+    judge_end: i64,
+    challenge_hash: [u8; 32],
+    competition_duration: i64,
+    refund_duration: i64,
+)]
 pub struct Create<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
@@ -285,7 +324,6 @@ pub struct Create<'info> {
     pub challenge: Account<'info, Challenge>,
 
     /// Vault PDA — a system account that holds all escrowed SOL.
-    /// Not an Anchor `Account` because it has no data — just lamports.
     /// CHECK: PDA derived from known seeds; this program owns it.
     #[account(
         mut,
@@ -478,16 +516,52 @@ pub struct Claim<'info> {
     pub claim_record: Account<'info, ClaimRecord>,
 
     /// EnrollRecord — optional. If it exists, the user enrolled.
-    /// We use Option so non-enrollees can still claim bet winnings.
-    /// CHECK: If provided, must be the correct PDA.
     pub enroll_record: Option<Account<'info, EnrollRecord>>,
 
     /// BetRecord for the winner agent — optional.
-    /// CHECK: If provided, must be correct PDA for claimant + winner.
     pub winner_bet_record: Option<Account<'info, BetRecord>>,
 
     /// UserBetTotal — optional. Needed for cancelled refunds.
     pub user_bet_total: Option<Account<'info, UserBetTotal>>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(challenge_id: [u8; 32], agent_id: [u8; 32])]
+pub struct Withdraw<'info> {
+    #[account(mut)]
+    pub caller: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [CHALLENGE_SEED, &challenge_id],
+        bump = challenge.bump,
+    )]
+    pub challenge: Account<'info, Challenge>,
+
+    /// CHECK: Vault PDA — refund withdrawn from here.
+    #[account(
+        mut,
+        seeds = [VAULT_SEED, &challenge_id],
+        bump = challenge.vault_bump,
+    )]
+    pub vault: SystemAccount<'info>,
+
+    /// CHECK: Must match challenge.platform — peek fee goes here.
+    #[account(
+        mut,
+        constraint = platform.key() == challenge.platform
+    )]
+    pub platform: UncheckedAccount<'info>,
+
+    /// EnrollRecord PDA — proves the caller enrolled.
+    /// CHECK: Must be the correct PDA for this caller + challenge.
+    #[account(
+        seeds = [ENROLL_SEED, &challenge_id, caller.key().as_ref()],
+        bump = enroll_record.bump,
+    )]
+    pub enroll_record: Account<'info, EnrollRecord>,
 
     pub system_program: Program<'info, System>,
 }
@@ -505,25 +579,33 @@ pub mod championship_escrow {
         ctx: Context<Create>,
         challenge_id: [u8; 32],
         entry_fee: u64,
-        enroll_end: i64,
-        compete_end: i64,
+        start_time: i64,
+        end_time: i64,
         judge_end: i64,
+        challenge_hash: [u8; 32],
+        competition_duration: i64,
+        refund_duration: i64,
     ) -> Result<()> {
         require!(entry_fee >= MIN_FEE, EscrowError::FeeTooLow);
 
         let now = Clock::get()?.unix_timestamp;
-        require!(enroll_end > now, EscrowError::BadTimestamps);
-        require!(compete_end > enroll_end, EscrowError::BadTimestamps);
-        require!(judge_end > compete_end, EscrowError::BadTimestamps);
+        require!(start_time > now, EscrowError::BadTimestamps);
+        require!(end_time > start_time, EscrowError::BadTimestamps);
+        require!(judge_end > end_time, EscrowError::BadTimestamps);
+        require!(competition_duration > 0, EscrowError::BadTimestamps);
+        require!(refund_duration > 0, EscrowError::BadTimestamps);
 
         let ch = &mut ctx.accounts.challenge;
         ch.creator = ctx.accounts.creator.key();
         ch.platform = ctx.accounts.platform.key();
         ch.challenge_id = challenge_id;
         ch.entry_fee = entry_fee;
-        ch.enroll_end = enroll_end;
-        ch.compete_end = compete_end;
+        ch.start_time = start_time;
+        ch.end_time = end_time;
         ch.judge_end = judge_end;
+        ch.challenge_hash = challenge_hash;
+        ch.competition_duration = competition_duration;
+        ch.refund_duration = refund_duration;
         ch.total_entry_pool = 0;
         ch.total_bet_pool = 0;
         ch.agent_count = 0;
@@ -536,14 +618,18 @@ pub mod championship_escrow {
         ch.agent_owners = Vec::with_capacity(MAX_AGENTS);
         ch.vote_counts = Vec::with_capacity(MAX_AGENTS);
         ch.agent_bet_pools = Vec::with_capacity(MAX_AGENTS);
+        ch.withdrawn = Vec::with_capacity(MAX_AGENTS);
 
         emit!(ChallengeCreated {
             challenge_id,
             creator: ch.creator,
             entry_fee,
-            enroll_end,
-            compete_end,
+            start_time,
+            end_time,
             judge_end,
+            challenge_hash,
+            competition_duration,
+            refund_duration,
         });
 
         Ok(())
@@ -558,7 +644,7 @@ pub mod championship_escrow {
         let ch = &mut ctx.accounts.challenge;
         let now = Clock::get()?.unix_timestamp;
 
-        require!(now <= ch.enroll_end, EscrowError::EnrollmentEnded);
+        require!(now <= ch.start_time, EscrowError::EnrollmentEnded);
         require!(!ch.cancelled, EscrowError::Cancelled);
         require!(
             (ch.agent_count as usize) < MAX_AGENTS,
@@ -587,13 +673,13 @@ pub mod championship_escrow {
         ch.agent_owners.push(ctx.accounts.enrollee.key());
         ch.vote_counts.push(0);
         ch.agent_bet_pools.push(0);
+        ch.withdrawn.push(false);
         ch.agent_count += 1;
         ch.total_entry_pool = ch
             .total_entry_pool
             .checked_add(ch.entry_fee)
             .ok_or(EscrowError::Overflow)?;
 
-        // Mark enrolled via PDA init
         let er = &mut ctx.accounts.enroll_record;
         er.bump = ctx.bumps.enroll_record;
 
@@ -607,6 +693,7 @@ pub mod championship_escrow {
     }
 
     // ─── 3. BET ──────────────────────────────────────────────────────
+    /// Place a bet on an agent. Open to everyone — no creator restriction.
     pub fn bet(
         ctx: Context<PlaceBet>,
         challenge_id: [u8; 32],
@@ -617,20 +704,17 @@ pub mod championship_escrow {
         let now = Clock::get()?.unix_timestamp;
 
         require!(!ch.cancelled && !ch.finalized, EscrowError::NotActive);
-        require!(ch.agent_count >= MIN_AGENTS, EscrowError::TooFewAgents);
         require!(
-            now > ch.enroll_end && now <= ch.compete_end,
+            now > ch.start_time && now <= ch.end_time,
             EscrowError::WrongPhase
-        );
-        require!(
-            ctx.accounts.bettor.key() != ch.creator,
-            EscrowError::CreatorBet
         );
         require!(amount > 0, EscrowError::ZeroBet);
 
         let agent_index = ch
             .find_agent(&agent_id)
             .ok_or(error!(EscrowError::AgentNotEnrolled))?;
+
+        require!(!ch.withdrawn[agent_index], EscrowError::AgentWithdrawn);
 
         // Transfer SOL into vault
         system_program::transfer(
@@ -650,7 +734,6 @@ pub mod championship_escrow {
             .amount
             .checked_add(amount)
             .ok_or(EscrowError::Overflow)?;
-        // Bump is automatically set by Anchor for init_if_needed accounts
 
         // Update per-user total bets
         let ut = &mut ctx.accounts.user_bet_total;
@@ -658,7 +741,6 @@ pub mod championship_escrow {
             .total
             .checked_add(amount)
             .ok_or(EscrowError::Overflow)?;
-        // Bump is automatically set by Anchor for init_if_needed accounts
 
         // Update challenge-level aggregates
         ch.agent_bet_pools[agent_index] = ch.agent_bet_pools[agent_index]
@@ -689,9 +771,9 @@ pub mod championship_escrow {
         let now = Clock::get()?.unix_timestamp;
 
         require!(!ch.cancelled && !ch.finalized, EscrowError::NotActive);
-        require!(ch.agent_count >= MIN_AGENTS, EscrowError::TooFewAgents);
+        require!(ch.active_agent_count() >= MIN_AGENTS, EscrowError::TooFewAgents);
         require!(
-            now > ch.compete_end && now <= ch.judge_end,
+            now > ch.end_time && now <= ch.judge_end,
             EscrowError::WrongPhase
         );
 
@@ -699,20 +781,18 @@ pub mod championship_escrow {
             .find_agent(&agent_id)
             .ok_or(error!(EscrowError::AgentNotEnrolled))?;
 
-        // Balance gate — voter must hold at least MIN_VOTE_BALANCE
+        require!(!ch.withdrawn[agent_index], EscrowError::AgentWithdrawn);
+
+        // Balance gate
         let voter_lamports = ctx.accounts.voter.lamports();
         require!(
             voter_lamports >= MIN_VOTE_BALANCE,
             EscrowError::LowBalance
         );
 
-        // VoteRecord init proves they haven't voted yet
-        // (Anchor's `init` fails if account already exists → duplicate
-        //  vote is impossible)
         let vr = &mut ctx.accounts.vote_record;
         vr.bump = ctx.bumps.vote_record;
 
-        // Tally
         ch.vote_counts[agent_index] = ch.vote_counts[agent_index]
             .checked_add(1)
             .ok_or(EscrowError::Overflow)?;
@@ -735,8 +815,8 @@ pub mod championship_escrow {
         let now = Clock::get()?.unix_timestamp;
 
         require!(!ch.finalized && !ch.cancelled, EscrowError::NotActive);
-        require!(now > ch.enroll_end, EscrowError::NotEnded);
-        require!(ch.agent_count < MIN_AGENTS, EscrowError::CannotCancel);
+        require!(now > ch.start_time, EscrowError::NotEnded);
+        require!(ch.active_agent_count() < MIN_AGENTS, EscrowError::CannotCancel);
 
         ch.cancelled = true;
 
@@ -755,22 +835,27 @@ pub mod championship_escrow {
 
         require!(!ch.finalized && !ch.cancelled, EscrowError::NotActive);
         require!(now > ch.judge_end, EscrowError::NotEnded);
-        require!(ch.agent_count >= MIN_AGENTS, EscrowError::TooFewAgents);
+        require!(ch.active_agent_count() >= MIN_AGENTS, EscrowError::TooFewAgents);
 
-        // Determine winner: agent with most votes (first-highest wins ties)
+        // Determine winner: non-withdrawn agent with most votes
         let mut winner_idx: usize = 0;
         let mut max_votes: u64 = 0;
+        let mut found_active = false;
         for (i, &v) in ch.vote_counts.iter().enumerate() {
-            if v > max_votes {
+            if ch.withdrawn[i] {
+                continue;
+            }
+            if !found_active || v > max_votes {
                 max_votes = v;
                 winner_idx = i;
+                found_active = true;
             }
         }
 
         ch.winner_index = winner_idx as u8;
         ch.finalized = true;
 
-        // Compute platform fee
+        // Compute platform fee from remaining pools
         let entry_platform = ch
             .total_entry_pool
             .checked_mul(EP)
@@ -785,7 +870,6 @@ pub mod championship_escrow {
             .checked_add(bet_platform)
             .ok_or(EscrowError::Overflow)?;
 
-        // Transfer platform fee from vault via PDA signer
         if platform_fee > 0 {
             let vault_balance = ctx.accounts.vault.lamports();
             require!(
@@ -793,7 +877,6 @@ pub mod championship_escrow {
                 EscrowError::InsufficientVault
             );
 
-            // Transfer lamports directly (vault is a system account PDA)
             **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= platform_fee;
             **ctx.accounts.platform.to_account_info().try_borrow_mut_lamports()? += platform_fee;
         }
@@ -813,11 +896,6 @@ pub mod championship_escrow {
 
     // ─── 7. CLAIM ────────────────────────────────────────────────────
     /// Handles both finalized payouts and cancellation refunds.
-    ///
-    /// Callers must supply the correct optional accounts:
-    ///   - `enroll_record`: if they enrolled (needed for entry fee refund or winner payout)
-    ///   - `winner_bet_record`: if they bet on the winner (finalized only)
-    ///   - `user_bet_total`: if they placed any bets (cancelled refund only)
     pub fn claim(
         ctx: Context<Claim>,
         challenge_id: [u8; 32],
@@ -829,7 +907,6 @@ pub mod championship_escrow {
             EscrowError::NotDone
         );
 
-        // ClaimRecord init proves first claim (re-claim = Anchor init fail)
         let cr = &mut ctx.accounts.claim_record;
         cr.bump = ctx.bumps.claim_record;
 
@@ -837,9 +914,7 @@ pub mod championship_escrow {
         let mut payout: u64 = 0;
 
         if ch.cancelled {
-            // ── REFUND MODE ──────────────────────────────────────────
-
-            // Refund entry fee if enrolled
+            // Refund entry fee if enrolled (and not already withdrawn)
             if ctx.accounts.enroll_record.is_some() {
                 payout = payout
                     .checked_add(ch.entry_fee)
@@ -853,8 +928,6 @@ pub mod championship_escrow {
                     .ok_or(EscrowError::Overflow)?;
             }
         } else {
-            // ── FINALIZED PAYOUT MODE ────────────────────────────────
-
             let winner_idx = ch.winner_index as usize;
             let winner_owner = ch.agent_owners[winner_idx];
 
@@ -901,7 +974,6 @@ pub mod championship_escrow {
                             .checked_mul(BW)
                             .ok_or(EscrowError::Overflow)?
                             / 100;
-                        // (bet_payout_pool * user_bet) / total_winner_bets
                         let user_share = (bet_payout_pool as u128)
                             .checked_mul(user_bet_on_winner as u128)
                             .ok_or(EscrowError::Overflow)?
@@ -916,14 +988,12 @@ pub mod championship_escrow {
 
         require!(payout > 0, EscrowError::NoPayout);
 
-        // Ensure vault can cover it
         let vault_balance = ctx.accounts.vault.lamports();
         require!(
             vault_balance >= payout,
             EscrowError::InsufficientVault
         );
 
-        // Transfer lamports from vault → claimant
         **ctx
             .accounts
             .vault
@@ -939,6 +1009,83 @@ pub mod championship_escrow {
             challenge_id,
             claimant,
             amount: payout,
+        });
+
+        Ok(())
+    }
+
+    // ─── 8. WITHDRAW ─────────────────────────────────────────────────
+    /// Allows an enrolled agent to withdraw from a challenge.
+    /// Refunds 98% of the entry fee to the caller.
+    /// Sends the 2% peek fee directly to the platform address.
+    pub fn withdraw(
+        ctx: Context<Withdraw>,
+        challenge_id: [u8; 32],
+        agent_id: [u8; 32],
+    ) -> Result<()> {
+        let ch = &mut ctx.accounts.challenge;
+        let now = Clock::get()?.unix_timestamp;
+
+        require!(!ch.finalized && !ch.cancelled, EscrowError::NotActive);
+        require!(now > ch.start_time, EscrowError::WrongPhase);
+        require!(now <= ch.end_time, EscrowError::WrongPhase);
+
+        let agent_index = ch
+            .find_agent(&agent_id)
+            .ok_or(error!(EscrowError::AgentNotEnrolled))?;
+
+        require!(!ch.withdrawn[agent_index], EscrowError::AlreadyWithdrawn);
+
+        // Verify caller is the agent owner
+        require!(
+            ctx.accounts.caller.key() == ch.agent_owners[agent_index],
+            EscrowError::NotAgentOwner
+        );
+
+        // Mark as withdrawn
+        ch.withdrawn[agent_index] = true;
+
+        // Compute refund and peek fee
+        let refund_amount = ch
+            .entry_fee
+            .checked_mul(REFUND_PCT)
+            .ok_or(EscrowError::Overflow)?
+            / 100;
+        let peek_fee = ch
+            .entry_fee
+            .checked_mul(PEEK_FEE_PCT)
+            .ok_or(EscrowError::Overflow)?
+            / 100;
+
+        // Verify vault has enough
+        let total_withdraw = refund_amount
+            .checked_add(peek_fee)
+            .ok_or(EscrowError::Overflow)?;
+        let vault_balance = ctx.accounts.vault.lamports();
+        require!(
+            vault_balance >= total_withdraw,
+            EscrowError::InsufficientVault
+        );
+
+        // Transfer refund to caller
+        **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= total_withdraw;
+        **ctx.accounts.caller.to_account_info().try_borrow_mut_lamports()? += refund_amount;
+
+        // Transfer peek fee to platform
+        **ctx.accounts.platform.to_account_info().try_borrow_mut_lamports()? += peek_fee;
+
+        // Decrement total_entry_pool by full entry fee
+        ch.total_entry_pool = ch
+            .total_entry_pool
+            .checked_sub(ch.entry_fee)
+            .ok_or(EscrowError::Overflow)?;
+
+        emit!(AgentWithdrawnEvent {
+            challenge_id,
+            agent_id,
+            owner: ctx.accounts.caller.key(),
+            refund_amount,
+            peek_fee,
         });
 
         Ok(())

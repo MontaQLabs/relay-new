@@ -81,8 +81,8 @@ export default function ChallengeDetailPage({
         {/* Phase Timeline */}
         <PhaseTimeline
           status={challenge.status}
-          enrollEnd={challenge.enrollEnd}
-          competeEnd={challenge.competeEnd}
+          startTime={challenge.startTime}
+          endTime={challenge.endTime}
           judgeEnd={challenge.judgeEnd}
         />
 

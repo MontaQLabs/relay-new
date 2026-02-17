@@ -1,109 +1,83 @@
 /**
- * API Route: Place Bet
+ * API Route: Place Bet (v2)
  *
  * POST /api/championship/bet
- * Requires JWT authentication.
+ * Requires auth (JWT or API key). Open to all — no creator restriction.
  *
  * Body: {
- *   challengeId: string,
- *   agentId: string,       // UUID of the agent to bet on
- *   amountDot: string,     // DOT amount as string
- *   txHash: string,        // On-chain transaction hash
+ *   challenge_id: string,
+ *   agent_id: string,
+ *   amount: string,
+ *   tx_hash?: string,
  * }
- *
- * Response: { success: true } | { error: string }
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { jwtVerify } from "jose";
+import { authenticateRequest, getAdminClient } from "@/app/utils/api-auth";
 import { getTreasuryService } from "@/app/services/treasury";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
-
-async function verifyToken(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
-
-  const token = authHeader.substring(7);
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    return (payload.wallet_address as string) || null;
-  } catch {
-    return null;
-  }
-}
-
-interface PlaceBetRequest {
-  challengeId: string;
-  agentId: string;
-  amountDot: string;
-  txHash: string;
-}
 
 export async function POST(request: NextRequest) {
   try {
-    const walletAddress = await verifyToken(request);
-    if (!walletAddress) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json(
         { error: "Unauthorized. Please authenticate first." },
         { status: 401 }
       );
     }
 
-    const body: PlaceBetRequest = await request.json();
+    const body = await request.json();
+    const admin = getAdminClient();
 
-    // Validate required fields
-    if (!body.challengeId) {
-      return NextResponse.json({ error: "Challenge ID is required" }, { status: 400 });
+    const challengeId = body.challenge_id || body.challengeId;
+    const agentId = body.agent_id || body.agentId || body.agent_id_to_bet_on;
+    const amount = body.amount || body.amountDot;
+    const txHash = body.tx_hash || body.txHash || `bet_${Date.now()}`;
+
+    if (!challengeId) {
+      return NextResponse.json({ error: "challenge_id is required" }, { status: 400 });
     }
-    if (!body.agentId) {
-      return NextResponse.json({ error: "Agent ID is required" }, { status: 400 });
+    if (!agentId) {
+      return NextResponse.json({ error: "agent_id is required" }, { status: 400 });
     }
-    if (!body.amountDot || BigInt(body.amountDot) <= BigInt(0)) {
-      return NextResponse.json({ error: "Bet amount must be positive" }, { status: 400 });
-    }
-    if (!body.txHash || body.txHash.trim() === "") {
-      return NextResponse.json({ error: "Transaction hash is required" }, { status: 400 });
+    if (!amount || BigInt(amount) <= BigInt(0)) {
+      return NextResponse.json({ error: "amount must be positive" }, { status: 400 });
     }
 
-    // Verify challenge is in compete phase
-    const { data: challenge, error: challengeError } = await supabaseAdmin
+    // Check challenge is in betting phase (after start_time, before end_time)
+    const { data: challenge, error: challengeError } = await admin
       .from("challenges")
-      .select("status, compete_end")
-      .eq("challenge_id", body.challengeId)
+      .select("*")
+      .eq("challenge_id", challengeId)
       .single();
 
     if (challengeError || !challenge) {
       return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
     }
 
-    if (challenge.status !== "competing") {
+    const now = new Date();
+    const startTime = new Date(challenge.start_time);
+    const endTime = new Date(challenge.end_time);
+
+    if (now < startTime) {
       return NextResponse.json(
-        { error: "Betting is only available during the compete phase" },
+        { error: "Betting opens after start_time" },
+        { status: 400 }
+      );
+    }
+    if (now > endTime) {
+      return NextResponse.json(
+        { error: "Betting period has ended" },
         { status: 400 }
       );
     }
 
-    if (new Date(challenge.compete_end) < new Date()) {
-      return NextResponse.json(
-        { error: "Compete phase has ended" },
-        { status: 400 }
-      );
-    }
-
-    // Verify the agent exists in this challenge
-    const { data: agent } = await supabaseAdmin
+    // Verify the agent exists and is not withdrawn
+    const { data: agent } = await admin
       .from("challenge_agents")
-      .select("id")
-      .eq("id", body.agentId)
-      .eq("challenge_id", body.challengeId)
+      .select("id, status")
+      .eq("id", agentId)
+      .eq("challenge_id", challengeId)
       .single();
 
     if (!agent) {
@@ -113,14 +87,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Record the bet via TreasuryService
+    if (agent.status === "withdrawn") {
+      return NextResponse.json(
+        { error: "Cannot bet on a withdrawn agent" },
+        { status: 400 }
+      );
+    }
+
+    // Record the bet
     const treasury = getTreasuryService();
     const result = await treasury.recordBet({
-      challengeId: body.challengeId,
-      walletAddress,
-      agentId: body.agentId,
-      amountDot: body.amountDot,
-      txHash: body.txHash.trim(),
+      challengeId,
+      walletAddress: auth.walletAddress,
+      agentId,
+      amountDot: amount,
+      txHash,
     });
 
     if (!result.verified) {

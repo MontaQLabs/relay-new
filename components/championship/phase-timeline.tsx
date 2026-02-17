@@ -5,8 +5,8 @@ import { UserPlus, Swords, Scale, Trophy } from "lucide-react";
 
 interface PhaseTimelineProps {
   status: ChallengeStatus;
-  enrollEnd: string;
-  competeEnd: string;
+  startTime: string;
+  endTime: string;
   judgeEnd: string;
 }
 
@@ -28,12 +28,12 @@ function formatDate(iso: string): string {
   });
 }
 
-export function PhaseTimeline({ status, enrollEnd, competeEnd, judgeEnd }: PhaseTimelineProps) {
+export function PhaseTimeline({ status, startTime, endTime, judgeEnd }: PhaseTimelineProps) {
   const currentIndex = statusOrder.indexOf(status);
 
   const deadlines: Record<string, string> = {
-    enrolling: enrollEnd,
-    competing: competeEnd,
+    enrolling: startTime,
+    competing: endTime,
     judging: judgeEnd,
     completed: judgeEnd,
   };

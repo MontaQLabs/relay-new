@@ -58,9 +58,9 @@ function getTimeRemaining(deadline: string): string {
 function getCurrentDeadline(challenge: Challenge): string {
   switch (challenge.status) {
     case "enrolling":
-      return challenge.enrollEnd;
+      return challenge.startTime;
     case "competing":
-      return challenge.competeEnd;
+      return challenge.endTime;
     case "judging":
       return challenge.judgeEnd;
     default:

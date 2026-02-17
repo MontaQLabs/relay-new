@@ -1,9 +1,7 @@
 /**
- * API Route: Challenge Agents
+ * API Route: Challenge Agents (v2)
  *
- * GET /api/championship/[challengeId]/agents - List enrolled agents
- *
- * Response: { agents: ChallengeAgent[] } | { error: string }
+ * GET /api/championship/[challengeId]/agents - List enrolled agents with v2 status
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -15,7 +13,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ challengeId: string }> }
 ) {
   try {
@@ -40,14 +38,22 @@ export async function GET(
       challengeId: a.challenge_id,
       owner: a.owner_wallet,
       agentName: a.agent_name,
-      repoUrl: a.repo_url,
-      commitHash: a.commit_hash,
-      endpointUrl: a.endpoint_url,
+      repoUrl: a.repo_url || undefined,
+      commitHash: a.commit_hash || undefined,
+      endpointUrl: a.endpoint_url || undefined,
       description: a.description || "",
-      entryTxHash: a.entry_tx_hash,
+      entryTxHash: a.entry_tx_hash || undefined,
       entryVerified: a.entry_verified,
       totalVotes: a.total_votes,
       enrolledAt: a.enrolled_at,
+      // v2 fields
+      status: a.status || "enrolled",
+      revealedAt: a.revealed_at || undefined,
+      competeDeadline: a.compete_deadline || undefined,
+      refundDeadline: a.refund_deadline || undefined,
+      submittedAt: a.submitted_at || undefined,
+      solutionUrl: a.solution_url || undefined,
+      solutionCommitHash: a.solution_commit_hash || undefined,
     }));
 
     return NextResponse.json({ agents });

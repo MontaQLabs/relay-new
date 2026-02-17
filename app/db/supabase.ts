@@ -1557,10 +1557,17 @@ interface DbChallenge {
   creator_wallet: string;
   title: string;
   description: string;
+  abstract_description: string | null;
+  full_challenge_encrypted: string | null;
+  challenge_hash: string | null;
+  categories: string[] | null;
+  chain_id: string;
   rules: string | null;
-  enroll_end: string;
-  compete_end: string;
+  start_time: string;
+  end_time: string;
   judge_end: string;
+  competition_duration_seconds: number | null;
+  refund_window_seconds: number | null;
   status: ChallengeStatus;
   escrow_address: string | null;
   entry_fee_dot: string;
@@ -1610,10 +1617,16 @@ const mapDbChallengeToChallenge = (c: DbChallenge): Challenge => ({
   creator: c.creator_wallet,
   title: c.title,
   description: c.description,
+  abstractDescription: c.abstract_description || undefined,
+  challengeHash: c.challenge_hash || undefined,
+  categories: c.categories || undefined,
+  chainId: c.chain_id,
   rules: c.rules || undefined,
-  enrollEnd: c.enroll_end,
-  competeEnd: c.compete_end,
+  startTime: c.start_time,
+  endTime: c.end_time,
   judgeEnd: c.judge_end,
+  competitionDurationSeconds: c.competition_duration_seconds || undefined,
+  refundWindowSeconds: c.refund_window_seconds || undefined,
   status: c.status,
   escrowAddress: c.escrow_address || '',
   entryFeeDot: c.entry_fee_dot,
@@ -1712,8 +1725,8 @@ export const createChallenge = async (
     title: string;
     description: string;
     rules?: string;
-    enrollEnd: string;
-    competeEnd: string;
+    startTime: string;
+    endTime: string;
     judgeEnd: string;
     entryFeeDot: string;
     escrowAddress?: string;
@@ -1729,8 +1742,8 @@ export const createChallenge = async (
       title: challenge.title,
       description: challenge.description,
       rules: challenge.rules || null,
-      enroll_end: challenge.enrollEnd,
-      compete_end: challenge.competeEnd,
+      start_time: challenge.startTime,
+      end_time: challenge.endTime,
       judge_end: challenge.judgeEnd,
       entry_fee_dot: challenge.entryFeeDot,
       escrow_address: challenge.escrowAddress || null,

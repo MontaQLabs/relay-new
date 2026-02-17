@@ -191,21 +191,55 @@ export type WalletStatus = "active" | "inactive" | "marked";
 export type ChallengeStatus = "enrolling" | "competing" | "judging" | "completed";
 
 /**
+ * Agent account type — distinguishes human users from autonomous agents.
+ */
+export type AccountType = "human" | "agent";
+
+/**
+ * Status of an enrolled agent in a challenge.
+ */
+export type AgentChallengeStatus = "enrolled" | "revealed" | "competing" | "submitted" | "withdrawn";
+
+/**
+ * A registered agent in the Relay platform.
+ * Agents are full Relay users with their own wallets on all chains.
+ */
+export interface Agent {
+    id: string;
+    walletAddress: string;       // Agent's primary (Polkadot) wallet address
+    ownerWallet?: string;        // Human owner's wallet (null until claimed)
+    agentName: string;
+    description?: string;
+    repoUrl?: string;
+    endpointUrl?: string;
+    capabilities?: string[];
+    isActive: boolean;
+    createdAt: string;
+}
+
+/**
  * A championship challenge where agents compete.
- * Three phases: enroll -> compete -> judge, each with a deadline.
+ * Phases: enroll (before start_time) -> compete+bet (start_time to end_time) -> judge (end_time to judge_end).
  */
 export interface Challenge {
     challengeId: string;
     creator: string;             // Wallet address of the challenge creator
     title: string;
-    description: string;
+    description: string;         // kept for backward compat
+    abstractDescription?: string;
+    fullChallenge?: string;      // only populated after start_time
     rules?: string;
-    enrollEnd: string;           // ISO timestamp
-    competeEnd: string;          // ISO timestamp
+    categories?: string[];
+    chainId: string;             // which chain the escrow lives on
+    challengeHash?: string;      // SHA-256 hex of full challenge
+    startTime: string;           // ISO timestamp — enrollment closes, challenge public
+    endTime: string;             // ISO timestamp — competition ends, judging begins
     judgeEnd: string;            // ISO timestamp
+    competitionDurationSeconds?: number;
+    refundWindowSeconds?: number;
     status: ChallengeStatus;
     escrowAddress: string;
-    entryFeeDot: string;         // DOT amount to enroll (string for bigint precision)
+    entryFeeDot: string;         // Amount in chain-native token (string for bigint precision)
     totalEntryPoolDot: string;   // Sum of all entry fees
     totalBetPoolDot: string;     // Sum of all bets
     agentCount?: number;
@@ -213,26 +247,33 @@ export interface Challenge {
 }
 
 /**
- * An agent enrolled in a challenge. Bound to the owner's wallet.
- * Must be open source (repo_url) and have a deployed endpoint.
+ * An agent enrolled in a challenge. Supports both legacy fields and v2 fields.
  */
 export interface ChallengeAgent {
     id: string;
     challengeId: string;
     owner: string;               // Wallet address of the agent owner
     agentName: string;
-    repoUrl: string;             // GitHub URL (open source)
-    commitHash: string;          // Pinned version for reproducibility
-    endpointUrl: string;         // Deployed API endpoint
-    description: string;
-    entryTxHash: string;         // Proof of entry fee payment
+    repoUrl?: string;
+    commitHash?: string;
+    endpointUrl?: string;
+    description?: string;
+    entryTxHash?: string;
     entryVerified: boolean;
     totalVotes: number;
     enrolledAt: string;
+    // v2 fields
+    status?: AgentChallengeStatus;
+    revealedAt?: string;
+    competeDeadline?: string;
+    refundDeadline?: string;
+    submittedAt?: string;
+    solutionUrl?: string;
+    solutionCommitHash?: string;
 }
 
 /**
- * A DOT bet placed on an agent during the compete phase.
+ * A bet placed on an agent during the compete phase.
  * Verified on-chain via tx_hash.
  */
 export interface ChallengeBet {
@@ -256,13 +297,19 @@ export interface ChallengeVote {
 }
 
 /**
- * A payout record for audit purposes. Designed for future smart contract migration.
+ * A payout record for audit purposes.
  */
 export interface ChallengePayout {
     challengeId: string;
     recipient: string;           // Wallet address of the payout recipient
     amountDot: string;
-    payoutType: "entry_prize" | "bet_winnings" | "platform_entry_fee" | "platform_bet_fee";
+    payoutType:
+        | "entry_prize"
+        | "bet_winnings"
+        | "platform_entry_fee"
+        | "platform_bet_fee"
+        | "withdrawal_refund"
+        | "withdrawal_peek_fee";
     txHash?: string;
     status: "pending" | "completed" | "failed";
 }

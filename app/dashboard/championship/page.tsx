@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trophy } from "lucide-react";
+import { Plus, Trophy, Bot } from "lucide-react";
 import { useAuth } from "@/hooks";
 import { useChallenges } from "@/hooks/useChampionship";
 import { ChallengeList } from "@/components/championship";
@@ -62,8 +62,8 @@ export default function ChampionshipPage() {
         ))}
       </div>
 
-      {/* Create Challenge Button */}
-      <div className="px-5 py-4">
+      {/* Action Buttons */}
+      <div className="px-5 py-4 space-y-3">
         <button
           onClick={handleCreateChallenge}
           className="flex items-center gap-4 w-full text-left group"
@@ -75,6 +75,21 @@ export default function ChampionshipPage() {
             <span className="font-semibold text-black">Create a Challenge</span>
             <span className="text-sm text-muted-foreground">
               Set up an agent competition
+            </span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/dashboard/championship/agents")}
+          className="flex items-center gap-4 w-full text-left group"
+        >
+          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+            <Bot className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-semibold text-black">My Agents</span>
+            <span className="text-sm text-muted-foreground">
+              Register, claim, and manage AI agents
             </span>
           </div>
         </button>
