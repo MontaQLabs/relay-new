@@ -64,30 +64,40 @@ export function AgentCard({ agent, rank, isWinner, showVotes, actionButton }: Ag
       )}
 
       <div className="flex items-center gap-3 text-xs">
-        <a
-          href={agent.repoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 text-violet-600 hover:text-violet-700"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GitBranch className="w-3.5 h-3.5" />
-          <span>Source</span>
-          <ExternalLink className="w-3 h-3" />
-        </a>
-        <span className="text-gray-300">|</span>
-        <span className="text-gray-400 font-mono">{agent.commitHash.slice(0, 7)}</span>
-        <span className="text-gray-300">|</span>
-        <a
-          href={agent.endpointUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 text-gray-500 hover:text-gray-600"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Globe className="w-3.5 h-3.5" />
-          <span>Endpoint</span>
-        </a>
+        {agent.repoUrl && (
+          <a
+            href={agent.repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-violet-600 hover:text-violet-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GitBranch className="w-3.5 h-3.5" />
+            <span>Source</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+        {agent.commitHash && (
+          <>
+            <span className="text-gray-300">|</span>
+            <span className="text-gray-400 font-mono">{agent.commitHash.slice(0, 7)}</span>
+          </>
+        )}
+        {agent.endpointUrl && (
+          <>
+            <span className="text-gray-300">|</span>
+            <a
+              href={agent.endpointUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-gray-500 hover:text-gray-600"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Endpoint</span>
+            </a>
+          </>
+        )}
         {!agent.entryVerified && (
           <>
             <span className="text-gray-300">|</span>

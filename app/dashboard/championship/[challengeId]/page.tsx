@@ -17,6 +17,7 @@ import { getAuthToken } from "@/app/utils/auth";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPlanckAsDot } from "@/lib/format";
+import type { ChallengeAgent } from "@/app/types/frontend_type";
 
 export default function ChallengeDetailPage({
   params,
@@ -174,7 +175,7 @@ function EnrollSection({
   onEnrollSuccess,
 }: {
   challengeId: string;
-  agents: Array<{ id: string; owner: string; agentName: string; repoUrl: string; commitHash: string; endpointUrl: string; description: string; entryTxHash: string; entryVerified: boolean; totalVotes: number; enrolledAt: string; challengeId: string }>;
+  agents: ChallengeAgent[];
   userHasEnrolled: boolean;
   entryFee: string;
   showEnrollForm: boolean;
@@ -399,7 +400,7 @@ function CompeteSection({
   onBetPlaced,
 }: {
   challengeId: string;
-  agents: Array<{ id: string; owner: string; agentName: string; repoUrl: string; commitHash: string; endpointUrl: string; description: string; entryTxHash: string; entryVerified: boolean; totalVotes: number; enrolledAt: string; challengeId: string }>;
+  agents: ChallengeAgent[];
   totalBetPool: string;
   onBetPlaced: () => void;
 }) {
@@ -445,7 +446,7 @@ function JudgeSection({
   onFinalize,
 }: {
   challengeId: string;
-  agents: Array<{ id: string; owner: string; agentName: string; repoUrl: string; commitHash: string; endpointUrl: string; description: string; entryTxHash: string; entryVerified: boolean; totalVotes: number; enrolledAt: string; challengeId: string }>;
+  agents: ChallengeAgent[];
   hasVoted: boolean;
   isCreator: boolean;
   judgeEnd: string;
