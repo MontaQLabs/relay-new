@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { House, Trophy, CircleUser, Coins } from "lucide-react";
+import { House, Trophy, CircleUser, Coins, Spade } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -30,6 +30,11 @@ export default function BottomNav() {
       Icon: Trophy,
     },
     {
+      label: "Poker",
+      href: "/dashboard/poker",
+      Icon: Spade,
+    },
+    {
       label: "My",
       href: "/dashboard/settings",
       Icon: CircleUser,
@@ -53,20 +58,18 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center gap-1 py-2 px-4 min-w-[72px] transition-all duration-200 ${
-                active ? "text-violet-500" : "text-muted-foreground"
-              }`}
+              className={`flex flex-col items-center justify-center gap-1 py-2 px-4 min-w-[72px] transition-all duration-200 ${active ? "text-violet-500" : "text-muted-foreground"
+                }`}
             >
               <div className="relative">
-                <Icon 
-                  className="w-6 h-6" 
-                  strokeWidth={active ? 2 : 1.5} 
+                <Icon
+                  className="w-6 h-6"
+                  strokeWidth={active ? 2 : 1.5}
                 />
               </div>
               <span
-                className={`text-xs font-medium ${
-                  active ? "text-foreground" : "text-muted-foreground"
-                }`}
+                className={`text-xs font-medium ${active ? "text-foreground" : "text-muted-foreground"
+                  }`}
               >
                 {item.label}
               </span>
