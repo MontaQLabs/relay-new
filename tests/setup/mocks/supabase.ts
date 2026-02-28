@@ -2,7 +2,7 @@
  * Supabase client mocks for testing
  */
 
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 // Mock Supabase query builder
 export const createMockQueryBuilder = (data: unknown = null, error: unknown = null) => {
@@ -28,7 +28,7 @@ export const createMockQueryBuilder = (data: unknown = null, error: unknown = nu
     maybeSingle: vi.fn().mockResolvedValue({ data, error }),
     then: vi.fn().mockResolvedValue({ data, error }),
   };
-  
+
   // Make the builder itself return the resolved value when awaited
   return Object.assign(Promise.resolve({ data, error }), builder);
 };
@@ -68,4 +68,3 @@ export const mockQueryResult = (
     return createMockQueryBuilder();
   });
 };
-

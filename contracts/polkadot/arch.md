@@ -1,4 +1,3 @@
-
 # Poker Arena Contract — Final Design
 
 **Single contract. One dealer (VPS). Anyone creates tables. Bots join and play. Humans bet. Platform earns fees.**
@@ -7,13 +6,13 @@
 
 ## Roles
 
-| Role | Who | Set Where |
-|------|-----|-----------|
-| **Platform** | Deployer address | At deploy, stored globally |
+| Role              | Who                | Set Where                                        |
+| ----------------- | ------------------ | ------------------------------------------------ |
+| **Platform**      | Deployer address   | At deploy, stored globally                       |
 | **Global Dealer** | VPS script address | At deploy = platform, updatable by platform only |
-| **Table Creator** | Anyone | Calls `createTable()` + sends prize pool |
-| **Agent (Bot)** | Anyone | Calls `joinTable()` + sends buy-in |
-| **Human Bettor** | Anyone | Calls `placeBet()` + sends DOT before deadline |
+| **Table Creator** | Anyone             | Calls `createTable()` + sends prize pool         |
+| **Agent (Bot)**   | Anyone             | Calls `joinTable()` + sends buy-in               |
+| **Human Bettor**  | Anyone             | Calls `placeBet()` + sends DOT before deadline   |
 
 ---
 
@@ -28,11 +27,13 @@
 ## Contract State
 
 ### Global
+
 - `platform_address` — fee recipient, can update dealer
 - `dealer_address` — VPS script that manages all table flow
 - `table_count` — next table ID
 
 ### Per-Table
+
 - Creator, prize pool amount, buy-in amount, max_agents (2-8), session_length (N hands)
 - Bet deadline (unix timestamp) — human bet window
 - State: `Open | Playing | Ended | Cancelled`
@@ -43,14 +44,17 @@
 - Prize claimed flag (to avoid double platform fee payment)
 
 ### Per-Agent (per seat)
+
 - Address, chip count, folded flag, kicked flag, missed_turns counter
 - Current hand bet amount
 - Chips claimed flag
 
 ### Per-Bettor (by index)
+
 - Address, agent seat backed, amount bet, claimed flag
 
 ### Per-Agent Bet Total (table + seat)
+
 - Total DOT bet on that agent across all bettors
 
 ---
@@ -103,6 +107,7 @@
 **`cancel(tableId)`** — permissionless, but strictly guarded:
 
 Succeeds ONLY IF:
+
 - `(A)` State = Open AND now > bet_deadline AND current_hand == 0
   → dealer never showed up to deal
 - `(B)` State = Playing AND now - last_action_timestamp > 3600 seconds
@@ -115,10 +120,12 @@ During an active game (dealer submitting actions regularly), last_action_timesta
 ## Payout Logic
 
 ### Chip Settlement (after session ends)
+
 - Each agent calls `claimChips(tableId)` to withdraw their remaining chip count
 - No platform fee — this is their own money returned from gameplay
 
 ### Prize Pool Distribution
+
 - Agent(s) with highest chip count = winner(s)
 - **Platform gets 5% of prize pool** (sent to platform_address on first claim)
 - **Winner(s) split 95% of prize pool** proportionally if tied
@@ -126,6 +133,7 @@ During an active game (dealer submitting actions regularly), last_action_timesta
 - Winners call `claimPrize(tableId)` to collect
 
 ### Human Betting Payout
+
 - Find agent with most chips (same winner as prize)
 - **Platform gets 5% of total bet pool**
 - **Bettors who backed the winning agent split 95%** proportionally by bet size
@@ -133,6 +141,7 @@ During an active game (dealer submitting actions regularly), last_action_timesta
 - Bettors call `claimBetWinnings(tableId)` to collect
 
 ### Refunds (Cancelled state only)
+
 - Agents: full buy-in back
 - Creator: full prize pool back
 - Bettors: full bet amount back
@@ -143,28 +152,28 @@ During an active game (dealer submitting actions regularly), last_action_timesta
 
 ## Edge Cases
 
-| Scenario | Resolution |
-|----------|-----------|
-| All fold except one | Last agent auto-wins pot, next hand starts |
-| Agent misses 3 turns | Kicked, chips forfeit to prize pool, session continues |
-| All agents kicked | Session ends immediately, chip snapshot at kick time |
-| Only 1 agent remaining | Session ends, that agent wins prize |
-| Chip tie for prize | Prize pool split proportionally among tied agents |
-| Agent bets > chips | Contract rejects action |
-| Human bets after deadline | Contract rejects |
-| Dealer goes dark > 1hr | Anyone can `cancel()`, full refunds issued |
-| Table never filled | After bet_deadline, anyone can `cancel()` |
-| Creator cancels | Only via `endSession()` if they are the platform/dealer |
+| Scenario                  | Resolution                                              |
+| ------------------------- | ------------------------------------------------------- |
+| All fold except one       | Last agent auto-wins pot, next hand starts              |
+| Agent misses 3 turns      | Kicked, chips forfeit to prize pool, session continues  |
+| All agents kicked         | Session ends immediately, chip snapshot at kick time    |
+| Only 1 agent remaining    | Session ends, that agent wins prize                     |
+| Chip tie for prize        | Prize pool split proportionally among tied agents       |
+| Agent bets > chips        | Contract rejects action                                 |
+| Human bets after deadline | Contract rejects                                        |
+| Dealer goes dark > 1hr    | Anyone can `cancel()`, full refunds issued              |
+| Table never filled        | After bet_deadline, anyone can `cancel()`               |
+| Creator cancels           | Only via `endSession()` if they are the platform/dealer |
 
 ---
 
 ## Fee Summary
 
-| Fee | Rate | On What | Paid To |
-|-----|------|---------|---------|
-| Platform cut | 5% | Prize pool | platform_address |
-| Platform cut | 5% | Human bet pool | platform_address |
-| Chips | 0% | Agent chip claims | n/a |
+| Fee          | Rate | On What           | Paid To          |
+| ------------ | ---- | ----------------- | ---------------- |
+| Platform cut | 5%   | Prize pool        | platform_address |
+| Platform cut | 5%   | Human bet pool    | platform_address |
+| Chips        | 0%   | Agent chip claims | n/a              |
 
 ---
 

@@ -63,8 +63,8 @@ export function SwipeableCommunityItem({
   const CLICK_THRESHOLD = 5; // Minimum movement to consider as swipe
 
   // Check if current user is the creator
-  const isCreator = currentUserWallet && 
-    community.owner.toLowerCase() === currentUserWallet.toLowerCase();
+  const isCreator =
+    currentUserWallet && community.owner.toLowerCase() === currentUserWallet.toLowerCase();
 
   // Determine if we should show the swipe action (only for members, not creators)
   const showSwipeAction = isMember && !isCreator;
@@ -80,11 +80,11 @@ export function SwipeableCommunityItem({
     if (!isDragging || !showSwipeAction) return;
     const currentX = e.touches[0].clientX;
     const diff = startXRef.current - currentX;
-    
+
     if (Math.abs(diff) > CLICK_THRESHOLD) {
       setHasMoved(true);
     }
-    
+
     // Only allow swiping left (positive diff) and limit the swipe
     const newOffset = Math.min(Math.max(0, diff), SWIPE_THRESHOLD);
     setSwipeOffset(newOffset);
@@ -98,7 +98,7 @@ export function SwipeableCommunityItem({
     } else {
       setSwipeOffset(0);
     }
-    
+
     // Handle click if no swipe occurred
     if (!hasMoved && swipeOffset === 0) {
       onClick();
@@ -119,11 +119,11 @@ export function SwipeableCommunityItem({
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !showSwipeAction) return;
     const diff = startXRef.current - e.clientX;
-    
+
     if (Math.abs(diff) > CLICK_THRESHOLD) {
       setHasMoved(true);
     }
-    
+
     const newOffset = Math.min(Math.max(0, diff), SWIPE_THRESHOLD);
     setSwipeOffset(newOffset);
   };
@@ -136,7 +136,7 @@ export function SwipeableCommunityItem({
       }
       return;
     }
-    
+
     if (!isDragging) return;
     setIsDragging(false);
     if (swipeOffset > SWIPE_THRESHOLD / 2) {
@@ -144,7 +144,7 @@ export function SwipeableCommunityItem({
     } else {
       setSwipeOffset(0);
     }
-    
+
     // Handle click if no swipe occurred
     if (!hasMoved && swipeOffset === 0) {
       onClick();
@@ -182,14 +182,10 @@ export function SwipeableCommunityItem({
   const displayId = community.communityId.replace(/^comm_/, "").slice(0, 7);
 
   return (
-    <div 
-      ref={containerRef}
-      className="relative overflow-hidden"
-      onMouseLeave={handleMouseLeave}
-    >
+    <div ref={containerRef} className="relative overflow-hidden" onMouseLeave={handleMouseLeave}>
       {/* Quit Button (behind the main content) - only for members */}
       {showSwipeAction && (
-        <div 
+        <div
           className="absolute right-0 top-0 bottom-0 flex items-center justify-center bg-red-500"
           style={{ width: SWIPE_THRESHOLD }}
         >
@@ -223,7 +219,7 @@ export function SwipeableCommunityItem({
         onMouseUp={handleMouseUp}
       >
         {/* Avatar */}
-        <div 
+        <div
           className={`w-14 h-14 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 ${
             !community.avatar ? getAvatarColor(community.communityId) : ""
           }`}
@@ -247,12 +243,10 @@ export function SwipeableCommunityItem({
 
         {/* Community Info */}
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-black truncate">
-            {community.name}
-          </h4>
+          <h4 className="font-semibold text-black truncate">{community.name}</h4>
           <p className="text-sm text-muted-foreground">
-            {community.memberCount !== undefined 
-              ? `${community.memberCount} member${community.memberCount !== 1 ? 's' : ''}`
+            {community.memberCount !== undefined
+              ? `${community.memberCount} member${community.memberCount !== 1 ? "s" : ""}`
               : `ID: ${displayId}`}
           </p>
         </div>

@@ -70,10 +70,7 @@ export default function LoginPage() {
         <div className="px-6 pb-6">
           {/* Password field */}
           <div className="animate-slide-up animation-delay-100">
-            <label
-              className="block text-sm font-medium mb-2"
-              style={{ color: "#1a1a1a" }}
-            >
+            <label className="block text-sm font-medium mb-2" style={{ color: "#1a1a1a" }}>
               Password
             </label>
             <div className="relative">
@@ -124,9 +121,7 @@ export default function LoginPage() {
           disabled={true}
           className="w-full text-center py-2 text-gray-400 cursor-not-allowed"
         >
-          <span className="text-base text-gray-200 font-medium">
-            Forgot your password?
-          </span>
+          <span className="text-base text-gray-200 font-medium">Forgot your password?</span>
         </button>
       </div>
     </div>
@@ -134,13 +129,7 @@ export default function LoginPage() {
 }
 
 // Eye icon component
-function EyeIcon({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
+function EyeIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg
       className={className}
@@ -155,23 +144,13 @@ function EyeIcon({
         strokeLinejoin="round"
         d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
       />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   );
 }
 
 // Eye off icon component
-function EyeOffIcon({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
+function EyeOffIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg
       className={className}

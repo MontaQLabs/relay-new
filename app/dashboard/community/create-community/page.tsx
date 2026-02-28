@@ -7,11 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 const MAX_DESCRIPTION_LENGTH = 144;
 const MAX_RULES_LENGTH = 144;
@@ -144,9 +140,7 @@ export default function CreateCommunityPage() {
       <div className="flex-1 flex flex-col overflow-auto">
         {/* Name Field */}
         <div className="px-5 py-4 border-t border-gray-100">
-          <label className="text-sm font-medium text-black block mb-2">
-            Name
-          </label>
+          <label className="text-sm font-medium text-black block mb-2">Name</label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -175,9 +169,7 @@ export default function CreateCommunityPage() {
 
         {/* Rules Field */}
         <div className="px-5 py-4 border-t border-gray-100">
-          <label className="text-sm font-medium text-black block mb-2">
-            Rules
-          </label>
+          <label className="text-sm font-medium text-black block mb-2">Rules</label>
           <Textarea
             value={rules}
             onChange={(e) => handleRulesChange(e.target.value)}
@@ -212,9 +204,7 @@ export default function CreateCommunityPage() {
                 ))}
               </div>
             ) : (
-              <span className="text-base text-gray-400">
-                Setup allowed activity types
-              </span>
+              <span className="text-base text-gray-400">Setup allowed activity types</span>
             )}
           </div>
           <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
@@ -222,14 +212,8 @@ export default function CreateCommunityPage() {
 
         {/* Allow Investment Toggle */}
         <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
-          <span className="text-sm font-medium text-black">
-            Allow investment?
-          </span>
-          <Switch
-            checked={allowInvestment}
-            onCheckedChange={setAllowInvestment}
-            disabled
-          />
+          <span className="text-sm font-medium text-black">Allow investment?</span>
+          <Switch checked={allowInvestment} onCheckedChange={setAllowInvestment} disabled />
         </div>
       </div>
 
@@ -249,9 +233,7 @@ export default function CreateCommunityPage() {
         <SheetContent side="bottom" hideCloseButton className="px-5 pb-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <SheetTitle className="text-xl font-semibold text-black">
-              Allowed Activities
-            </SheetTitle>
+            <SheetTitle className="text-xl font-semibold text-black">Allowed Activities</SheetTitle>
             <button
               onClick={handleCloseActivityModal}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -265,9 +247,7 @@ export default function CreateCommunityPage() {
           <div className="space-y-4 mb-4">
             {tempActivityTypes.map((type, index) => (
               <div key={index} className="border-b border-gray-100 pb-4">
-                <label className="text-sm font-medium text-black block mb-2">
-                  Type
-                </label>
+                <label className="text-sm font-medium text-black block mb-2">Type</label>
                 <Input
                   value={type}
                   onChange={(e) => handleTypeInputChange(index, e.target.value)}

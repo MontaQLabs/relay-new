@@ -3,9 +3,9 @@
  * Configures mocks, global utilities, and test environment
  */
 
-import { vi, beforeEach, afterEach, beforeAll } from 'vitest';
-import { cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom/vitest';
+import { vi, beforeEach, afterEach, beforeAll } from "vitest";
+import { cleanup } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -31,13 +31,13 @@ const localStorageMock = (() => {
 // Set up global mocks
 beforeAll(() => {
   // Mock localStorage
-  Object.defineProperty(global, 'localStorage', {
+  Object.defineProperty(global, "localStorage", {
     value: localStorageMock,
     writable: true,
   });
 
   // Mock window.isSecureContext
-  Object.defineProperty(global, 'isSecureContext', {
+  Object.defineProperty(global, "isSecureContext", {
     value: true,
     writable: true,
   });
@@ -58,9 +58,9 @@ beforeAll(() => {
         return array;
       },
       randomUUID: () => {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
           const r = (Math.random() * 16) | 0;
-          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          const v = c === "x" ? r : (r & 0x3) | 0x8;
           return v.toString(16);
         });
       },
@@ -88,4 +88,3 @@ afterEach(() => {
 
 // Export localStorage mock for direct manipulation in tests
 export { localStorageMock };
-

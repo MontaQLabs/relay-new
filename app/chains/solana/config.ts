@@ -17,8 +17,7 @@ export const NATIVE_TICKER = "SOL";
 export const SOL_DECIMALS = 9;
 
 /** Chain icon URL. */
-export const ICON_URL =
-  "https://assets.coingecko.com/coins/images/4128/small/solana.png";
+export const ICON_URL = "https://assets.coingecko.com/coins/images/4128/small/solana.png";
 
 /** BIP-44 derivation path for Solana. */
 export const DERIVATION_PATH = "m/44'/501'/0'/0'";

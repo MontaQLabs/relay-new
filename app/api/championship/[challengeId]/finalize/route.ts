@@ -19,10 +19,7 @@ export async function POST(
   try {
     const auth = await authenticateRequest(request);
     if (!auth) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { challengeId } = await params;
@@ -35,25 +32,16 @@ export async function POST(
       .single();
 
     if (challengeError || !challenge) {
-      return NextResponse.json(
-        { error: "Challenge not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
     }
 
     if (challenge.status === "completed") {
-      return NextResponse.json(
-        { error: "Challenge already finalized" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "Challenge already finalized" }, { status: 409 });
     }
 
     const judgeEnd = new Date(challenge.judge_end);
     if (new Date() <= judgeEnd) {
-      return NextResponse.json(
-        { error: "Judging period has not ended yet" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Judging period has not ended yet" }, { status: 400 });
     }
 
     // Get all agents, determine winner among non-withdrawn
@@ -64,16 +52,11 @@ export async function POST(
       .order("total_votes", { ascending: false });
 
     if (agentsError || !agents || agents.length === 0) {
-      return NextResponse.json(
-        { error: "No agents enrolled" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No agents enrolled" }, { status: 400 });
     }
 
     // Filter non-withdrawn agents
-    const activeAgents = agents.filter(
-      (a: { status?: string }) => a.status !== "withdrawn"
-    );
+    const activeAgents = agents.filter((a: { status?: string }) => a.status !== "withdrawn");
 
     if (activeAgents.length < 3) {
       // Too few active agents — cancel instead
@@ -103,10 +86,7 @@ export async function POST(
 
     if (updateError) {
       console.error("Failed to finalize:", updateError);
-      return NextResponse.json(
-        { error: "Failed to finalize challenge" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to finalize challenge" }, { status: 500 });
     }
 
     // Calculate and record payouts
@@ -127,9 +107,6 @@ export async function POST(
     });
   } catch (error) {
     console.error("Finalize error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

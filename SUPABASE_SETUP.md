@@ -61,12 +61,12 @@ Once your project is ready:
 1. Go to **Settings** (gear icon) → **API**
 2. Note down these values:
 
-| Key | Description | Where to find |
-|-----|-------------|---------------|
-| **Project URL** | Your Supabase API endpoint | Under "Project URL" |
-| **anon/public key** | Safe to expose in frontend | Under "Project API keys" → `anon` `public` |
-| **service_role key** | **SECRET** - server only | Under "Project API keys" → `service_role` |
-| **JWT Secret** | For signing tokens | Under "JWT Settings" → `JWT Secret` |
+| Key                  | Description                | Where to find                              |
+| -------------------- | -------------------------- | ------------------------------------------ |
+| **Project URL**      | Your Supabase API endpoint | Under "Project URL"                        |
+| **anon/public key**  | Safe to expose in frontend | Under "Project API keys" → `anon` `public` |
+| **service_role key** | **SECRET** - server only   | Under "Project API keys" → `service_role`  |
+| **JWT Secret**       | For signing tokens         | Under "JWT Settings" → `JWT Secret`        |
 
 ⚠️ **IMPORTANT**: Never expose the `service_role` key or `JWT Secret` in frontend code!
 
@@ -201,7 +201,7 @@ INSERT INTO known_assets (asset_id, ticker, decimals, symbol, category) VALUES
   -- Stablecoins
   (1984, 'USDt', 6, 'https://assets.coingecko.com/coins/images/325/small/Tether.png', 'stablecoin'),
   (1337, 'USDC', 6, 'https://assets.coingecko.com/coins/images/6319/small/usdc.png', 'stablecoin'),
-  
+
   -- Popular meme/community tokens
   (30, 'DED', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/DED-LOGO-EYE.png', 'meme'),
   (18, 'DOTA', 4, 'https://raw.githubusercontent.com/nicpick/logos/main/dota.png', 'meme'),
@@ -209,11 +209,11 @@ INSERT INTO known_assets (asset_id, ticker, decimals, symbol, category) VALUES
   (31337, 'WUD', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/WUD.png', 'meme'),
   (17, 'WIFD', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/wifd.png', 'meme'),
   (42069, 'STINK', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/stink.png', 'meme'),
-  
+
   -- Utility/project tokens
   (1107, 'TSN', 18, 'https://raw.githubusercontent.com/nicpick/logos/main/tsn.png', 'utility'),
   (50000111, 'DON', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/don.png', 'utility'),
-  
+
   -- Bridged/wrapped assets
   (21, 'vDOT', 10, 'https://raw.githubusercontent.com/nicpick/logos/main/vdot.png', 'bridged'),
   (8, 'RMRK', 10, 'https://assets.coingecko.com/coins/images/15320/small/RMRK.png', 'bridged')
@@ -362,6 +362,7 @@ npm install @supabase/supabase-js jose
 ```
 
 These packages provide:
+
 - `@supabase/supabase-js`: Supabase client for database operations
 - `jose`: JWT library for creating authentication tokens (Edge-compatible)
 
@@ -471,44 +472,48 @@ app/
 
 ### Authentication Functions (auth.ts)
 
-| Function | Description |
-|----------|-------------|
-| `authenticateWithWallet(mnemonic?)` | Full auth flow, returns JWT |
-| `isAuthenticated()` | Check if user has valid session |
-| `getAuthenticatedWallet()` | Get current wallet address |
-| `signOut()` | Clear authentication session |
-| `restoreSession()` | Restore session from stored token |
+| Function                            | Description                       |
+| ----------------------------------- | --------------------------------- |
+| `authenticateWithWallet(mnemonic?)` | Full auth flow, returns JWT       |
+| `isAuthenticated()`                 | Check if user has valid session   |
+| `getAuthenticatedWallet()`          | Get current wallet address        |
+| `signOut()`                         | Clear authentication session      |
+| `restoreSession()`                  | Restore session from stored token |
 
 ### Database Operations (supabase.ts)
 
 #### Users
-| Function | Description |
-|----------|-------------|
-| `getCurrentUser()` | Get authenticated user's full profile |
-| `getUserByWallet(address)` | Get any user by wallet address |
-| `updateUserProfile(address, updates)` | Update avatar/nickname |
+
+| Function                              | Description                           |
+| ------------------------------------- | ------------------------------------- |
+| `getCurrentUser()`                    | Get authenticated user's full profile |
+| `getUserByWallet(address)`            | Get any user by wallet address        |
+| `updateUserProfile(address, updates)` | Update avatar/nickname                |
 
 #### Friends
-| Function | Description |
-|----------|-------------|
-| `getFriends(walletAddress)` | Get user's friend list |
-| `addFriend(userWallet, friend)` | Add a new friend |
-| `updateFriend(userWallet, friendAddress, updates)` | Update friend info |
-| `removeFriend(userWallet, friendAddress)` | Remove a friend |
+
+| Function                                           | Description            |
+| -------------------------------------------------- | ---------------------- |
+| `getFriends(walletAddress)`                        | Get user's friend list |
+| `addFriend(userWallet, friend)`                    | Add a new friend       |
+| `updateFriend(userWallet, friendAddress, updates)` | Update friend info     |
+| `removeFriend(userWallet, friendAddress)`          | Remove a friend        |
 
 #### Communities
-| Function | Description |
-|----------|-------------|
-| `getAllCommunities()` | Get all public communities |
-| `getUserCommunities(walletAddress)` | Get communities user belongs to |
-| `getCommunity(communityId)` | Get single community by ID |
-| `createCommunity(ownerWallet, data)` | Create new community (name, description, activityTypes, etc.) |
-| `updateCommunity(communityId, updates)` | Update community (owner only) |
-| `deleteCommunity(communityId)` | Delete community (owner only) |
-| `joinCommunity(communityId, userWallet)` | Join a community |
-| `leaveCommunity(communityId, userWallet)` | Leave a community |
+
+| Function                                  | Description                                                   |
+| ----------------------------------------- | ------------------------------------------------------------- |
+| `getAllCommunities()`                     | Get all public communities                                    |
+| `getUserCommunities(walletAddress)`       | Get communities user belongs to                               |
+| `getCommunity(communityId)`               | Get single community by ID                                    |
+| `createCommunity(ownerWallet, data)`      | Create new community (name, description, activityTypes, etc.) |
+| `updateCommunity(communityId, updates)`   | Update community (owner only)                                 |
+| `deleteCommunity(communityId)`            | Delete community (owner only)                                 |
+| `joinCommunity(communityId, userWallet)`  | Join a community                                              |
+| `leaveCommunity(communityId, userWallet)` | Leave a community                                             |
 
 **Community Fields:**
+
 - `name` - Community name (required)
 - `description` - Community description, at least 10 words (required)
 - `avatar` - Link to community avatar image (optional)
@@ -517,53 +522,59 @@ app/
 - `allowInvestment` - Whether investment is allowed (default: true)
 
 #### Activities
-| Function | Description |
-|----------|-------------|
-| `getCommunityActivities(communityId)` | Get activities in a community |
-| `getUserActivities(walletAddress)` | Get user's activities |
-| `getActivity(activityId)` | Get single activity by ID |
-| `createActivity(ownerWallet, data)` | Create new activity |
-| `updateActivity(activityId, updates)` | Update activity (owner only) |
-| `deleteActivity(activityId)` | Delete activity (owner only) |
-| `joinActivity(activityId, userWallet)` | Join an activity |
-| `leaveActivity(activityId, userWallet)` | Leave an activity |
-| `likeActivity(activityId)` | Like an activity |
+
+| Function                                | Description                   |
+| --------------------------------------- | ----------------------------- |
+| `getCommunityActivities(communityId)`   | Get activities in a community |
+| `getUserActivities(walletAddress)`      | Get user's activities         |
+| `getActivity(activityId)`               | Get single activity by ID     |
+| `createActivity(ownerWallet, data)`     | Create new activity           |
+| `updateActivity(activityId, updates)`   | Update activity (owner only)  |
+| `deleteActivity(activityId)`            | Delete activity (owner only)  |
+| `joinActivity(activityId, userWallet)`  | Join an activity              |
+| `leaveActivity(activityId, userWallet)` | Leave an activity             |
+| `likeActivity(activityId)`              | Like an activity              |
 
 #### Comments
-| Function | Description |
-|----------|-------------|
-| `getActivityComments(activityId)` | Get comments on activity |
-| `getComment(commentId)` | Get single comment by ID |
-| `createComment(publisherWallet, activityId, content)` | Create comment |
-| `updateComment(commentId, content)` | Update comment (publisher only) |
-| `deleteComment(commentId)` | Delete comment (publisher only) |
-| `likeComment(commentId)` | Like a comment |
+
+| Function                                              | Description                     |
+| ----------------------------------------------------- | ------------------------------- |
+| `getActivityComments(activityId)`                     | Get comments on activity        |
+| `getComment(commentId)`                               | Get single comment by ID        |
+| `createComment(publisherWallet, activityId, content)` | Create comment                  |
+| `updateComment(commentId, content)`                   | Update comment (publisher only) |
+| `deleteComment(commentId)`                            | Delete comment (publisher only) |
+| `likeComment(commentId)`                              | Like a comment                  |
 
 #### Subscriptions (Real-time)
-| Function | Description |
-|----------|-------------|
-| `subscribeToActivities(communityId, callback)` | Live activity updates |
-| `subscribeToComments(activityId, callback)` | Live comment updates |
-| `unsubscribe(subscription)` | Unsubscribe from channel |
+
+| Function                                       | Description              |
+| ---------------------------------------------- | ------------------------ |
+| `subscribeToActivities(communityId, callback)` | Live activity updates    |
+| `subscribeToComments(activityId, callback)`    | Live comment updates     |
+| `unsubscribe(subscription)`                    | Unsubscribe from channel |
 
 #### Community Tokens (Polkadot Asset Hub)
-| Function | Description |
-|----------|-------------|
-| `getCommunityToken(communityId)` | Get token config for a community |
-| `createCommunityToken(communityId, tokenData)` | Create token record (owner only) |
-| `updateCommunityToken(communityId, updates)` | Update token config (owner only) |
-| `deleteCommunityToken(communityId)` | Delete token record (owner only) |
-| `updateTokenSupply(communityId, newSupply)` | Update total supply after minting |
-| `setTokenFrozen(communityId, isFrozen)` | Toggle token frozen status |
+
+| Function                                       | Description                       |
+| ---------------------------------------------- | --------------------------------- |
+| `getCommunityToken(communityId)`               | Get token config for a community  |
+| `createCommunityToken(communityId, tokenData)` | Create token record (owner only)  |
+| `updateCommunityToken(communityId, updates)`   | Update token config (owner only)  |
+| `deleteCommunityToken(communityId)`            | Delete token record (owner only)  |
+| `updateTokenSupply(communityId, newSupply)`    | Update total supply after minting |
+| `setTokenFrozen(communityId, isFrozen)`        | Toggle token frozen status        |
 
 #### Known Assets (Polkadot Asset Hub Bazaar)
-| Function | Description |
-|----------|-------------|
-| `getKnownAssets()` | Get all known assets for the Bazaar |
-| `getKnownAssetById(assetId)` | Get a specific known asset by ID |
-| `getKnownAssetsByCategory(category)` | Get assets filtered by category |
+
+| Function                             | Description                         |
+| ------------------------------------ | ----------------------------------- |
+| `getKnownAssets()`                   | Get all known assets for the Bazaar |
+| `getKnownAssetById(assetId)`         | Get a specific known asset by ID    |
+| `getKnownAssetsByCategory(category)` | Get assets filtered by category     |
 
 **KnownAsset Fields:**
+
 - `id` - Unique numeric asset ID on Polkadot Asset Hub (u32)
 - `ticker` - Token ticker symbol (e.g., "USDt", "USDC", "DED")
 - `decimals` - Number of decimal places (typically 6-18)
@@ -571,13 +582,15 @@ app/
 - `category` - Optional category: "stablecoin", "meme", "utility", "bridged"
 
 #### Ecosystem Projects (Multi-chain Explore)
-| Function | Description |
-|----------|-------------|
-| `getEcosystemProjects()` | Get all curated DApps/protocols ordered by display_order |
+
+| Function                               | Description                                                    |
+| -------------------------------------- | -------------------------------------------------------------- |
+| `getEcosystemProjects()`               | Get all curated DApps/protocols ordered by display_order       |
 | `getEcosystemProjectsByChain(chainId)` | Get projects filtered by chain (polkadot, base, solana, monad) |
-| `getFeaturedProjects()` | Get featured projects only |
+| `getFeaturedProjects()`                | Get featured projects only                                     |
 
 **EcosystemProject Fields:**
+
 - `id` - UUID primary key
 - `name` - Project name (e.g., "Jupiter", "Uniswap")
 - `slug` - URL-safe unique identifier
@@ -597,22 +610,27 @@ app/
 ### Common Errors
 
 #### "Wallet address is required"
+
 - **Cause**: Calling auth without a wallet
 - **Fix**: Ensure user has created/imported a wallet first
 
 #### "Invalid or expired nonce"
+
 - **Cause**: Nonce expired (>5 min) or already used
 - **Fix**: Request a new nonce and try again
 
 #### "Invalid signature"
+
 - **Cause**: Message was modified or wrong key used
 - **Fix**: Ensure the exact message from server is signed
 
 #### "Permission denied for table..."
+
 - **Cause**: RLS policy blocking access
 - **Fix**: Check that JWT contains correct `wallet_address`
 
 #### "JWT expired"
+
 - **Cause**: Token older than 24 hours
 - **Fix**: Call `refreshAuth()` to get new token
 
@@ -621,6 +639,7 @@ app/
 1. **Check browser console** for detailed error messages
 
 2. **Verify environment variables**:
+
    ```bash
    echo $NEXT_PUBLIC_SUPABASE_URL
    ```

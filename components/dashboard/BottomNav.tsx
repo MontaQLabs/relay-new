@@ -58,18 +58,17 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center gap-1 py-2 px-4 min-w-[72px] transition-all duration-200 ${active ? "text-violet-500" : "text-muted-foreground"
-                }`}
+              className={`flex flex-col items-center justify-center gap-1 py-2 px-4 min-w-[72px] transition-all duration-200 ${
+                active ? "text-violet-500" : "text-muted-foreground"
+              }`}
             >
               <div className="relative">
-                <Icon
-                  className="w-6 h-6"
-                  strokeWidth={active ? 2 : 1.5}
-                />
+                <Icon className="w-6 h-6" strokeWidth={active ? 2 : 1.5} />
               </div>
               <span
-                className={`text-xs font-medium ${active ? "text-foreground" : "text-muted-foreground"
-                  }`}
+                className={`text-xs font-medium ${
+                  active ? "text-foreground" : "text-muted-foreground"
+                }`}
               >
                 {item.label}
               </span>

@@ -46,10 +46,7 @@ export class SolanaEscrowAdapter implements IEscrowAdapter {
     return { success: true, txHash: `solana_create_${Date.now()}` };
   }
 
-  async enroll(
-    params: EnrollParams,
-    _enrolleeKeypair: ChainKeypair
-  ): Promise<TxResult> {
+  async enroll(params: EnrollParams, _enrolleeKeypair: ChainKeypair): Promise<TxResult> {
     console.log("[SolanaEscrow] enroll", {
       challengeId: Buffer.from(params.challengeId).toString("hex"),
       agentId: Buffer.from(params.agentId).toString("hex"),
@@ -57,10 +54,7 @@ export class SolanaEscrowAdapter implements IEscrowAdapter {
     return { success: true, txHash: `solana_enroll_${Date.now()}` };
   }
 
-  async placeBet(
-    params: PlaceBetParams,
-    _bettorKeypair: ChainKeypair
-  ): Promise<TxResult> {
+  async placeBet(params: PlaceBetParams, _bettorKeypair: ChainKeypair): Promise<TxResult> {
     console.log("[SolanaEscrow] placeBet", {
       challengeId: Buffer.from(params.challengeId).toString("hex"),
       agentId: Buffer.from(params.agentId).toString("hex"),
@@ -69,10 +63,7 @@ export class SolanaEscrowAdapter implements IEscrowAdapter {
     return { success: true, txHash: `solana_bet_${Date.now()}` };
   }
 
-  async withdraw(
-    params: WithdrawParams,
-    _agentKeypair: ChainKeypair
-  ): Promise<TxResult> {
+  async withdraw(params: WithdrawParams, _agentKeypair: ChainKeypair): Promise<TxResult> {
     console.log("[SolanaEscrow] withdraw", {
       challengeId: Buffer.from(params.challengeId).toString("hex"),
       agentId: Buffer.from(params.agentId).toString("hex"),
@@ -80,10 +71,7 @@ export class SolanaEscrowAdapter implements IEscrowAdapter {
     return { success: true, txHash: `solana_withdraw_${Date.now()}` };
   }
 
-  async vote(
-    params: VoteParams,
-    _voterKeypair: ChainKeypair
-  ): Promise<TxResult> {
+  async vote(params: VoteParams, _voterKeypair: ChainKeypair): Promise<TxResult> {
     console.log("[SolanaEscrow] vote", {
       challengeId: Buffer.from(params.challengeId).toString("hex"),
       agentId: Buffer.from(params.agentId).toString("hex"),
@@ -91,29 +79,21 @@ export class SolanaEscrowAdapter implements IEscrowAdapter {
     return { success: true, txHash: `solana_vote_${Date.now()}` };
   }
 
-  async finalize(
-    challengeId: Uint8Array,
-    _callerKeypair: ChainKeypair
-  ): Promise<TxResult> {
+  async finalize(challengeId: Uint8Array, _callerKeypair: ChainKeypair): Promise<TxResult> {
     console.log("[SolanaEscrow] finalize", {
       challengeId: Buffer.from(challengeId).toString("hex"),
     });
     return { success: true, txHash: `solana_finalize_${Date.now()}` };
   }
 
-  async claim(
-    challengeId: Uint8Array,
-    _claimantKeypair: ChainKeypair
-  ): Promise<TxResult> {
+  async claim(challengeId: Uint8Array, _claimantKeypair: ChainKeypair): Promise<TxResult> {
     console.log("[SolanaEscrow] claim", {
       challengeId: Buffer.from(challengeId).toString("hex"),
     });
     return { success: true, txHash: `solana_claim_${Date.now()}` };
   }
 
-  async getChallengeState(
-    challengeId: Uint8Array
-  ): Promise<ChallengeOnChain | null> {
+  async getChallengeState(challengeId: Uint8Array): Promise<ChallengeOnChain | null> {
     // TODO: Fetch Challenge account via Anchor TS client
     console.log("[SolanaEscrow] getChallengeState", {
       challengeId: Buffer.from(challengeId).toString("hex"),
@@ -121,10 +101,7 @@ export class SolanaEscrowAdapter implements IEscrowAdapter {
     return null;
   }
 
-  async getEnrollRecord(
-    challengeId: Uint8Array,
-    walletAddress: string
-  ): Promise<boolean> {
+  async getEnrollRecord(challengeId: Uint8Array, walletAddress: string): Promise<boolean> {
     // TODO: Check if EnrollRecord PDA exists
     console.log("[SolanaEscrow] getEnrollRecord", {
       challengeId: Buffer.from(challengeId).toString("hex"),

@@ -10,13 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 
 interface DbCommunity {
   id: string;
@@ -105,10 +99,7 @@ export async function GET(request: NextRequest) {
 
       if (error) {
         console.error("Failed to fetch communities:", error);
-        return NextResponse.json(
-          { error: "Failed to fetch communities" },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: "Failed to fetch communities" }, { status: 500 });
       }
       communities = data || [];
     } else if (type === "created") {
@@ -120,27 +111,23 @@ export async function GET(request: NextRequest) {
 
       if (error) {
         console.error("Failed to fetch created communities:", error);
-        return NextResponse.json(
-          { error: "Failed to fetch communities" },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: "Failed to fetch communities" }, { status: 500 });
       }
       communities = data || [];
     } else if (type === "joined") {
       const { data, error } = await supabaseAdmin
         .from("community_members")
-        .select(`
+        .select(
+          `
           community_id,
           communities (*)
-        `)
+        `
+        )
         .eq("user_wallet", wallet);
 
       if (error) {
         console.error("Failed to fetch joined communities:", error);
-        return NextResponse.json(
-          { error: "Failed to fetch communities" },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: "Failed to fetch communities" }, { status: 500 });
       }
 
       // Filter out communities where user is the owner (those go in "created")
@@ -157,10 +144,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ communities: mappedCommunities });
   } catch (error) {
     console.error("Community list error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

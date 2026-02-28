@@ -13,20 +13,15 @@ interface CryptoIconProps {
  * Renders an icon for a cryptocurrency
  * Uses SVG icons for known cryptos, falls back to first letter
  */
-export function CryptoIcon({
-  symbol,
-  color,
-  size = "md",
-  className = "",
-}: CryptoIconProps) {
+export function CryptoIcon({ symbol, color, size = "md", className = "" }: CryptoIconProps) {
   const resolvedColor = color || getCoinColors(symbol).color;
-  
+
   const sizeMap = {
     sm: { icon: 16, text: "text-xs" },
     md: { icon: 20, text: "text-sm" },
     lg: { icon: 24, text: "text-base" },
   };
-  
+
   const { icon: iconSize, text: textSize } = sizeMap[size];
 
   switch (symbol) {
@@ -104,20 +99,15 @@ interface CoinAvatarProps {
  * Renders a coin avatar with background color and icon
  * Shows image if available, falls back to CryptoIcon
  */
-export function CoinAvatar({
-  ticker,
-  symbol,
-  size = "md",
-  className = "",
-}: CoinAvatarProps) {
+export function CoinAvatar({ ticker, symbol, size = "md", className = "" }: CoinAvatarProps) {
   const colors = getCoinColors(ticker);
-  
+
   const sizeMap = {
     sm: "w-8 h-8",
     md: "w-10 h-10",
     lg: "w-12 h-12",
   };
-  
+
   const imgSizeMap = {
     sm: "w-5 h-5",
     md: "w-6 h-6",

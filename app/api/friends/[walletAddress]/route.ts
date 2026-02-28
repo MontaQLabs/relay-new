@@ -8,15 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 import { jwtVerify } from "jose";
 import { deleteFriend } from "@/app/db/supabase";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
 
@@ -62,10 +56,7 @@ export async function PUT(
     if (remark !== undefined) updates.remark = remark?.trim() || null;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: "No fields to update" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
     const { error } = await supabaseAdmin
@@ -85,10 +76,7 @@ export async function PUT(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Update friend error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -110,18 +98,11 @@ export async function DELETE(
     const friendWalletAddress = decodeURIComponent(friendWalletAddressParam);
 
     // Use the deleteFriend function from supabase.ts with admin client
-    const result = await deleteFriend(
-      walletAddress,
-      friendWalletAddress,
-      supabaseAdmin
-    );
+    const result = await deleteFriend(walletAddress, friendWalletAddress, supabaseAdmin);
 
     if (!result.success) {
       if (result.error === "Friend not found") {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: result.error }, { status: 404 });
       }
       return NextResponse.json(
         { error: result.error || "Failed to delete friend. Please try again." },
@@ -132,9 +113,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete friend error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

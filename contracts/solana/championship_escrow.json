@@ -8,16 +8,7 @@
   "instructions": [
     {
       "name": "bet",
-      "discriminator": [
-        94,
-        203,
-        166,
-        126,
-        20,
-        243,
-        169,
-        82
-      ],
+      "discriminator": [94, 203, 166, 126, 20, 243, 169, 82],
       "accounts": [
         {
           "name": "bettor",
@@ -31,17 +22,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  108,
-                  108,
-                  101,
-                  110,
-                  103,
-                  101
-                ]
+                "value": [99, 104, 97, 108, 108, 101, 110, 103, 101]
               },
               {
                 "kind": "arg",
@@ -57,13 +38,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                "value": [118, 97, 117, 108, 116]
               },
               {
                 "kind": "arg",
@@ -74,19 +49,13 @@
         },
         {
           "name": "bet_record",
-          "docs": [
-            "Per-user per-agent bet accumulator."
-          ],
+          "docs": ["Per-user per-agent bet accumulator."],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  98,
-                  101,
-                  116
-                ]
+                "value": [98, 101, 116]
               },
               {
                 "kind": "arg",
@@ -105,30 +74,13 @@
         },
         {
           "name": "user_bet_total",
-          "docs": [
-            "Per-user total bets in this challenge (for refunds)."
-          ],
+          "docs": ["Per-user total bets in this challenge (for refunds)."],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114,
-                  95,
-                  98,
-                  101,
-                  116,
-                  95,
-                  116,
-                  111,
-                  116,
-                  97,
-                  108
-                ]
+                "value": [117, 115, 101, 114, 95, 98, 101, 116, 95, 116, 111, 116, 97, 108]
               },
               {
                 "kind": "arg",
@@ -150,19 +102,13 @@
         {
           "name": "challenge_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         },
         {
           "name": "agent_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         },
         {
@@ -173,16 +119,7 @@
     },
     {
       "name": "cancel",
-      "discriminator": [
-        232,
-        219,
-        223,
-        41,
-        219,
-        236,
-        220,
-        190
-      ],
+      "discriminator": [232, 219, 223, 41, 219, 236, 220, 190],
       "accounts": [
         {
           "name": "caller",
@@ -196,17 +133,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  108,
-                  108,
-                  101,
-                  110,
-                  103,
-                  101
-                ]
+                "value": [99, 104, 97, 108, 108, 101, 110, 103, 101]
               },
               {
                 "kind": "arg",
@@ -220,10 +147,7 @@
         {
           "name": "challenge_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         }
       ]
@@ -238,16 +162,7 @@
         "- `winner_bet_record`: if they bet on the winner (finalized only)",
         "- `user_bet_total`: if they placed any bets (cancelled refund only)"
       ],
-      "discriminator": [
-        62,
-        198,
-        214,
-        193,
-        213,
-        159,
-        108,
-        210
-      ],
+      "discriminator": [62, 198, 214, 193, 213, 159, 108, 210],
       "accounts": [
         {
           "name": "claimant",
@@ -261,17 +176,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  108,
-                  108,
-                  101,
-                  110,
-                  103,
-                  101
-                ]
+                "value": [99, 104, 97, 108, 108, 101, 110, 103, 101]
               },
               {
                 "kind": "arg",
@@ -287,13 +192,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                "value": [118, 97, 117, 108, 116]
               },
               {
                 "kind": "arg",
@@ -304,28 +203,13 @@
         },
         {
           "name": "claim_record",
-          "docs": [
-            "Claim record — init proves first claim."
-          ],
+          "docs": ["Claim record — init proves first claim."],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  108,
-                  97,
-                  105,
-                  109,
-                  95,
-                  114,
-                  101,
-                  99,
-                  111,
-                  114,
-                  100
-                ]
+                "value": [99, 108, 97, 105, 109, 95, 114, 101, 99, 111, 114, 100]
               },
               {
                 "kind": "arg",
@@ -348,16 +232,12 @@
         },
         {
           "name": "winner_bet_record",
-          "docs": [
-            "BetRecord for the winner agent — optional."
-          ],
+          "docs": ["BetRecord for the winner agent — optional."],
           "optional": true
         },
         {
           "name": "user_bet_total",
-          "docs": [
-            "UserBetTotal — optional. Needed for cancelled refunds."
-          ],
+          "docs": ["UserBetTotal — optional. Needed for cancelled refunds."],
           "optional": true
         },
         {
@@ -369,26 +249,14 @@
         {
           "name": "challenge_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         }
       ]
     },
     {
       "name": "create",
-      "discriminator": [
-        24,
-        30,
-        200,
-        40,
-        5,
-        28,
-        7,
-        119
-      ],
+      "discriminator": [24, 30, 200, 40, 5, 28, 7, 119],
       "accounts": [
         {
           "name": "creator",
@@ -405,17 +273,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  108,
-                  108,
-                  101,
-                  110,
-                  103,
-                  101
-                ]
+                "value": [99, 104, 97, 108, 108, 101, 110, 103, 101]
               },
               {
                 "kind": "arg",
@@ -435,13 +293,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                "value": [118, 97, 117, 108, 116]
               },
               {
                 "kind": "arg",
@@ -459,10 +311,7 @@
         {
           "name": "challenge_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         },
         {
@@ -485,16 +334,7 @@
     },
     {
       "name": "enroll",
-      "discriminator": [
-        58,
-        12,
-        36,
-        3,
-        142,
-        28,
-        1,
-        43
-      ],
+      "discriminator": [58, 12, 36, 3, 142, 28, 1, 43],
       "accounts": [
         {
           "name": "enrollee",
@@ -508,17 +348,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  108,
-                  108,
-                  101,
-                  110,
-                  103,
-                  101
-                ]
+                "value": [99, 104, 97, 108, 108, 101, 110, 103, 101]
               },
               {
                 "kind": "arg",
@@ -534,13 +364,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                "value": [118, 97, 117, 108, 116]
               },
               {
                 "kind": "arg",
@@ -551,22 +375,13 @@
         },
         {
           "name": "enroll_record",
-          "docs": [
-            "EnrollRecord PDA — init proves first enrollment."
-          ],
+          "docs": ["EnrollRecord PDA — init proves first enrollment."],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  110,
-                  114,
-                  111,
-                  108,
-                  108
-                ]
+                "value": [101, 110, 114, 111, 108, 108]
               },
               {
                 "kind": "arg",
@@ -588,35 +403,20 @@
         {
           "name": "challenge_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         },
         {
           "name": "agent_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         }
       ]
     },
     {
       "name": "finalize",
-      "discriminator": [
-        171,
-        61,
-        218,
-        56,
-        127,
-        115,
-        12,
-        217
-      ],
+      "discriminator": [171, 61, 218, 56, 127, 115, 12, 217],
       "accounts": [
         {
           "name": "caller",
@@ -630,17 +430,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  108,
-                  108,
-                  101,
-                  110,
-                  103,
-                  101
-                ]
+                "value": [99, 104, 97, 108, 108, 101, 110, 103, 101]
               },
               {
                 "kind": "arg",
@@ -656,13 +446,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
+                "value": [118, 97, 117, 108, 116]
               },
               {
                 "kind": "arg",
@@ -684,26 +468,14 @@
         {
           "name": "challenge_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         }
       ]
     },
     {
       "name": "vote",
-      "discriminator": [
-        227,
-        110,
-        155,
-        23,
-        136,
-        126,
-        172,
-        25
-      ],
+      "discriminator": [227, 110, 155, 23, 136, 126, 172, 25],
       "accounts": [
         {
           "name": "voter",
@@ -717,17 +489,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  108,
-                  108,
-                  101,
-                  110,
-                  103,
-                  101
-                ]
+                "value": [99, 104, 97, 108, 108, 101, 110, 103, 101]
               },
               {
                 "kind": "arg",
@@ -738,27 +500,13 @@
         },
         {
           "name": "vote_record",
-          "docs": [
-            "Vote record — init proves first vote."
-          ],
+          "docs": ["Vote record — init proves first vote."],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  118,
-                  111,
-                  116,
-                  101,
-                  95,
-                  114,
-                  101,
-                  99,
-                  111,
-                  114,
-                  100
-                ]
+                "value": [118, 111, 116, 101, 95, 114, 101, 99, 111, 114, 100]
               },
               {
                 "kind": "arg",
@@ -780,19 +528,13 @@
         {
           "name": "challenge_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         },
         {
           "name": "agent_id",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           }
         }
       ]
@@ -801,174 +543,57 @@
   "accounts": [
     {
       "name": "BetRecord",
-      "discriminator": [
-        144,
-        217,
-        102,
-        109,
-        200,
-        164,
-        66,
-        178
-      ]
+      "discriminator": [144, 217, 102, 109, 200, 164, 66, 178]
     },
     {
       "name": "Challenge",
-      "discriminator": [
-        119,
-        250,
-        161,
-        121,
-        119,
-        81,
-        22,
-        208
-      ]
+      "discriminator": [119, 250, 161, 121, 119, 81, 22, 208]
     },
     {
       "name": "ClaimRecord",
-      "discriminator": [
-        57,
-        229,
-        0,
-        9,
-        65,
-        62,
-        96,
-        7
-      ]
+      "discriminator": [57, 229, 0, 9, 65, 62, 96, 7]
     },
     {
       "name": "EnrollRecord",
-      "discriminator": [
-        242,
-        181,
-        77,
-        8,
-        59,
-        214,
-        51,
-        103
-      ]
+      "discriminator": [242, 181, 77, 8, 59, 214, 51, 103]
     },
     {
       "name": "UserBetTotal",
-      "discriminator": [
-        42,
-        17,
-        186,
-        203,
-        161,
-        33,
-        246,
-        96
-      ]
+      "discriminator": [42, 17, 186, 203, 161, 33, 246, 96]
     },
     {
       "name": "VoteRecord",
-      "discriminator": [
-        112,
-        9,
-        123,
-        165,
-        234,
-        9,
-        157,
-        167
-      ]
+      "discriminator": [112, 9, 123, 165, 234, 9, 157, 167]
     }
   ],
   "events": [
     {
       "name": "AgentEnrolled",
-      "discriminator": [
-        120,
-        38,
-        87,
-        209,
-        211,
-        88,
-        79,
-        166
-      ]
+      "discriminator": [120, 38, 87, 209, 211, 88, 79, 166]
     },
     {
       "name": "BetPlaced",
-      "discriminator": [
-        88,
-        88,
-        145,
-        226,
-        126,
-        206,
-        32,
-        0
-      ]
+      "discriminator": [88, 88, 145, 226, 126, 206, 32, 0]
     },
     {
       "name": "ChallengeCancelled",
-      "discriminator": [
-        208,
-        99,
-        93,
-        81,
-        72,
-        248,
-        132,
-        172
-      ]
+      "discriminator": [208, 99, 93, 81, 72, 248, 132, 172]
     },
     {
       "name": "ChallengeCreated",
-      "discriminator": [
-        166,
-        178,
-        174,
-        178,
-        11,
-        172,
-        98,
-        243
-      ]
+      "discriminator": [166, 178, 174, 178, 11, 172, 98, 243]
     },
     {
       "name": "ChallengeFinalized",
-      "discriminator": [
-        190,
-        192,
-        111,
-        18,
-        82,
-        126,
-        97,
-        230
-      ]
+      "discriminator": [190, 192, 111, 18, 82, 126, 97, 230]
     },
     {
       "name": "PayoutClaimed",
-      "discriminator": [
-        200,
-        39,
-        105,
-        112,
-        116,
-        63,
-        58,
-        149
-      ]
+      "discriminator": [200, 39, 105, 112, 116, 63, 58, 149]
     },
     {
       "name": "VoteCast",
-      "discriminator": [
-        39,
-        53,
-        195,
-        104,
-        188,
-        17,
-        225,
-        213
-      ]
+      "discriminator": [39, 53, 195, 104, 188, 17, 225, 213]
     }
   ],
   "errors": [
@@ -1097,19 +722,13 @@
           {
             "name": "challenge_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "agent_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1127,19 +746,13 @@
           {
             "name": "challenge_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "agent_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1155,9 +768,7 @@
     },
     {
       "name": "BetRecord",
-      "docs": [
-        "Accumulates a user's bet on a specific agent in a specific challenge."
-      ],
+      "docs": ["Accumulates a user's bet on a specific agent in a specific challenge."],
       "type": {
         "kind": "struct",
         "fields": [
@@ -1196,10 +807,7 @@
           {
             "name": "challenge_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1254,10 +862,7 @@
             "name": "agent_ids",
             "type": {
               "vec": {
-                "array": [
-                  "u8",
-                  32
-                ]
+                "array": ["u8", 32]
               }
             }
           },
@@ -1290,10 +895,7 @@
           {
             "name": "challenge_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           }
         ]
@@ -1307,10 +909,7 @@
           {
             "name": "challenge_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1344,19 +943,13 @@
           {
             "name": "challenge_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "winner_agent_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1372,9 +965,7 @@
     },
     {
       "name": "ClaimRecord",
-      "docs": [
-        "Proves a user already claimed."
-      ],
+      "docs": ["Proves a user already claimed."],
       "type": {
         "kind": "struct",
         "fields": [
@@ -1409,10 +1000,7 @@
           {
             "name": "challenge_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1428,9 +1016,7 @@
     },
     {
       "name": "UserBetTotal",
-      "docs": [
-        "Tracks user's total bets across all agents in a challenge (for refunds)."
-      ],
+      "docs": ["Tracks user's total bets across all agents in a challenge (for refunds)."],
       "type": {
         "kind": "struct",
         "fields": [
@@ -1453,19 +1039,13 @@
           {
             "name": "challenge_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "agent_id",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1477,9 +1057,7 @@
     },
     {
       "name": "VoteRecord",
-      "docs": [
-        "Proves a user voted in a specific challenge."
-      ],
+      "docs": ["Proves a user voted in a specific challenge."],
       "type": {
         "kind": "struct",
         "fields": [

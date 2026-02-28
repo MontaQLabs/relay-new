@@ -1,0 +1,16 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.*
+
+# Build outputs
+.next
+out
+build
+dist
+
+# Generated
+.papi
+
+# Coverage
+coverage

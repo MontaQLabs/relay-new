@@ -10,11 +10,7 @@ import type { Coin, KnownAsset, Wallet } from "@/app/types/frontend_type";
 import type { ChainId, ChainCoin } from "@/app/chains/types";
 import { WALLET_KEY } from "@/app/types/constants";
 import { ChainSelector } from "@/components/crypto";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 // Color mapping for common crypto tickers
 const COIN_COLORS: Record<string, { bg: string; color: string }> = {
@@ -53,17 +49,52 @@ interface ReceivableToken {
 
 const DEFAULT_RECEIVABLE_TOKENS: ReceivableToken[] = [
   // Polkadot
-  { ticker: "DOT", name: "Polkadot", chainId: "polkadot", symbol: "https://assets.coingecko.com/coins/images/12171/small/polkadot.png" },
+  {
+    ticker: "DOT",
+    name: "Polkadot",
+    chainId: "polkadot",
+    symbol: "https://assets.coingecko.com/coins/images/12171/small/polkadot.png",
+  },
   // Base
-  { ticker: "ETH", name: "Ethereum (Base)", chainId: "base", symbol: "https://assets.coingecko.com/coins/images/279/small/ethereum.png" },
-  { ticker: "USDC", name: "USD Coin (Base)", chainId: "base", symbol: "https://assets.coingecko.com/coins/images/6319/small/usdc.png" },
+  {
+    ticker: "ETH",
+    name: "Ethereum (Base)",
+    chainId: "base",
+    symbol: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
+  },
+  {
+    ticker: "USDC",
+    name: "USD Coin (Base)",
+    chainId: "base",
+    symbol: "https://assets.coingecko.com/coins/images/6319/small/usdc.png",
+  },
   // Solana
-  { ticker: "SOL", name: "Solana", chainId: "solana", symbol: "https://assets.coingecko.com/coins/images/4128/small/solana.png" },
-  { ticker: "USDC", name: "USD Coin (Solana)", chainId: "solana", symbol: "https://assets.coingecko.com/coins/images/6319/small/usdc.png" },
+  {
+    ticker: "SOL",
+    name: "Solana",
+    chainId: "solana",
+    symbol: "https://assets.coingecko.com/coins/images/4128/small/solana.png",
+  },
+  {
+    ticker: "USDC",
+    name: "USD Coin (Solana)",
+    chainId: "solana",
+    symbol: "https://assets.coingecko.com/coins/images/6319/small/usdc.png",
+  },
   // Monad
-  { ticker: "MON", name: "Monad", chainId: "monad", symbol: "https://www.monad.xyz/monad-logo.png" },
+  {
+    ticker: "MON",
+    name: "Monad",
+    chainId: "monad",
+    symbol: "https://www.monad.xyz/monad-logo.png",
+  },
   // NEAR
-  { ticker: "NEAR", name: "NEAR", chainId: "near", symbol: "https://assets.coingecko.com/coins/images/10365/small/near.jpg" },
+  {
+    ticker: "NEAR",
+    name: "NEAR",
+    chainId: "near",
+    symbol: "https://assets.coingecko.com/coins/images/10365/small/near.jpg",
+  },
 ];
 
 export default function ReceivePage() {
@@ -76,7 +107,8 @@ export default function ReceivePage() {
   // Data state
   const [coins, setCoins] = useState<Coin[]>([]);
   const [multiChainBalances, setMultiChainBalances] = useState<Record<string, ChainCoin[]>>({});
-  const [receivableTokens, setReceivableTokens] = useState<ReceivableToken[]>(DEFAULT_RECEIVABLE_TOKENS);
+  const [receivableTokens, setReceivableTokens] =
+    useState<ReceivableToken[]>(DEFAULT_RECEIVABLE_TOKENS);
   const [isLoading, setIsLoading] = useState(true);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
 
@@ -101,16 +133,28 @@ export default function ReceivePage() {
         const walletData = localStorage.getItem(WALLET_KEY);
         if (walletData) {
           const wallet: Wallet = JSON.parse(walletData);
-          setChainAccounts(wallet.chainAccounts || [{ chainId: "polkadot", address: wallet.address }]);
+          setChainAccounts(
+            wallet.chainAccounts || [{ chainId: "polkadot", address: wallet.address }]
+          );
         }
 
         // Polkadot assets
         const knownAssets = await getKnownAssets();
         const polkadotTokens: ReceivableToken[] = [
-          { ticker: "DOT", name: "Polkadot", chainId: "polkadot", symbol: "https://assets.coingecko.com/coins/images/12171/small/polkadot.png" },
+          {
+            ticker: "DOT",
+            name: "Polkadot",
+            chainId: "polkadot",
+            symbol: "https://assets.coingecko.com/coins/images/12171/small/polkadot.png",
+          },
           ...knownAssets.map((asset: KnownAsset) => ({
             ticker: asset.ticker,
-            name: asset.ticker === "USDt" ? "Tether USD" : asset.ticker === "USDC" ? "USD Coin" : asset.ticker,
+            name:
+              asset.ticker === "USDt"
+                ? "Tether USD"
+                : asset.ticker === "USDC"
+                  ? "USD Coin"
+                  : asset.ticker,
             symbol: asset.symbol,
             chainId: "polkadot" as ChainId,
           })),
@@ -131,15 +175,20 @@ export default function ReceivePage() {
           try {
             const { coinsWithPrices } = await calculatePortfolioValue(fetchedCoins);
             setCoins(coinsWithPrices);
-          } catch { /* keep raw values */ }
-          finally { setIsPriceLoading(false); }
+          } catch {
+            /* keep raw values */
+          } finally {
+            setIsPriceLoading(false);
+          }
         }
 
         // Fetch other chains in parallel
         try {
           const balances = await fetchAllChainBalances();
           setMultiChainBalances(balances);
-        } catch { /* non-critical */ }
+        } catch {
+          /* non-critical */
+        }
       } catch (error) {
         console.error("Failed to load data:", error);
         setCoins([]);
@@ -161,14 +210,16 @@ export default function ReceivePage() {
     return chainAccounts.find((a) => a.chainId === selectedChain)?.address || "";
   })();
 
-  const currentChainName = selectedChain === "all"
-    ? "All Networks"
-    : CHAIN_META[selectedChain]?.name || selectedChain;
+  const currentChainName =
+    selectedChain === "all" ? "All Networks" : CHAIN_META[selectedChain]?.name || selectedChain;
 
   /** Coins the user actually holds, filtered to the selected chain. */
   const getOwnedCoins = (): (Coin & { chainId?: ChainId })[] => {
     if (selectedChain === "all" || selectedChain === "polkadot") {
-      const result: (Coin & { chainId?: ChainId })[] = coins.map((c) => ({ ...c, chainId: "polkadot" as ChainId }));
+      const result: (Coin & { chainId?: ChainId })[] = coins.map((c) => ({
+        ...c,
+        chainId: "polkadot" as ChainId,
+      }));
       if (selectedChain === "all") {
         for (const [cid, chainCoins] of Object.entries(multiChainBalances)) {
           if (cid === "polkadot") continue;
@@ -232,7 +283,8 @@ export default function ReceivePage() {
 
     // Determine the address to encode based on the token's chain
     const tokenChainId = "chainId" in token ? (token as ReceivableToken).chainId : selectedChain;
-    const qrAddress = chainAccounts.find((a) => a.chainId === tokenChainId)?.address || currentAddress;
+    const qrAddress =
+      chainAccounts.find((a) => a.chainId === tokenChainId)?.address || currentAddress;
 
     try {
       const qrDataUrl = await generateQRCode(qrAddress, 280);
@@ -247,8 +299,10 @@ export default function ReceivePage() {
   const handleDownload = async () => {
     if (!qrCodeDataUrl || !selectedToken) return;
     try {
-      const tokenChainId = "chainId" in selectedToken ? (selectedToken as ReceivableToken).chainId : selectedChain;
-      const qrAddress = chainAccounts.find((a) => a.chainId === tokenChainId)?.address || currentAddress;
+      const tokenChainId =
+        "chainId" in selectedToken ? (selectedToken as ReceivableToken).chainId : selectedChain;
+      const qrAddress =
+        chainAccounts.find((a) => a.chainId === tokenChainId)?.address || currentAddress;
       await downloadQRWithPromo(
         qrCodeDataUrl,
         qrAddress,
@@ -263,7 +317,8 @@ export default function ReceivePage() {
   /** Get the displayed address for QR sheet based on selected token. */
   const getSheetAddress = () => {
     if (!selectedToken) return currentAddress;
-    const tokenChainId = "chainId" in selectedToken ? (selectedToken as ReceivableToken).chainId : selectedChain;
+    const tokenChainId =
+      "chainId" in selectedToken ? (selectedToken as ReceivableToken).chainId : selectedChain;
     return chainAccounts.find((a) => a.chainId === tokenChainId)?.address || currentAddress;
   };
 
@@ -272,7 +327,8 @@ export default function ReceivePage() {
 
   const getSheetChainName = () => {
     if (!selectedToken) return currentChainName;
-    const cid = "chainId" in selectedToken ? (selectedToken as ReceivableToken).chainId : selectedChain;
+    const cid =
+      "chainId" in selectedToken ? (selectedToken as ReceivableToken).chainId : selectedChain;
     return CHAIN_META[cid as string]?.name || cid;
   };
 
@@ -343,9 +399,7 @@ export default function ReceivePage() {
             <p className="font-mono text-sm break-all text-white/90">
               {currentAddress || "Select a chain to view address"}
             </p>
-            {copied && (
-              <p className="text-xs text-white/70 mt-2">Address copied!</p>
-            )}
+            {copied && <p className="text-xs text-white/70 mt-2">Address copied!</p>}
           </div>
         </div>
 
@@ -434,7 +488,9 @@ export default function ReceivePage() {
                         {selectedChain === "all" && (
                           <span
                             className="text-[10px] font-medium px-1.5 py-0.5 rounded-full text-white"
-                            style={{ backgroundColor: CHAIN_META[token.chainId]?.color || "#6366f1" }}
+                            style={{
+                              backgroundColor: CHAIN_META[token.chainId]?.color || "#6366f1",
+                            }}
                           >
                             {token.chainId === "polkadot" ? "DOT" : token.chainId.toUpperCase()}
                           </span>
@@ -451,10 +507,14 @@ export default function ReceivePage() {
 
         {/* Info message when no coins */}
         {!isLoading && !hasOwnedCoins && (
-          <div className="animate-slide-up bg-blue-50 border border-blue-200 rounded-xl p-4" style={{ animationDelay: "90ms" }}>
+          <div
+            className="animate-slide-up bg-blue-50 border border-blue-200 rounded-xl p-4"
+            style={{ animationDelay: "90ms" }}
+          >
             <p className="text-sm text-blue-800">
-              <span className="font-medium">New wallet?</span> Select a token above to view your receive address and QR code.
-              Share it with others to receive tokens on any supported network.
+              <span className="font-medium">New wallet?</span> Select a token above to view your
+              receive address and QR code. Share it with others to receive tokens on any supported
+              network.
             </p>
           </div>
         )}
@@ -472,9 +532,7 @@ export default function ReceivePage() {
           <SheetTitle className="text-center text-lg font-semibold text-black mb-1">
             Share
           </SheetTitle>
-          <p className="text-center text-xs text-muted-foreground mb-4">
-            {getSheetChainName()}
-          </p>
+          <p className="text-center text-xs text-muted-foreground mb-4">{getSheetChainName()}</p>
 
           {/* QR Card */}
           <div className="mx-5 border border-gray-200 rounded-2xl p-6 bg-white">
@@ -486,11 +544,7 @@ export default function ReceivePage() {
                 </div>
               ) : (
                 /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={qrCodeDataUrl}
-                  alt="QR Code"
-                  className="w-[260px] h-[260px]"
-                />
+                <img src={qrCodeDataUrl} alt="QR Code" className="w-[260px] h-[260px]" />
               )}
             </div>
 

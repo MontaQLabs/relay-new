@@ -1,9 +1,9 @@
 /**
  * Wallet-based Authentication Utilities
- * 
+ *
  * This module provides authentication using Polkadot wallet signatures.
  * Users prove ownership of their wallet by signing a message with their private key.
- * 
+ *
  * Flow:
  * 1. Request a nonce from the server
  * 2. Sign the nonce message with the wallet
@@ -11,10 +11,10 @@
  * 4. Receive JWT token for Supabase authentication
  */
 
-import { Keyring } from '@polkadot/keyring';
-import { cryptoWaitReady, signatureVerify } from '@polkadot/util-crypto';
-import { SS58_FORMAT, WALLET_SEED_KEY } from '../types/constants';
-import { setSupabaseAuth, clearSupabaseAuth, upsertUser } from '../db/supabase';
+import { Keyring } from "@polkadot/keyring";
+import { cryptoWaitReady, signatureVerify } from "@polkadot/util-crypto";
+import { SS58_FORMAT, WALLET_SEED_KEY } from "../types/constants";
+import { setSupabaseAuth, clearSupabaseAuth, upsertUser } from "../db/supabase";
 
 // ============================================================================
 // Types
@@ -40,8 +40,8 @@ export interface VerifyResponse {
 // Constants
 // ============================================================================
 
-const AUTH_TOKEN_KEY = 'relay-auth-token';
-const AUTH_WALLET_KEY = 'relay-auth-wallet';
+const AUTH_TOKEN_KEY = "relay-auth-token";
+const AUTH_WALLET_KEY = "relay-auth-wallet";
 
 // ============================================================================
 // Client-side Authentication Functions
@@ -57,12 +57,12 @@ export const signMessage = async (
 ): Promise<{ signature: string; address: string }> => {
   await cryptoWaitReady();
 
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: SS58_FORMAT });
+  const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
   const pair = keyring.addFromMnemonic(mnemonic);
 
   // Sign the message
   const signatureU8a = pair.sign(message);
-  const signature = Buffer.from(signatureU8a).toString('hex');
+  const signature = Buffer.from(signatureU8a).toString("hex");
 
   return {
     signature,
@@ -81,11 +81,7 @@ export const verifySignature = async (
   await cryptoWaitReady();
 
   try {
-    const { isValid } = signatureVerify(
-      message,
-      Buffer.from(signature, 'hex'),
-      address
-    );
+    const { isValid } = signatureVerify(message, Buffer.from(signature, "hex"), address);
     return isValid;
   } catch {
     return false;
@@ -98,7 +94,7 @@ export const verifySignature = async (
 export const getWalletAddress = async (mnemonic: string): Promise<string> => {
   await cryptoWaitReady();
 
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: SS58_FORMAT });
+  const keyring = new Keyring({ type: "sr25519", ss58Format: SS58_FORMAT });
   const pair = keyring.addFromMnemonic(mnemonic);
 
   return pair.address;
@@ -106,19 +102,20 @@ export const getWalletAddress = async (mnemonic: string): Promise<string> => {
 
 /**
  * Full authentication flow using wallet signature
- * 
+ *
  * @param mnemonic - The wallet's mnemonic phrase (from localStorage)
  * @returns AuthResult with success status and token if successful
  */
 export const authenticateWithWallet = async (mnemonic?: string): Promise<AuthResult> => {
   try {
     // Get mnemonic from parameter or localStorage
-    const seed = mnemonic || (typeof window !== 'undefined' ? localStorage.getItem(WALLET_SEED_KEY) : null);
-    
+    const seed =
+      mnemonic || (typeof window !== "undefined" ? localStorage.getItem(WALLET_SEED_KEY) : null);
+
     if (!seed) {
       return {
         success: false,
-        error: 'No wallet seed found. Please import or create a wallet first.',
+        error: "No wallet seed found. Please import or create a wallet first.",
       };
     }
 
@@ -126,9 +123,9 @@ export const authenticateWithWallet = async (mnemonic?: string): Promise<AuthRes
     const walletAddress = await getWalletAddress(seed);
 
     // Step 1: Request nonce from server
-    const nonceResponse = await fetch('/api/auth/nonce', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const nonceResponse = await fetch("/api/auth/nonce", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ walletAddress }),
     });
 
@@ -136,7 +133,7 @@ export const authenticateWithWallet = async (mnemonic?: string): Promise<AuthRes
       const error = await nonceResponse.json();
       return {
         success: false,
-        error: error.error || 'Failed to get authentication nonce',
+        error: error.error || "Failed to get authentication nonce",
       };
     }
 
@@ -146,9 +143,9 @@ export const authenticateWithWallet = async (mnemonic?: string): Promise<AuthRes
     const { signature } = await signMessage(message, seed);
 
     // Step 3: Verify signature and get JWT
-    const verifyResponse = await fetch('/api/auth/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const verifyResponse = await fetch("/api/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ walletAddress, signature, nonce }),
     });
 
@@ -156,7 +153,7 @@ export const authenticateWithWallet = async (mnemonic?: string): Promise<AuthRes
       const error = await verifyResponse.json();
       return {
         success: false,
-        error: error.error || 'Signature verification failed',
+        error: error.error || "Signature verification failed",
       };
     }
 
@@ -166,7 +163,7 @@ export const authenticateWithWallet = async (mnemonic?: string): Promise<AuthRes
     await setSupabaseAuth(token);
 
     // Step 5: Store token for persistence
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
       localStorage.setItem(AUTH_WALLET_KEY, walletAddress);
     }
@@ -180,10 +177,10 @@ export const authenticateWithWallet = async (mnemonic?: string): Promise<AuthRes
       token,
     };
   } catch (error) {
-    console.error('Authentication failed:', error);
+    console.error("Authentication failed:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Authentication failed',
+      error: error instanceof Error ? error.message : "Authentication failed",
     };
   }
 };
@@ -192,14 +189,14 @@ export const authenticateWithWallet = async (mnemonic?: string): Promise<AuthRes
  * Check if user is currently authenticated
  */
 export const isAuthenticated = (): boolean => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
 
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
   if (!token) return false;
 
   // Check if token is expired
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     const exp = payload.exp * 1000; // Convert to milliseconds
     return Date.now() < exp;
   } catch {
@@ -211,7 +208,7 @@ export const isAuthenticated = (): boolean => {
  * Get the currently authenticated wallet address
  */
 export const getAuthenticatedWallet = (): string | null => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   return localStorage.getItem(AUTH_WALLET_KEY);
 };
 
@@ -219,7 +216,7 @@ export const getAuthenticatedWallet = (): string | null => {
  * Get the current auth token
  */
 export const getAuthToken = (): string | null => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   return localStorage.getItem(AUTH_TOKEN_KEY);
 };
 
@@ -228,7 +225,7 @@ export const getAuthToken = (): string | null => {
  * Call this on app initialization
  */
 export const restoreSession = async (): Promise<boolean> => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
 
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
   if (!token) return false;
@@ -253,7 +250,7 @@ export const signOut = async (): Promise<void> => {
   await clearSupabaseAuth();
 
   // Clear stored tokens
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_WALLET_KEY);
   }
@@ -276,7 +273,7 @@ export const refreshAuth = async (): Promise<AuthResult> => {
  */
 export const generateNonce = (): string => {
   const array = new Uint8Array(32);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
     crypto.getRandomValues(array);
   } else {
     // Fallback for Node.js environment
@@ -285,8 +282,8 @@ export const generateNonce = (): string => {
     }
   }
   return Array.from(array)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 };
 
 /**

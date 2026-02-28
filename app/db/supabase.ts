@@ -1,14 +1,14 @@
 /**
  * Supabase Database Operations
  * This file provides all database operations for the Relay app.
- * 
+ *
  * Prerequisites:
  * - Set up Supabase project and run the SQL schema (see supabase-schema.sql)
  * - Configure environment variables (see SETUP.md)
  * - User must be authenticated before calling these functions
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import {
   User,
   Friend,
@@ -25,17 +25,19 @@ import {
   ChallengeVote,
   ChallengePayout,
   ChallengeStatus,
-} from '../types/frontend_type';
+} from "../types/frontend_type";
 
 // ============================================================================
 // Supabase Client Setup
 // ============================================================================
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Use placeholders during build when env vars are missing (e.g. CI, static export)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key-for-build";
 
 // Storage key for auth token
-const AUTH_TOKEN_STORAGE_KEY = 'relay-auth-token';
+const AUTH_TOKEN_STORAGE_KEY = "relay-auth-token";
 
 // Client-side Supabase client (uses anon key, respects RLS)
 // This base client is used for unauthenticated requests
@@ -63,17 +65,17 @@ const createAuthenticatedClient = (token: string): SupabaseClient => {
 // Set auth token after wallet authentication
 export const setSupabaseAuth = async (token: string): Promise<void> => {
   // Store token in localStorage for persistence
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
   }
-  
+
   // Create authenticated client with the custom JWT
   authenticatedClient = createAuthenticatedClient(token);
 };
 
 // Clear auth session
 export const clearSupabaseAuth = async (): Promise<void> => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   }
   authenticatedClient = null;
@@ -81,14 +83,14 @@ export const clearSupabaseAuth = async (): Promise<void> => {
 
 // Restore auth session from stored token (call on app initialization)
 export const restoreSupabaseAuth = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  
+  if (typeof window === "undefined") return false;
+
   const token = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
   if (!token) return false;
-  
+
   // Check if token is expired
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     const exp = payload.exp * 1000;
     if (Date.now() >= exp) {
       // Token expired, clear it
@@ -98,7 +100,7 @@ export const restoreSupabaseAuth = (): boolean => {
   } catch {
     return false;
   }
-  
+
   // Create authenticated client
   authenticatedClient = createAuthenticatedClient(token);
   return true;
@@ -234,7 +236,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
   if (!session?.session?.user) return null;
 
   const walletAddress = session.session.access_token
-    ? JSON.parse(atob(session.session.access_token.split('.')[1])).wallet_address
+    ? JSON.parse(atob(session.session.access_token.split(".")[1])).wallet_address
     : null;
 
   if (!walletAddress) return null;
@@ -247,9 +249,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
  */
 export const getUserByWallet = async (walletAddress: string): Promise<User | null> => {
   const { data: dbUser, error } = await getSupabaseClient()
-    .from('users')
-    .select('*')
-    .eq('wallet_address', walletAddress)
+    .from("users")
+    .select("*")
+    .eq("wallet_address", walletAddress)
     .single();
 
   if (error || !dbUser) return null;
@@ -266,20 +268,20 @@ export const getUserByWallet = async (walletAddress: string): Promise<User | nul
   const socialRecovery = friends.slice(0, 3); // Placeholder - implement actual social recovery logic
 
   return {
-    avatar: dbUser.avatar || '',
-    nickname: dbUser.nickname || '',
+    avatar: dbUser.avatar || "",
+    nickname: dbUser.nickname || "",
     wallet: {
       address: walletAddress,
-      network: 'Polkadot Asset Hub',
-      chainAccounts: [{ chainId: 'polkadot', address: walletAddress }],
-      status: 'active',
+      network: "Polkadot Asset Hub",
+      chainAccounts: [{ chainId: "polkadot", address: walletAddress }],
+      status: "active",
       isBackedUp: true,
     },
     friends,
     socialRecovery,
     transactions,
     communities,
-    activities: activities.map(a => a.activityId),
+    activities: activities.map((a) => a.activityId),
   };
 };
 
@@ -289,9 +291,9 @@ export const getUserByWallet = async (walletAddress: string): Promise<User | nul
  */
 export const getUserNickname = async (walletAddress: string): Promise<string> => {
   const { data, error } = await getSupabaseClient()
-    .from('users')
-    .select('nickname')
-    .eq('wallet_address', walletAddress)
+    .from("users")
+    .select("nickname")
+    .eq("wallet_address", walletAddress)
     .single();
 
   if (error || !data || !data.nickname) {
@@ -306,16 +308,18 @@ export const getUserNickname = async (walletAddress: string): Promise<string> =>
  * Get user nicknames by wallet addresses (batch)
  * Returns a map of wallet address to nickname
  */
-export const getUserNicknames = async (walletAddresses: string[]): Promise<Record<string, string>> => {
+export const getUserNicknames = async (
+  walletAddresses: string[]
+): Promise<Record<string, string>> => {
   if (walletAddresses.length === 0) return {};
 
   // Remove duplicates
   const uniqueAddresses = [...new Set(walletAddresses)];
 
   const { data, error } = await getSupabaseClient()
-    .from('users')
-    .select('wallet_address, nickname')
-    .in('wallet_address', uniqueAddresses);
+    .from("users")
+    .select("wallet_address, nickname")
+    .in("wallet_address", uniqueAddresses);
 
   const nicknameMap: Record<string, string> = {};
 
@@ -344,12 +348,12 @@ export const updateUserProfile = async (
   updates: { avatar?: string; nickname?: string }
 ): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('users')
+    .from("users")
     .update({
       avatar: updates.avatar,
       nickname: updates.nickname,
     })
-    .eq('wallet_address', walletAddress);
+    .eq("wallet_address", walletAddress);
 
   return !error;
 };
@@ -361,16 +365,17 @@ export const upsertUser = async (
   walletAddress: string,
   data?: { avatar?: string; nickname?: string }
 ): Promise<boolean> => {
-  const { error } = await getSupabaseClient()
-    .from('users')
-    .upsert({
+  const { error } = await getSupabaseClient().from("users").upsert(
+    {
       wallet_address: walletAddress,
       avatar: data?.avatar,
       nickname: data?.nickname,
       last_login: new Date().toISOString(),
-    }, {
-      onConflict: 'wallet_address',
-    });
+    },
+    {
+      onConflict: "wallet_address",
+    }
+  );
 
   return !error;
 };
@@ -384,10 +389,10 @@ export const upsertUser = async (
  */
 export const getFriends = async (walletAddress: string): Promise<Friend[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('friends')
-    .select('*')
-    .eq('user_wallet', walletAddress)
-    .order('created_at', { ascending: false });
+    .from("friends")
+    .select("*")
+    .eq("user_wallet", walletAddress)
+    .order("created_at", { ascending: false });
 
   if (error || !data) return [];
 
@@ -395,26 +400,21 @@ export const getFriends = async (walletAddress: string): Promise<Friend[]> => {
     nickname: f.nickname,
     walletAddress: f.wallet_address,
     network: f.network,
-    remark: f.remark || '',
+    remark: f.remark || "",
   }));
 };
 
 /**
  * Add a new friend
  */
-export const addFriend = async (
-  userWallet: string,
-  friend: Friend
-): Promise<boolean> => {
-  const { error } = await getSupabaseClient()
-    .from('friends')
-    .insert({
-      user_wallet: userWallet,
-      nickname: friend.nickname,
-      wallet_address: friend.walletAddress,
-      network: friend.network,
-      remark: friend.remark,
-    });
+export const addFriend = async (userWallet: string, friend: Friend): Promise<boolean> => {
+  const { error } = await getSupabaseClient().from("friends").insert({
+    user_wallet: userWallet,
+    nickname: friend.nickname,
+    wallet_address: friend.walletAddress,
+    network: friend.network,
+    remark: friend.remark,
+  });
 
   return !error;
 };
@@ -428,14 +428,14 @@ export const updateFriend = async (
   updates: Partial<Friend>
 ): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('friends')
+    .from("friends")
     .update({
       nickname: updates.nickname,
       network: updates.network,
       remark: updates.remark,
     })
-    .eq('user_wallet', userWallet)
-    .eq('wallet_address', friendWalletAddress);
+    .eq("user_wallet", userWallet)
+    .eq("wallet_address", friendWalletAddress);
 
   return !error;
 };
@@ -448,10 +448,10 @@ export const removeFriend = async (
   friendWalletAddress: string
 ): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('friends')
+    .from("friends")
     .delete()
-    .eq('user_wallet', userWallet)
-    .eq('wallet_address', friendWalletAddress);
+    .eq("user_wallet", userWallet)
+    .eq("wallet_address", friendWalletAddress);
 
   return !error;
 };
@@ -467,20 +467,20 @@ export const deleteFriend = async (
   client?: SupabaseClient
 ): Promise<{ success: boolean; error?: string }> => {
   const supabaseClient = client || getSupabaseClient();
-  
+
   // Trim wallet addresses
   const trimmedUserWallet = userWallet.trim();
   const trimmedFriendWallet = friendWalletAddress.trim();
 
   // First, get all friends for this user to find the exact match (case-insensitive)
   const { data: allFriends, error: fetchError } = await supabaseClient
-    .from('friends')
-    .select('id, user_wallet, wallet_address')
-    .eq('user_wallet', trimmedUserWallet);
+    .from("friends")
+    .select("id, user_wallet, wallet_address")
+    .eq("user_wallet", trimmedUserWallet);
 
   if (fetchError) {
-    console.error('Error fetching friends:', fetchError);
-    return { success: false, error: 'Failed to check friend existence' };
+    console.error("Error fetching friends:", fetchError);
+    return { success: false, error: "Failed to check friend existence" };
   }
 
   // Find the friend with case-insensitive wallet address comparison
@@ -489,18 +489,15 @@ export const deleteFriend = async (
   );
 
   if (!friend) {
-    return { success: false, error: 'Friend not found' };
+    return { success: false, error: "Friend not found" };
   }
 
   // Delete using the exact stored values (preserving case)
-  const { error: deleteError } = await supabaseClient
-    .from('friends')
-    .delete()
-    .eq('id', friend.id);
+  const { error: deleteError } = await supabaseClient.from("friends").delete().eq("id", friend.id);
 
   if (deleteError) {
-    console.error('Error deleting friend:', deleteError);
-    return { success: false, error: 'Failed to delete friend' };
+    console.error("Error deleting friend:", deleteError);
+    return { success: false, error: "Failed to delete friend" };
   }
 
   return { success: true };
@@ -517,10 +514,10 @@ export const searchCommunities = async (searchTerm: string): Promise<Community[]
   if (!searchTerm.trim()) return [];
 
   const { data, error } = await getSupabaseClient()
-    .from('communities')
-    .select('*')
-    .ilike('name', `%${searchTerm.trim()}%`)
-    .order('created_at', { ascending: false });
+    .from("communities")
+    .select("*")
+    .ilike("name", `%${searchTerm.trim()}%`)
+    .order("created_at", { ascending: false });
 
   if (error || !data) return [];
 
@@ -531,13 +528,13 @@ export const searchCommunities = async (searchTerm: string): Promise<Community[]
       return {
         owner: c.owner_wallet,
         name: c.name,
-        description: c.description || '',
-        avatar: c.avatar || '',
+        description: c.description || "",
+        avatar: c.avatar || "",
         communityId: c.community_id,
         rules: c.rules || undefined,
         activityTypes: c.activity_types || [],
         allowInvestment: c.allow_investment ?? true,
-        activities: activities.map(a => a.activityId),
+        activities: activities.map((a) => a.activityId),
         memberCount,
       };
     })
@@ -551,9 +548,9 @@ export const searchCommunities = async (searchTerm: string): Promise<Community[]
  */
 export const getAllCommunities = async (): Promise<Community[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('communities')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("communities")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (error || !data) return [];
 
@@ -564,13 +561,13 @@ export const getAllCommunities = async (): Promise<Community[]> => {
       return {
         owner: c.owner_wallet,
         name: c.name,
-        description: c.description || '',
-        avatar: c.avatar || '',
+        description: c.description || "",
+        avatar: c.avatar || "",
         communityId: c.community_id,
         rules: c.rules || undefined,
         activityTypes: c.activity_types || [],
         allowInvestment: c.allow_investment ?? true,
-        activities: activities.map(a => a.activityId),
+        activities: activities.map((a) => a.activityId),
       };
     })
   );
@@ -583,10 +580,10 @@ export const getAllCommunities = async (): Promise<Community[]> => {
  */
 export const getCreatedCommunities = async (walletAddress: string): Promise<Community[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('communities')
-    .select('*')
-    .eq('owner_wallet', walletAddress)
-    .order('created_at', { ascending: false });
+    .from("communities")
+    .select("*")
+    .eq("owner_wallet", walletAddress)
+    .order("created_at", { ascending: false });
 
   if (error || !data) return [];
 
@@ -597,13 +594,13 @@ export const getCreatedCommunities = async (walletAddress: string): Promise<Comm
       return {
         owner: c.owner_wallet,
         name: c.name,
-        description: c.description || '',
-        avatar: c.avatar || '',
+        description: c.description || "",
+        avatar: c.avatar || "",
         communityId: c.community_id,
         rules: c.rules || undefined,
         activityTypes: c.activity_types || [],
         allowInvestment: c.allow_investment ?? true,
-        activities: activities.map(a => a.activityId),
+        activities: activities.map((a) => a.activityId),
         memberCount,
       };
     })
@@ -617,12 +614,14 @@ export const getCreatedCommunities = async (walletAddress: string): Promise<Comm
  */
 export const getUserCommunities = async (walletAddress: string): Promise<Community[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('community_members')
-    .select(`
+    .from("community_members")
+    .select(
+      `
       community_id,
       communities (*)
-    `)
-    .eq('user_wallet', walletAddress);
+    `
+    )
+    .eq("user_wallet", walletAddress);
 
   if (error || !data) return [];
 
@@ -640,13 +639,13 @@ export const getUserCommunities = async (walletAddress: string): Promise<Communi
         return {
           owner: c.owner_wallet,
           name: c.name,
-          description: c.description || '',
-          avatar: c.avatar || '',
+          description: c.description || "",
+          avatar: c.avatar || "",
           communityId: c.community_id,
           rules: c.rules || undefined,
           activityTypes: c.activity_types || [],
           allowInvestment: c.allow_investment ?? true,
-          activities: activities.map(a => a.activityId),
+          activities: activities.map((a) => a.activityId),
           memberCount,
         };
       })
@@ -660,9 +659,9 @@ export const getUserCommunities = async (walletAddress: string): Promise<Communi
  */
 export const getCommunity = async (communityId: string): Promise<Community | null> => {
   const { data, error } = await getSupabaseClient()
-    .from('communities')
-    .select('*')
-    .eq('community_id', communityId)
+    .from("communities")
+    .select("*")
+    .eq("community_id", communityId)
     .single();
 
   if (error || !data) return null;
@@ -673,13 +672,13 @@ export const getCommunity = async (communityId: string): Promise<Community | nul
   return {
     owner: data.owner_wallet,
     name: data.name,
-    description: data.description || '',
-    avatar: data.avatar || '',
+    description: data.description || "",
+    avatar: data.avatar || "",
     communityId: data.community_id,
     rules: data.rules || undefined,
     activityTypes: data.activity_types || [],
     allowInvestment: data.allow_investment ?? true,
-    activities: activities.map(a => a.activityId),
+    activities: activities.map((a) => a.activityId),
     token: token || undefined,
   };
 };
@@ -689,12 +688,12 @@ export const getCommunity = async (communityId: string): Promise<Community | nul
  */
 export const createCommunity = async (
   ownerWallet: string,
-  community: Omit<Community, 'owner' | 'activities'>
+  community: Omit<Community, "owner" | "activities">
 ): Promise<string | null> => {
   const communityId = `comm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   const { error } = await getSupabaseClient()
-    .from('communities')
+    .from("communities")
     .insert({
       community_id: communityId,
       owner_wallet: ownerWallet,
@@ -719,8 +718,8 @@ export const createCommunity = async (
  */
 export const updateCommunity = async (
   communityId: string,
-  updates: { 
-    name?: string; 
+  updates: {
+    name?: string;
     description?: string;
     avatar?: string;
     rules?: string;
@@ -737,9 +736,9 @@ export const updateCommunity = async (
   if (updates.allowInvestment !== undefined) dbUpdates.allow_investment = updates.allowInvestment;
 
   const { error } = await getSupabaseClient()
-    .from('communities')
+    .from("communities")
     .update(dbUpdates)
-    .eq('community_id', communityId);
+    .eq("community_id", communityId);
 
   return !error;
 };
@@ -749,9 +748,9 @@ export const updateCommunity = async (
  */
 export const deleteCommunity = async (communityId: string): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('communities')
+    .from("communities")
     .delete()
-    .eq('community_id', communityId);
+    .eq("community_id", communityId);
 
   return !error;
 };
@@ -759,16 +758,11 @@ export const deleteCommunity = async (communityId: string): Promise<boolean> => 
 /**
  * Join a community
  */
-export const joinCommunity = async (
-  communityId: string,
-  userWallet: string
-): Promise<boolean> => {
-  const { error } = await getSupabaseClient()
-    .from('community_members')
-    .insert({
-      community_id: communityId,
-      user_wallet: userWallet,
-    });
+export const joinCommunity = async (communityId: string, userWallet: string): Promise<boolean> => {
+  const { error } = await getSupabaseClient().from("community_members").insert({
+    community_id: communityId,
+    user_wallet: userWallet,
+  });
 
   return !error;
 };
@@ -776,15 +770,12 @@ export const joinCommunity = async (
 /**
  * Leave a community
  */
-export const leaveCommunity = async (
-  communityId: string,
-  userWallet: string
-): Promise<boolean> => {
+export const leaveCommunity = async (communityId: string, userWallet: string): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('community_members')
+    .from("community_members")
     .delete()
-    .eq('community_id', communityId)
-    .eq('user_wallet', userWallet);
+    .eq("community_id", communityId)
+    .eq("user_wallet", userWallet);
 
   return !error;
 };
@@ -794,9 +785,9 @@ export const leaveCommunity = async (
  */
 export const getCommunityMembers = async (communityId: string): Promise<string[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('community_members')
-    .select('user_wallet')
-    .eq('community_id', communityId);
+    .from("community_members")
+    .select("user_wallet")
+    .eq("community_id", communityId);
 
   if (error || !data) return [];
 
@@ -808,9 +799,9 @@ export const getCommunityMembers = async (communityId: string): Promise<string[]
  */
 export const getCommunityMemberCount = async (communityId: string): Promise<number> => {
   const { count, error } = await getSupabaseClient()
-    .from('community_members')
-    .select('*', { count: 'exact', head: true })
-    .eq('community_id', communityId);
+    .from("community_members")
+    .select("*", { count: "exact", head: true })
+    .eq("community_id", communityId);
 
   if (error || count === null) return 0;
 
@@ -825,10 +816,10 @@ export const isUserCommunityMember = async (
   userWallet: string
 ): Promise<boolean> => {
   const { data, error } = await getSupabaseClient()
-    .from('community_members')
-    .select('id')
-    .eq('community_id', communityId)
-    .eq('user_wallet', userWallet)
+    .from("community_members")
+    .select("id")
+    .eq("community_id", communityId)
+    .eq("user_wallet", userWallet)
     .single();
 
   return !error && !!data;
@@ -844,10 +835,10 @@ export const checkUserMembershipBulk = async (
   if (communityIds.length === 0) return {};
 
   const { data, error } = await getSupabaseClient()
-    .from('community_members')
-    .select('community_id')
-    .eq('user_wallet', userWallet)
-    .in('community_id', communityIds);
+    .from("community_members")
+    .select("community_id")
+    .eq("user_wallet", userWallet)
+    .in("community_id", communityIds);
 
   if (error || !data) return {};
 
@@ -887,9 +878,9 @@ const mapDbCommunityTokenToToken = (db: DbCommunityToken): CommunityToken => ({
  */
 export const getCommunityToken = async (communityId: string): Promise<CommunityToken | null> => {
   const { data, error } = await getSupabaseClient()
-    .from('community_tokens')
-    .select('*')
-    .eq('community_id', communityId)
+    .from("community_tokens")
+    .select("*")
+    .eq("community_id", communityId)
     .single();
 
   if (error || !data) return null;
@@ -902,10 +893,10 @@ export const getCommunityToken = async (communityId: string): Promise<CommunityT
  */
 export const createCommunityToken = async (
   communityId: string,
-  token: Omit<CommunityToken, 'createdAt' | 'isFrozen' | 'totalSupply'> & { totalSupply?: string }
+  token: Omit<CommunityToken, "createdAt" | "isFrozen" | "totalSupply"> & { totalSupply?: string }
 ): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('community_tokens')
+    .from("community_tokens")
     .insert({
       community_id: communityId,
       asset_id: token.assetId,
@@ -950,9 +941,9 @@ export const updateCommunityToken = async (
   if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
 
   const { error } = await getSupabaseClient()
-    .from('community_tokens')
+    .from("community_tokens")
     .update(dbUpdates)
-    .eq('community_id', communityId);
+    .eq("community_id", communityId);
 
   return !error;
 };
@@ -962,9 +953,9 @@ export const updateCommunityToken = async (
  */
 export const deleteCommunityToken = async (communityId: string): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('community_tokens')
+    .from("community_tokens")
     .delete()
-    .eq('community_id', communityId);
+    .eq("community_id", communityId);
 
   return !error;
 };
@@ -977,9 +968,9 @@ export const updateTokenSupply = async (
   newSupply: string
 ): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('community_tokens')
+    .from("community_tokens")
     .update({ total_supply: newSupply })
-    .eq('community_id', communityId);
+    .eq("community_id", communityId);
 
   return !error;
 };
@@ -987,14 +978,11 @@ export const updateTokenSupply = async (
 /**
  * Set token frozen status
  */
-export const setTokenFrozen = async (
-  communityId: string,
-  isFrozen: boolean
-): Promise<boolean> => {
+export const setTokenFrozen = async (communityId: string, isFrozen: boolean): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('community_tokens')
+    .from("community_tokens")
     .update({ is_frozen: isFrozen })
-    .eq('community_id', communityId);
+    .eq("community_id", communityId);
 
   return !error;
 };
@@ -1004,9 +992,9 @@ export const setTokenFrozen = async (
  */
 export const isAssetIdAvailable = async (assetId: number): Promise<boolean> => {
   const { data, error } = await getSupabaseClient()
-    .from('community_tokens')
-    .select('id')
-    .eq('asset_id', assetId)
+    .from("community_tokens")
+    .select("id")
+    .eq("asset_id", assetId)
     .single();
 
   // If error or no data, the asset ID is available
@@ -1034,9 +1022,9 @@ const mapDbKnownAssetToKnownAsset = (db: DbKnownAsset): KnownAsset => ({
  */
 export const getKnownAssets = async (): Promise<KnownAsset[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('known_assets')
-    .select('*')
-    .order('asset_id', { ascending: true });
+    .from("known_assets")
+    .select("*")
+    .order("asset_id", { ascending: true });
 
   if (error || !data) return [];
 
@@ -1048,9 +1036,9 @@ export const getKnownAssets = async (): Promise<KnownAsset[]> => {
  */
 export const getKnownAssetById = async (assetId: number): Promise<KnownAsset | null> => {
   const { data, error } = await getSupabaseClient()
-    .from('known_assets')
-    .select('*')
-    .eq('asset_id', assetId)
+    .from("known_assets")
+    .select("*")
+    .eq("asset_id", assetId)
     .single();
 
   if (error || !data) return null;
@@ -1063,10 +1051,10 @@ export const getKnownAssetById = async (assetId: number): Promise<KnownAsset | n
  */
 export const getKnownAssetsByCategory = async (category: string): Promise<KnownAsset[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('known_assets')
-    .select('*')
-    .eq('category', category)
-    .order('asset_id', { ascending: true });
+    .from("known_assets")
+    .select("*")
+    .eq("category", category)
+    .order("asset_id", { ascending: true });
 
   if (error || !data) return [];
 
@@ -1099,9 +1087,9 @@ const mapDbEcosystemProject = (db: DbEcosystemProject): EcosystemProject => ({
  */
 export const getEcosystemProjects = async (): Promise<EcosystemProject[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('ecosystem_projects')
-    .select('*')
-    .order('display_order', { ascending: true });
+    .from("ecosystem_projects")
+    .select("*")
+    .order("display_order", { ascending: true });
 
   if (error || !data) return [];
 
@@ -1113,10 +1101,10 @@ export const getEcosystemProjects = async (): Promise<EcosystemProject[]> => {
  */
 export const getEcosystemProjectsByChain = async (chainId: string): Promise<EcosystemProject[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('ecosystem_projects')
-    .select('*')
-    .eq('chain_id', chainId)
-    .order('display_order', { ascending: true });
+    .from("ecosystem_projects")
+    .select("*")
+    .eq("chain_id", chainId)
+    .order("display_order", { ascending: true });
 
   if (error || !data) return [];
 
@@ -1128,10 +1116,10 @@ export const getEcosystemProjectsByChain = async (chainId: string): Promise<Ecos
  */
 export const getFeaturedProjects = async (): Promise<EcosystemProject[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('ecosystem_projects')
-    .select('*')
-    .eq('featured', true)
-    .order('display_order', { ascending: true });
+    .from("ecosystem_projects")
+    .select("*")
+    .eq("featured", true)
+    .order("display_order", { ascending: true });
 
   if (error || !data) return [];
 
@@ -1147,10 +1135,10 @@ export const getFeaturedProjects = async (): Promise<EcosystemProject[]> => {
  */
 export const getCommunityActivities = async (communityId: string): Promise<Activity[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('activities')
-    .select('*')
-    .eq('community_id', communityId)
-    .order('timestamp', { ascending: false });
+    .from("activities")
+    .select("*")
+    .eq("community_id", communityId)
+    .order("timestamp", { ascending: false });
 
   if (error || !data) return [];
 
@@ -1163,18 +1151,20 @@ export const getCommunityActivities = async (communityId: string): Promise<Activ
 export const getUserActivities = async (walletAddress: string): Promise<Activity[]> => {
   // Get activities the user owns
   const { data: ownedData } = await getSupabaseClient()
-    .from('activities')
-    .select('*')
-    .eq('owner_wallet', walletAddress);
+    .from("activities")
+    .select("*")
+    .eq("owner_wallet", walletAddress);
 
   // Get activities the user is attending
   const { data: attendingData } = await getSupabaseClient()
-    .from('activity_attendees')
-    .select(`
+    .from("activity_attendees")
+    .select(
+      `
       activity_id,
       activities (*)
-    `)
-    .eq('user_wallet', walletAddress);
+    `
+    )
+    .eq("user_wallet", walletAddress);
 
   const activities: DbActivity[] = [];
 
@@ -1185,7 +1175,7 @@ export const getUserActivities = async (walletAddress: string): Promise<Activity
   if (attendingData) {
     attendingData.forEach((item) => {
       const activity = item.activities as unknown as DbActivity;
-      if (activity && !activities.find(a => a.activity_id === activity.activity_id)) {
+      if (activity && !activities.find((a) => a.activity_id === activity.activity_id)) {
         activities.push(activity);
       }
     });
@@ -1199,9 +1189,9 @@ export const getUserActivities = async (walletAddress: string): Promise<Activity
  */
 export const getActivity = async (activityId: string): Promise<Activity | null> => {
   const { data, error } = await getSupabaseClient()
-    .from('activities')
-    .select('*')
-    .eq('activity_id', activityId)
+    .from("activities")
+    .select("*")
+    .eq("activity_id", activityId)
     .single();
 
   if (error || !data) return null;
@@ -1214,31 +1204,29 @@ export const getActivity = async (activityId: string): Promise<Activity | null> 
  */
 export const createActivity = async (
   ownerWallet: string,
-  activity: Omit<Activity, 'activityId' | 'owner' | 'attendees' | 'comments' | 'likes'>
+  activity: Omit<Activity, "activityId" | "owner" | "attendees" | "comments" | "likes">
 ): Promise<string | null> => {
   const activityId = `act_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const { error } = await getSupabaseClient()
-    .from('activities')
-    .insert({
-      activity_id: activityId,
-      community_id: activity.communityId,
-      owner_wallet: ownerWallet,
-      title: activity.title,
-      description: activity.description,
-      is_paid: activity.isPaid,
-      timestamp: activity.timestamp,
-      type: activity.type,
-      max_attendees: activity.maxAttendees,
-      pictures: activity.pictures,
-      status: activity.status,
-      currency: activity.currency,
-      amount: activity.amount,
-      likes: 0,
-    });
+  const { error } = await getSupabaseClient().from("activities").insert({
+    activity_id: activityId,
+    community_id: activity.communityId,
+    owner_wallet: ownerWallet,
+    title: activity.title,
+    description: activity.description,
+    is_paid: activity.isPaid,
+    timestamp: activity.timestamp,
+    type: activity.type,
+    max_attendees: activity.maxAttendees,
+    pictures: activity.pictures,
+    status: activity.status,
+    currency: activity.currency,
+    amount: activity.amount,
+    likes: 0,
+  });
 
   if (error) {
-    console.error('Failed to create activity:', error.message, error.details, error.hint);
+    console.error("Failed to create activity:", error.message, error.details, error.hint);
     return null;
   }
 
@@ -1253,10 +1241,12 @@ export const createActivity = async (
  */
 export const updateActivity = async (
   activityId: string,
-  updates: Partial<Omit<Activity, 'activityId' | 'communityId' | 'owner' | 'attendees' | 'comments'>>
+  updates: Partial<
+    Omit<Activity, "activityId" | "communityId" | "owner" | "attendees" | "comments">
+  >
 ): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('activities')
+    .from("activities")
     .update({
       title: updates.title,
       description: updates.description,
@@ -1269,7 +1259,7 @@ export const updateActivity = async (
       currency: updates.currency,
       amount: updates.amount,
     })
-    .eq('activity_id', activityId);
+    .eq("activity_id", activityId);
 
   return !error;
 };
@@ -1279,9 +1269,9 @@ export const updateActivity = async (
  */
 export const deleteActivity = async (activityId: string): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('activities')
+    .from("activities")
     .delete()
-    .eq('activity_id', activityId);
+    .eq("activity_id", activityId);
 
   return !error;
 };
@@ -1289,16 +1279,11 @@ export const deleteActivity = async (activityId: string): Promise<boolean> => {
 /**
  * Join an activity
  */
-export const joinActivity = async (
-  activityId: string,
-  userWallet: string
-): Promise<boolean> => {
-  const { error } = await getSupabaseClient()
-    .from('activity_attendees')
-    .insert({
-      activity_id: activityId,
-      user_wallet: userWallet,
-    });
+export const joinActivity = async (activityId: string, userWallet: string): Promise<boolean> => {
+  const { error } = await getSupabaseClient().from("activity_attendees").insert({
+    activity_id: activityId,
+    user_wallet: userWallet,
+  });
 
   return !error;
 };
@@ -1306,15 +1291,12 @@ export const joinActivity = async (
 /**
  * Leave an activity
  */
-export const leaveActivity = async (
-  activityId: string,
-  userWallet: string
-): Promise<boolean> => {
+export const leaveActivity = async (activityId: string, userWallet: string): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('activity_attendees')
+    .from("activity_attendees")
     .delete()
-    .eq('activity_id', activityId)
-    .eq('user_wallet', userWallet);
+    .eq("activity_id", activityId)
+    .eq("user_wallet", userWallet);
 
   return !error;
 };
@@ -1323,7 +1305,7 @@ export const leaveActivity = async (
  * Like an activity
  */
 export const likeActivity = async (activityId: string): Promise<boolean> => {
-  const { error } = await getSupabaseClient().rpc('increment_activity_likes', {
+  const { error } = await getSupabaseClient().rpc("increment_activity_likes", {
     p_activity_id: activityId,
   });
 
@@ -1335,9 +1317,9 @@ export const likeActivity = async (activityId: string): Promise<boolean> => {
  */
 export const getActivityAttendees = async (activityId: string): Promise<string[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('activity_attendees')
-    .select('user_wallet')
-    .eq('activity_id', activityId);
+    .from("activity_attendees")
+    .select("user_wallet")
+    .eq("activity_id", activityId);
 
   if (error || !data) return [];
 
@@ -1356,14 +1338,14 @@ const mapDbActivityToActivity = async (dbActivity: DbActivity): Promise<Activity
     activityId: dbActivity.activity_id,
     owner: dbActivity.owner_wallet,
     title: dbActivity.title,
-    description: dbActivity.description || '',
+    description: dbActivity.description || "",
     isPaid: dbActivity.is_paid,
     timestamp: dbActivity.timestamp,
     type: dbActivity.type,
     maxAttendees: dbActivity.max_attendees,
     pictures: dbActivity.pictures || [],
     attendees,
-    comments: comments.map(c => c.commentId),
+    comments: comments.map((c) => c.commentId),
     likes: dbActivity.likes,
     status: dbActivity.status,
     currency: dbActivity.currency || undefined,
@@ -1380,10 +1362,10 @@ const mapDbActivityToActivity = async (dbActivity: DbActivity): Promise<Activity
  */
 export const getActivityComments = async (activityId: string): Promise<Comment[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('comments')
-    .select('*')
-    .eq('activity_id', activityId)
-    .order('timestamp', { ascending: true });
+    .from("comments")
+    .select("*")
+    .eq("activity_id", activityId)
+    .order("timestamp", { ascending: true });
 
   if (error || !data) return [];
 
@@ -1401,9 +1383,9 @@ export const getActivityComments = async (activityId: string): Promise<Comment[]
  */
 export const getComment = async (commentId: string): Promise<Comment | null> => {
   const { data, error } = await getSupabaseClient()
-    .from('comments')
-    .select('*')
-    .eq('comment_id', commentId)
+    .from("comments")
+    .select("*")
+    .eq("comment_id", commentId)
     .single();
 
   if (error || !data) return null;
@@ -1427,16 +1409,14 @@ export const createComment = async (
 ): Promise<string | null> => {
   const commentId = `cmt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const { error } = await getSupabaseClient()
-    .from('comments')
-    .insert({
-      comment_id: commentId,
-      activity_id: activityId,
-      publisher_wallet: publisherWallet,
-      content,
-      timestamp: new Date().toISOString(),
-      likes: 0,
-    });
+  const { error } = await getSupabaseClient().from("comments").insert({
+    comment_id: commentId,
+    activity_id: activityId,
+    publisher_wallet: publisherWallet,
+    content,
+    timestamp: new Date().toISOString(),
+    likes: 0,
+  });
 
   if (error) return null;
 
@@ -1446,14 +1426,11 @@ export const createComment = async (
 /**
  * Update a comment (publisher only - enforced by RLS)
  */
-export const updateComment = async (
-  commentId: string,
-  content: string
-): Promise<boolean> => {
+export const updateComment = async (commentId: string, content: string): Promise<boolean> => {
   const { error } = await getSupabaseClient()
-    .from('comments')
+    .from("comments")
     .update({ content })
-    .eq('comment_id', commentId);
+    .eq("comment_id", commentId);
 
   return !error;
 };
@@ -1462,10 +1439,7 @@ export const updateComment = async (
  * Delete a comment (publisher only - enforced by RLS)
  */
 export const deleteComment = async (commentId: string): Promise<boolean> => {
-  const { error } = await getSupabaseClient()
-    .from('comments')
-    .delete()
-    .eq('comment_id', commentId);
+  const { error } = await getSupabaseClient().from("comments").delete().eq("comment_id", commentId);
 
   return !error;
 };
@@ -1474,7 +1448,7 @@ export const deleteComment = async (commentId: string): Promise<boolean> => {
  * Like a comment
  */
 export const likeComment = async (commentId: string): Promise<boolean> => {
-  const { error } = await getSupabaseClient().rpc('increment_comment_likes', {
+  const { error } = await getSupabaseClient().rpc("increment_comment_likes", {
     p_comment_id: commentId,
   });
 
@@ -1490,10 +1464,10 @@ export const likeComment = async (commentId: string): Promise<boolean> => {
  */
 export const getTransactions = async (walletAddress: string): Promise<Transaction[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('transactions')
-    .select('*')
+    .from("transactions")
+    .select("*")
     .or(`sender_wallet.eq.${walletAddress},receiver_wallet.eq.${walletAddress}`)
-    .order('timestamp', { ascending: false });
+    .order("timestamp", { ascending: false });
 
   if (error || !data) return [];
 
@@ -1501,15 +1475,16 @@ export const getTransactions = async (walletAddress: string): Promise<Transactio
     // Determine transaction type based on wallet address
     const isSent = t.sender_wallet.toLowerCase() === walletAddress.toLowerCase();
     const type: "sent" | "received" = isSent ? "sent" : "received";
-    
+
     // Derive ticker from network (default to DOT for Polkadot networks)
-    const ticker = t.network.includes("Polkadot") || t.network.includes("Asset Hub") ? "DOT" : "UNKNOWN";
-    
+    const ticker =
+      t.network.includes("Polkadot") || t.network.includes("Asset Hub") ? "DOT" : "UNKNOWN";
+
     return {
       id: t.tx_id,
-      sender: t.sender_nickname || 'Unknown',
+      sender: t.sender_nickname || "Unknown",
       senderAddress: t.sender_wallet,
-      receiver: t.receiver_nickname || 'Unknown',
+      receiver: t.receiver_nickname || "Unknown",
       receiverAddress: t.receiver_wallet,
       network: t.network,
       ticker: ticker,
@@ -1528,21 +1503,19 @@ export const getTransactions = async (walletAddress: string): Promise<Transactio
  * Record a new transaction (called after blockchain confirmation)
  */
 export const recordTransaction = async (
-  transaction: Omit<Transaction, 'id'> & { txHash: string }
+  transaction: Omit<Transaction, "id"> & { txHash: string }
 ): Promise<boolean> => {
-  const { error } = await getSupabaseClient()
-    .from('transactions')
-    .insert({
-      tx_id: transaction.txHash,
-      sender_wallet: transaction.senderAddress,
-      sender_nickname: transaction.sender,
-      receiver_wallet: transaction.receiverAddress,
-      receiver_nickname: transaction.receiver,
-      network: transaction.network,
-      amount_fiat: transaction.amountFiat,
-      fees_fiat: transaction.feesFiat,
-      timestamp: transaction.timestamp,
-    });
+  const { error } = await getSupabaseClient().from("transactions").insert({
+    tx_id: transaction.txHash,
+    sender_wallet: transaction.senderAddress,
+    sender_nickname: transaction.sender,
+    receiver_wallet: transaction.receiverAddress,
+    receiver_nickname: transaction.receiver,
+    network: transaction.network,
+    amount_fiat: transaction.amountFiat,
+    fees_fiat: transaction.feesFiat,
+    timestamp: transaction.timestamp,
+  });
 
   return !error;
 };
@@ -1628,7 +1601,7 @@ const mapDbChallengeToChallenge = (c: DbChallenge): Challenge => ({
   competitionDurationSeconds: c.competition_duration_seconds || undefined,
   refundWindowSeconds: c.refund_window_seconds || undefined,
   status: c.status,
-  escrowAddress: c.escrow_address || '',
+  escrowAddress: c.escrow_address || "",
   entryFeeDot: c.entry_fee_dot,
   totalEntryPoolDot: c.total_entry_pool_dot,
   totalBetPoolDot: c.total_bet_pool_dot,
@@ -1644,7 +1617,7 @@ const mapDbAgentToAgent = (a: DbChallengeAgent): ChallengeAgent => ({
   repoUrl: a.repo_url,
   commitHash: a.commit_hash,
   endpointUrl: a.endpoint_url,
-  description: a.description || '',
+  description: a.description || "",
   entryTxHash: a.entry_tx_hash,
   entryVerified: a.entry_verified,
   totalVotes: a.total_votes,
@@ -1656,12 +1629,12 @@ const mapDbAgentToAgent = (a: DbChallengeAgent): ChallengeAgent => ({
  */
 export const getAllChallenges = async (status?: ChallengeStatus): Promise<Challenge[]> => {
   let query = getSupabaseClient()
-    .from('challenges')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("challenges")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (status) {
-    query = query.eq('status', status);
+    query = query.eq("status", status);
   }
 
   const { data, error } = await query;
@@ -1669,20 +1642,20 @@ export const getAllChallenges = async (status?: ChallengeStatus): Promise<Challe
 
   // Get agent counts for each challenge
   const challenges = data.map(mapDbChallengeToChallenge);
-  const challengeIds = challenges.map(c => c.challengeId);
+  const challengeIds = challenges.map((c) => c.challengeId);
 
   if (challengeIds.length > 0) {
     const { data: agentCounts } = await getSupabaseClient()
-      .from('challenge_agents')
-      .select('challenge_id')
-      .in('challenge_id', challengeIds);
+      .from("challenge_agents")
+      .select("challenge_id")
+      .in("challenge_id", challengeIds);
 
     if (agentCounts) {
       const countMap: Record<string, number> = {};
       agentCounts.forEach((a: { challenge_id: string }) => {
         countMap[a.challenge_id] = (countMap[a.challenge_id] || 0) + 1;
       });
-      challenges.forEach(c => {
+      challenges.forEach((c) => {
         c.agentCount = countMap[c.challengeId] || 0;
       });
     }
@@ -1696,9 +1669,9 @@ export const getAllChallenges = async (status?: ChallengeStatus): Promise<Challe
  */
 export const getChallenge = async (challengeId: string): Promise<Challenge | null> => {
   const { data, error } = await getSupabaseClient()
-    .from('challenges')
-    .select('*')
-    .eq('challenge_id', challengeId)
+    .from("challenges")
+    .select("*")
+    .eq("challenge_id", challengeId)
     .single();
 
   if (error || !data) return null;
@@ -1707,9 +1680,9 @@ export const getChallenge = async (challengeId: string): Promise<Challenge | nul
 
   // Get agent count
   const { count } = await getSupabaseClient()
-    .from('challenge_agents')
-    .select('*', { count: 'exact', head: true })
-    .eq('challenge_id', challengeId);
+    .from("challenge_agents")
+    .select("*", { count: "exact", head: true })
+    .eq("challenge_id", challengeId);
 
   challenge.agentCount = count || 0;
 
@@ -1735,7 +1708,7 @@ export const createChallenge = async (
   const challengeId = `ch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   const { error } = await getSupabaseClient()
-    .from('challenges')
+    .from("challenges")
     .insert({
       challenge_id: challengeId,
       creator_wallet: creatorWallet,
@@ -1747,11 +1720,11 @@ export const createChallenge = async (
       judge_end: challenge.judgeEnd,
       entry_fee_dot: challenge.entryFeeDot,
       escrow_address: challenge.escrowAddress || null,
-      status: 'enrolling',
+      status: "enrolling",
     });
 
   if (error) {
-    console.error('Failed to create challenge:', error.message);
+    console.error("Failed to create challenge:", error.message);
     return null;
   }
 
@@ -1772,9 +1745,9 @@ export const updateChallengeStatus = async (
   }
 
   const { error } = await getSupabaseClient()
-    .from('challenges')
+    .from("challenges")
     .update(updates)
-    .eq('challenge_id', challengeId);
+    .eq("challenge_id", challengeId);
 
   return !error;
 };
@@ -1795,7 +1768,7 @@ export const enrollAgent = async (
   }
 ): Promise<string | null> => {
   const { data, error } = await getSupabaseClient()
-    .from('challenge_agents')
+    .from("challenge_agents")
     .insert({
       challenge_id: challengeId,
       owner_wallet: ownerWallet,
@@ -1808,11 +1781,11 @@ export const enrollAgent = async (
       entry_verified: false,
       total_votes: 0,
     })
-    .select('id')
+    .select("id")
     .single();
 
   if (error || !data) {
-    console.error('Failed to enroll agent:', error?.message);
+    console.error("Failed to enroll agent:", error?.message);
     return null;
   }
 
@@ -1824,10 +1797,10 @@ export const enrollAgent = async (
  */
 export const getChallengeAgents = async (challengeId: string): Promise<ChallengeAgent[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('challenge_agents')
-    .select('*')
-    .eq('challenge_id', challengeId)
-    .order('enrolled_at', { ascending: true });
+    .from("challenge_agents")
+    .select("*")
+    .eq("challenge_id", challengeId)
+    .order("enrolled_at", { ascending: true });
 
   if (error || !data) return [];
 
@@ -1839,9 +1812,9 @@ export const getChallengeAgents = async (challengeId: string): Promise<Challenge
  */
 export const getChallengeAgent = async (agentId: string): Promise<ChallengeAgent | null> => {
   const { data, error } = await getSupabaseClient()
-    .from('challenge_agents')
-    .select('*')
-    .eq('id', agentId)
+    .from("challenge_agents")
+    .select("*")
+    .eq("id", agentId)
     .single();
 
   if (error || !data) return null;
@@ -1858,26 +1831,24 @@ export const castVote = async (
   agentId: string
 ): Promise<boolean> => {
   // Insert the vote (UNIQUE constraint prevents duplicates)
-  const { error: voteError } = await getSupabaseClient()
-    .from('challenge_votes')
-    .insert({
-      challenge_id: challengeId,
-      voter_wallet: voterWallet,
-      agent_id: agentId,
-    });
+  const { error: voteError } = await getSupabaseClient().from("challenge_votes").insert({
+    challenge_id: challengeId,
+    voter_wallet: voterWallet,
+    agent_id: agentId,
+  });
 
   if (voteError) {
-    console.error('Failed to cast vote:', voteError.message);
+    console.error("Failed to cast vote:", voteError.message);
     return false;
   }
 
   // Increment the agent's vote count
-  const { error: rpcError } = await getSupabaseClient().rpc('increment_agent_votes', {
+  const { error: rpcError } = await getSupabaseClient().rpc("increment_agent_votes", {
     p_agent_id: agentId,
   });
 
   if (rpcError) {
-    console.error('Failed to increment agent votes:', rpcError.message);
+    console.error("Failed to increment agent votes:", rpcError.message);
   }
 
   return true;
@@ -1886,15 +1857,12 @@ export const castVote = async (
 /**
  * Check if a user has already voted in a challenge
  */
-export const hasVoted = async (
-  challengeId: string,
-  voterWallet: string
-): Promise<boolean> => {
+export const hasVoted = async (challengeId: string, voterWallet: string): Promise<boolean> => {
   const { data, error } = await getSupabaseClient()
-    .from('challenge_votes')
-    .select('id')
-    .eq('challenge_id', challengeId)
-    .eq('voter_wallet', voterWallet)
+    .from("challenge_votes")
+    .select("id")
+    .eq("challenge_id", challengeId)
+    .eq("voter_wallet", voterWallet)
     .single();
 
   return !error && !!data;
@@ -1905,10 +1873,10 @@ export const hasVoted = async (
  */
 export const getChallengeResults = async (challengeId: string): Promise<ChallengeAgent[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('challenge_agents')
-    .select('*')
-    .eq('challenge_id', challengeId)
-    .order('total_votes', { ascending: false });
+    .from("challenge_agents")
+    .select("*")
+    .eq("challenge_id", challengeId)
+    .order("total_votes", { ascending: false });
 
   if (error || !data) return [];
 
@@ -1920,9 +1888,9 @@ export const getChallengeResults = async (challengeId: string): Promise<Challeng
  */
 export const getChallengeVotes = async (challengeId: string): Promise<ChallengeVote[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('challenge_votes')
-    .select('*')
-    .eq('challenge_id', challengeId);
+    .from("challenge_votes")
+    .select("*")
+    .eq("challenge_id", challengeId);
 
   if (error || !data) return [];
 
@@ -1938,10 +1906,10 @@ export const getChallengeVotes = async (challengeId: string): Promise<ChallengeV
  */
 export const getChallengePayouts = async (challengeId: string): Promise<ChallengePayout[]> => {
   const { data, error } = await getSupabaseClient()
-    .from('challenge_payouts')
-    .select('*')
-    .eq('challenge_id', challengeId)
-    .order('created_at', { ascending: true });
+    .from("challenge_payouts")
+    .select("*")
+    .eq("challenge_id", challengeId)
+    .order("created_at", { ascending: true });
 
   if (error || !data) return [];
 
@@ -1949,9 +1917,9 @@ export const getChallengePayouts = async (challengeId: string): Promise<Challeng
     challengeId: p.challenge_id,
     recipient: p.recipient_wallet,
     amountDot: p.amount_dot,
-    payoutType: p.payout_type as ChallengePayout['payoutType'],
+    payoutType: p.payout_type as ChallengePayout["payoutType"],
     txHash: p.tx_hash || undefined,
-    status: p.status as ChallengePayout['status'],
+    status: p.status as ChallengePayout["status"],
   }));
 };
 
@@ -1969,11 +1937,11 @@ export const subscribeToActivities = (
   return getSupabaseClient()
     .channel(`activities:${communityId}`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'activities',
+        event: "INSERT",
+        schema: "public",
+        table: "activities",
         filter: `community_id=eq.${communityId}`,
       },
       async (payload) => {
@@ -1987,18 +1955,15 @@ export const subscribeToActivities = (
 /**
  * Subscribe to new comments on an activity
  */
-export const subscribeToComments = (
-  activityId: string,
-  callback: (comment: Comment) => void
-) => {
+export const subscribeToComments = (activityId: string, callback: (comment: Comment) => void) => {
   return getSupabaseClient()
     .channel(`comments:${activityId}`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'comments',
+        event: "INSERT",
+        schema: "public",
+        table: "comments",
         filter: `activity_id=eq.${activityId}`,
       },
       (payload) => {

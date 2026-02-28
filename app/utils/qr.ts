@@ -27,17 +27,14 @@ export class QRScanner {
    * @param onScan - Callback function when a QR code is successfully scanned
    * @param onError - Optional callback for scan errors
    */
-  async start(
-    onScan: (result: string) => void,
-    onError?: (error: string) => void
-  ): Promise<void> {
+  async start(onScan: (result: string) => void, onError?: (error: string) => void): Promise<void> {
     if (this.isScanning) {
       return;
     }
 
     try {
       this.scanner = new Html5Qrcode(this.elementId);
-      
+
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 },
@@ -187,10 +184,7 @@ export function isValidAddress(address: string): boolean {
  * @param size - The size of the QR code (default: 280)
  * @returns Promise<string> - A data URL of the generated QR code
  */
-export async function generateQRCode(
-  address: string,
-  size: number = 280
-): Promise<string> {
+export async function generateQRCode(address: string, size: number = 280): Promise<string> {
   try {
     const dataUrl = await QRCode.toDataURL(address, {
       width: size,
@@ -324,20 +318,30 @@ export async function downloadQRWithPromo(
   const smallQrSize = 50;
   const smallQrX = width - padding - smallQrSize - 10;
   const smallQrY = promoY - 10;
-  
+
   // Draw a simple placeholder pattern for the small QR
   ctx.strokeStyle = "#1A1A1A";
   ctx.lineWidth = 2;
   ctx.strokeRect(smallQrX, smallQrY, smallQrSize, smallQrSize);
-  
+
   // Simple QR pattern inside
   const cellSize = smallQrSize / 7;
   ctx.fillStyle = "#1A1A1A";
-  
+
   // Corner squares
   ctx.fillRect(smallQrX + cellSize, smallQrY + cellSize, cellSize * 2, cellSize * 2);
-  ctx.fillRect(smallQrX + smallQrSize - cellSize * 3, smallQrY + cellSize, cellSize * 2, cellSize * 2);
-  ctx.fillRect(smallQrX + cellSize, smallQrY + smallQrSize - cellSize * 3, cellSize * 2, cellSize * 2);
+  ctx.fillRect(
+    smallQrX + smallQrSize - cellSize * 3,
+    smallQrY + cellSize,
+    cellSize * 2,
+    cellSize * 2
+  );
+  ctx.fillRect(
+    smallQrX + cellSize,
+    smallQrY + smallQrSize - cellSize * 3,
+    cellSize * 2,
+    cellSize * 2
+  );
 
   // Trigger download
   const link = document.createElement("a");

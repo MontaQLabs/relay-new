@@ -76,7 +76,7 @@ function PaymentReviewContent() {
 
   const handleConfirm = async () => {
     if (txState === "processing" || txState === "success") return;
-    
+
     setTxState("processing");
     setTxError(null);
 
@@ -97,12 +97,7 @@ function PaymentReviewContent() {
         error = result.error;
       } else {
         // Use multi-chain adapter
-        const result = await sendChainTransfer(
-          chainId,
-          address,
-          token,
-          amountCrypto
-        );
+        const result = await sendChainTransfer(chainId, address, token, amountCrypto);
         success = result.success;
         error = result.error;
       }
@@ -178,12 +173,8 @@ function PaymentReviewContent() {
 
           {/* Amount in USD */}
           <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-bold text-black">
-              {formatUsd(amountUsd)}
-            </span>
-            <span className="text-xl text-muted-foreground font-medium">
-              USD
-            </span>
+            <span className="text-5xl font-bold text-black">{formatUsd(amountUsd)}</span>
+            <span className="text-xl text-muted-foreground font-medium">USD</span>
           </div>
 
           {/* Amount in Crypto */}
@@ -196,38 +187,32 @@ function PaymentReviewContent() {
         <div className="space-y-0 divide-y divide-gray-100">
           {/* Receiver Name */}
           <div className="py-4 animate-slide-up animation-delay-100">
-            <div className="text-sm text-muted-foreground mb-1">
-              Receiver Name
-            </div>
-            <div className="text-base text-muted-foreground truncate">
-              {address}
-            </div>
+            <div className="text-sm text-muted-foreground mb-1">Receiver Name</div>
+            <div className="text-base text-muted-foreground truncate">{address}</div>
           </div>
 
           {/* Receiver Address */}
           <div className="py-4 animate-slide-up animation-delay-200">
-            <div className="text-sm text-muted-foreground mb-1">
-              Receiver Address
-            </div>
-            <div className="text-base text-emerald-600 break-all">
-              {address}
-            </div>
+            <div className="text-sm text-muted-foreground mb-1">Receiver Address</div>
+            <div className="text-base text-emerald-600 break-all">{address}</div>
           </div>
 
           {/* Network */}
           <div className="py-4 animate-slide-up animation-delay-300">
             <div className="text-sm text-muted-foreground mb-1">Network</div>
-            <div className="text-base text-muted-foreground capitalize">{chainId === "polkadot" ? "Polkadot Asset Hub" : chainId}</div>
+            <div className="text-base text-muted-foreground capitalize">
+              {chainId === "polkadot" ? "Polkadot Asset Hub" : chainId}
+            </div>
           </div>
 
           {/* Transaction Fee */}
           <div className="py-4 animate-slide-up animation-delay-400">
-            <div className="text-sm text-muted-foreground mb-1">
-              Transaction Fee
-            </div>
+            <div className="text-sm text-muted-foreground mb-1">Transaction Fee</div>
             <div className="text-base text-muted-foreground">
               {fee ? (
-                <span>{fee} {feeTicker}</span>
+                <span>
+                  {fee} {feeTicker}
+                </span>
               ) : (
                 <span>—</span>
               )}
@@ -244,7 +229,7 @@ function PaymentReviewContent() {
             {txError}
           </div>
         )}
-        
+
         <Button
           onClick={handleConfirm}
           disabled={txState === "processing" || txState === "success" || isLoading}
@@ -252,8 +237,8 @@ function PaymentReviewContent() {
             txState === "success"
               ? "bg-emerald-500 hover:bg-emerald-500 text-white"
               : txState === "error"
-              ? "bg-red-500 hover:bg-red-600 text-white"
-              : "bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white"
+                ? "bg-red-500 hover:bg-red-600 text-white"
+                : "bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white"
           }`}
         >
           {isLoading ? (
@@ -307,13 +292,7 @@ function CryptoIcon({
     case "ETH":
     case "ETC":
       return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 20 20"
-          fill="none"
-          style={{ color }}
-        >
+        <svg width={size} height={size} viewBox="0 0 20 20" fill="none" style={{ color }}>
           <path
             d="M10 2L4 10L10 13L16 10L10 2Z"
             fill="currentColor"
@@ -324,13 +303,7 @@ function CryptoIcon({
       );
     case "BTC":
       return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 20 20"
-          fill="none"
-          style={{ color }}
-        >
+        <svg width={size} height={size} viewBox="0 0 20 20" fill="none" style={{ color }}>
           <text
             x="50%"
             y="55%"
@@ -345,23 +318,11 @@ function CryptoIcon({
         </svg>
       );
     case "ZEC":
-      return (
-        <span style={{ color, fontSize: size * 0.7, fontWeight: "bold" }}>
-          ⓩ
-        </span>
-      );
+      return <span style={{ color, fontSize: size * 0.7, fontWeight: "bold" }}>ⓩ</span>;
     case "XMR":
-      return (
-        <span style={{ color, fontSize: size * 0.7, fontWeight: "bold" }}>
-          ɱ
-        </span>
-      );
+      return <span style={{ color, fontSize: size * 0.7, fontWeight: "bold" }}>ɱ</span>;
     default:
-      return (
-        <span style={{ color, fontSize: size * 0.6, fontWeight: "bold" }}>
-          {symbol[0]}
-        </span>
-      );
+      return <span style={{ color, fontSize: size * 0.6, fontWeight: "bold" }}>{symbol[0]}</span>;
   }
 }
 

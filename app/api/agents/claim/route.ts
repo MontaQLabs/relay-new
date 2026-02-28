@@ -44,17 +44,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !agent) {
-      return NextResponse.json(
-        { error: "Invalid claim token" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Invalid claim token" }, { status: 404 });
     }
 
     if (agent.owner_wallet) {
-      return NextResponse.json(
-        { error: "Agent has already been claimed" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "Agent has already been claimed" }, { status: 409 });
     }
 
     // Set ownership and invalidate token
@@ -68,10 +62,7 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error("Failed to claim agent:", updateError);
-      return NextResponse.json(
-        { error: "Failed to claim agent" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to claim agent" }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -81,9 +72,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Claim agent error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

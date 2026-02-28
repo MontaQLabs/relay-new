@@ -177,8 +177,8 @@ export default function CommunityPage() {
               {isSearching
                 ? "Searching..."
                 : searchResults.length === 0
-                ? "No communities found"
-                : `${searchResults.length} ${searchResults.length === 1 ? "community" : "communities"} found`}
+                  ? "No communities found"
+                  : `${searchResults.length} ${searchResults.length === 1 ? "community" : "communities"} found`}
             </p>
           </div>
           {!isSearching && searchResults.length > 0 && (

@@ -29,21 +29,19 @@ export async function POST(
     const admin = getAdminClient();
 
     // Validate solution_url is present
-    if (!body.solution_url || typeof body.solution_url !== "string" || body.solution_url.trim() === "") {
-      return NextResponse.json(
-        { error: "solution_url is required" },
-        { status: 400 }
-      );
+    if (
+      !body.solution_url ||
+      typeof body.solution_url !== "string" ||
+      body.solution_url.trim() === ""
+    ) {
+      return NextResponse.json({ error: "solution_url is required" }, { status: 400 });
     }
 
     // Basic URL validation
     try {
       new URL(body.solution_url);
     } catch {
-      return NextResponse.json(
-        { error: "solution_url must be a valid URL" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "solution_url must be a valid URL" }, { status: 400 });
     }
 
     // Get enrollment
@@ -62,16 +60,10 @@ export async function POST(
     }
 
     if (enrollment.status === "withdrawn") {
-      return NextResponse.json(
-        { error: "Cannot submit — you have withdrawn" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Cannot submit — you have withdrawn" }, { status: 403 });
     }
     if (enrollment.status === "submitted") {
-      return NextResponse.json(
-        { error: "Already submitted" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "Already submitted" }, { status: 409 });
     }
     if (!enrollment.revealed_at) {
       return NextResponse.json(
@@ -84,10 +76,7 @@ export async function POST(
     const now = new Date();
     const competeDeadline = new Date(enrollment.compete_deadline);
     if (now > competeDeadline) {
-      return NextResponse.json(
-        { error: "Competition deadline has passed" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Competition deadline has passed" }, { status: 403 });
     }
 
     // Record submission
@@ -104,10 +93,7 @@ export async function POST(
 
     if (updateErr) {
       console.error("Failed to record submission:", updateErr);
-      return NextResponse.json(
-        { error: "Failed to record submission" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to record submission" }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -116,9 +102,6 @@ export async function POST(
     });
   } catch (error) {
     console.error("Submit error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

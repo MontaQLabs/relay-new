@@ -44,14 +44,7 @@ export default function StakingPage() {
   } = useStaking();
 
   // Staking actions hook
-  const {
-    joinPool,
-    stakeMore,
-    unbond,
-    claimRewards,
-    withdraw,
-    isSubmitting,
-  } = useStakingActions();
+  const { joinPool, stakeMore, unbond, claimRewards, withdraw, isSubmitting } = useStakingActions();
 
   // Handle refresh - force refresh bypasses cache
   const handleRefresh = useCallback(async () => {
@@ -61,10 +54,13 @@ export default function StakingPage() {
   }, [refetch]);
 
   // Handle pool selection - lazy load details
-  const handlePoolSelect = useCallback(async (poolId: number) => {
-    setIsDetailSheetOpen(true);
-    await loadPoolDetails(poolId);
-  }, [loadPoolDetails]);
+  const handlePoolSelect = useCallback(
+    async (poolId: number) => {
+      setIsDetailSheetOpen(true);
+      await loadPoolDetails(poolId);
+    },
+    [loadPoolDetails]
+  );
 
   // Handle closing the detail sheet
   const handleCloseDetailSheet = useCallback(() => {
@@ -139,9 +135,7 @@ export default function StakingPage() {
             className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
             aria-label="Refresh"
           >
-            <RefreshCw
-              className={`w-5 h-5 text-gray-500 ${isRefreshing ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`w-5 h-5 text-gray-500 ${isRefreshing ? "animate-spin" : ""}`} />
           </button>
         </div>
 
@@ -180,7 +174,7 @@ export default function StakingPage() {
                   accountStatus={accountStatus}
                   currentPool={
                     currentPoolId
-                      ? poolSummaries.find((p) => p.id === currentPoolId) ?? null
+                      ? (poolSummaries.find((p) => p.id === currentPoolId) ?? null)
                       : null
                   }
                   onStakeMore={() => setActionSheetType("stake")}
@@ -198,9 +192,7 @@ export default function StakingPage() {
           {activeTab === "Pools" && (
             <div className="bg-white rounded-t-3xl border-t border-gray-100 mt-2">
               <div className="px-5 py-4 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-black">
-                  Available Pools
-                </h2>
+                <h2 className="text-lg font-semibold text-black">Available Pools</h2>
                 <p className="text-sm text-muted-foreground">
                   {totalPools} open pool{totalPools !== 1 ? "s" : ""} available
                 </p>
@@ -252,9 +244,7 @@ function EmptyStakingState({ onBrowsePools }: { onBrowsePools: () => void }) {
       <div className="w-20 h-20 rounded-full bg-violet-100 flex items-center justify-center mb-4">
         <Coins className="w-10 h-10 text-violet-500" />
       </div>
-      <h3 className="text-lg font-semibold text-black mb-2">
-        Start Earning Rewards
-      </h3>
+      <h3 className="text-lg font-semibold text-black mb-2">Start Earning Rewards</h3>
       <p className="text-sm text-muted-foreground max-w-[280px] mb-6">
         Stake your DOT in a nomination pool to earn staking rewards without running a validator.
       </p>

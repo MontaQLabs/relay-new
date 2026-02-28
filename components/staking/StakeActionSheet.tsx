@@ -2,12 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { formatStakingAmount } from "@/lib/format";
 
 type ActionType = "stake" | "unbond";
@@ -33,15 +28,18 @@ export function StakeActionSheet({
   const [error, setError] = useState<string | null>(null);
 
   // Handle sheet open/close - reset state when opening
-  const handleOpenChange = useCallback((open: boolean) => {
-    if (open) {
-      // Reset state when sheet opens
-      setAmount("");
-      setError(null);
-    } else {
-      onClose();
-    }
-  }, [onClose]);
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        // Reset state when sheet opens
+        setAmount("");
+        setError(null);
+      } else {
+        onClose();
+      }
+    },
+    [onClose]
+  );
 
   const handleAmountChange = (value: string) => {
     if (/^\d*\.?\d*$/.test(value)) {
@@ -88,18 +86,17 @@ export function StakeActionSheet({
   };
 
   const title = actionType === "stake" ? "Stake More DOT" : "Unbond DOT";
-  const description = actionType === "stake"
-    ? "Add more DOT to your stake"
-    : "Remove DOT from your stake (28-day unbonding period)";
+  const description =
+    actionType === "stake"
+      ? "Add more DOT to your stake"
+      : "Remove DOT from your stake (28-day unbonding period)";
   const buttonText = actionType === "stake" ? "Stake" : "Unbond";
   const maxLabel = actionType === "stake" ? "Available" : "Staked";
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent side="bottom" className="px-5 pb-8">
-        <SheetTitle className="text-xl font-bold text-black mb-1">
-          {title}
-        </SheetTitle>
+        <SheetTitle className="text-xl font-bold text-black mb-1">{title}</SheetTitle>
         <SheetDescription className="text-sm text-muted-foreground mb-6">
           {description}
         </SheetDescription>
@@ -128,9 +125,7 @@ export function StakeActionSheet({
               DOT
             </span>
           </div>
-          {error && (
-            <p className="text-red-500 text-sm mt-2">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </div>
 
         {/* Confirm Button */}
@@ -156,7 +151,8 @@ export function StakeActionSheet({
         {/* Warning for unbond */}
         {actionType === "unbond" && (
           <p className="text-xs text-amber-600 text-center mt-4 bg-amber-50 p-3 rounded-xl">
-            Unbonding takes approximately 28 days. During this period, your tokens will not earn rewards and cannot be transferred.
+            Unbonding takes approximately 28 days. During this period, your tokens will not earn
+            rewards and cannot be transferred.
           </p>
         )}
       </SheetContent>

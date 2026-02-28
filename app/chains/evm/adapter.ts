@@ -152,8 +152,7 @@ export class EVMChainAdapter implements ChainAdapter {
   async estimateFee(params: TransferParams): Promise<ChainFeeEstimate> {
     const client = this.getPublicClient();
 
-    const isNative =
-      params.ticker === this.nativeTicker || !params.tokenIdentifier;
+    const isNative = params.ticker === this.nativeTicker || !params.tokenIdentifier;
 
     let gasEstimate: bigint;
 
@@ -167,11 +166,7 @@ export class EVMChainAdapter implements ChainAdapter {
       gasEstimate = await client.estimateGas({
         account: params.senderAddress as `0x${string}`,
         to: params.tokenIdentifier as `0x${string}`,
-        data: this.encodeTransferData(
-          params.recipientAddress,
-          params.amount,
-          18
-        ),
+        data: this.encodeTransferData(params.recipientAddress, params.amount, 18),
       });
     }
 
@@ -186,9 +181,7 @@ export class EVMChainAdapter implements ChainAdapter {
     };
   }
 
-  async sendTransfer(
-    params: SignedTransferParams
-  ): Promise<ChainTransferResult> {
+  async sendTransfer(params: SignedTransferParams): Promise<ChainTransferResult> {
     try {
       const account = mnemonicToAccount(params.mnemonic);
       const client = createWalletClient({
@@ -197,8 +190,7 @@ export class EVMChainAdapter implements ChainAdapter {
         transport: http(this.config.rpcUrl),
       });
 
-      const isNative =
-        params.ticker === this.nativeTicker || !params.tokenIdentifier;
+      const isNative = params.ticker === this.nativeTicker || !params.tokenIdentifier;
 
       let txHash: `0x${string}`;
 
@@ -221,11 +213,7 @@ export class EVMChainAdapter implements ChainAdapter {
 
         txHash = await client.sendTransaction({
           to: tokenAddress as `0x${string}`,
-          data: this.encodeTransferData(
-            params.recipientAddress,
-            params.amount,
-            decimals
-          ),
+          data: this.encodeTransferData(params.recipientAddress, params.amount, decimals),
         });
       }
 
@@ -250,10 +238,7 @@ export class EVMChainAdapter implements ChainAdapter {
 
   // -- Transaction history --------------------------------------------------
 
-  async fetchTransactions(
-    address: string,
-    page = 0
-  ): Promise<ChainTransaction[]> {
+  async fetchTransactions(address: string, page = 0): Promise<ChainTransaction[]> {
     // Block explorer API integration varies per chain.
     // For Base, Basescan provides an Etherscan-compatible API.
     // For Monad, this may need to be updated once their explorer is live.
@@ -293,8 +278,7 @@ export class EVMChainAdapter implements ChainAdapter {
         }) => {
           const isSent = tx.from.toLowerCase() === address.toLowerCase();
           const amount = Number(formatEther(BigInt(tx.value)));
-          const fee =
-            Number(formatEther(BigInt(tx.gasUsed) * BigInt(tx.gasPrice)));
+          const fee = Number(formatEther(BigInt(tx.gasUsed) * BigInt(tx.gasPrice)));
           return {
             id: tx.hash,
             from: tx.from,
@@ -316,11 +300,7 @@ export class EVMChainAdapter implements ChainAdapter {
 
   // -- Internal helpers -----------------------------------------------------
 
-  private encodeTransferData(
-    to: string,
-    amount: number,
-    decimals: number
-  ): `0x${string}` {
+  private encodeTransferData(to: string, amount: number, decimals: number): `0x${string}` {
     // ERC-20 transfer(address,uint256) selector = 0xa9059cbb
     const amountWei = parseUnits(amount.toString(), decimals);
     const paddedTo = to.slice(2).toLowerCase().padStart(64, "0");

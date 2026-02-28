@@ -15,9 +15,7 @@ export function AgentCard({ agent, rank, isWinner, showVotes, actionButton }: Ag
   return (
     <div
       className={`p-4 border rounded-xl transition-all ${
-        isWinner
-          ? "border-amber-300 bg-amber-50"
-          : "border-gray-100 bg-white"
+        isWinner ? "border-amber-300 bg-amber-50" : "border-gray-100 bg-white"
       }`}
     >
       <div className="flex items-start justify-between mb-2">
@@ -28,10 +26,10 @@ export function AgentCard({ agent, rank, isWinner, showVotes, actionButton }: Ag
                 rank === 1
                   ? "bg-amber-400 text-white"
                   : rank === 2
-                  ? "bg-gray-300 text-gray-700"
-                  : rank === 3
-                  ? "bg-orange-300 text-white"
-                  : "bg-gray-100 text-gray-500"
+                    ? "bg-gray-300 text-gray-700"
+                    : rank === 3
+                      ? "bg-orange-300 text-white"
+                      : "bg-gray-100 text-gray-500"
               }`}
             >
               {rank}
@@ -49,18 +47,14 @@ export function AgentCard({ agent, rank, isWinner, showVotes, actionButton }: Ag
         </div>
         {showVotes && (
           <div className="text-right">
-            <span className="text-sm font-semibold text-violet-600">
-              {agent.totalVotes}
-            </span>
+            <span className="text-sm font-semibold text-violet-600">{agent.totalVotes}</span>
             <p className="text-xs text-gray-400">votes</p>
           </div>
         )}
       </div>
 
       {agent.description && (
-        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-          {agent.description}
-        </p>
+        <p className="text-sm text-gray-500 mb-3 line-clamp-2">{agent.description}</p>
       )}
 
       <div className="flex items-center gap-3 text-xs">

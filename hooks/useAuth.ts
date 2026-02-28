@@ -51,7 +51,7 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
       if (!result.success) {
         console.log("Authentication note:", result.error);
         setAuthError(result.error || null);
-        
+
         if (requireAuth && redirectOnFail) {
           router.push(redirectOnFail);
         }

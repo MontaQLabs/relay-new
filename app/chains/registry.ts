@@ -108,9 +108,7 @@ export function resetRegistry(): void {
  * Call once at app startup (e.g. in a top-level layout or provider).
  * If mode is omitted, it reads from localStorage.
  */
-export async function initChainRegistry(
-  mode?: NetworkMode
-): Promise<ChainRegistry> {
+export async function initChainRegistry(mode?: NetworkMode): Promise<ChainRegistry> {
   const resolvedMode = mode ?? getStoredNetworkMode();
   const registry = getChainRegistry();
 

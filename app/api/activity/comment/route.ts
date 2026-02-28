@@ -9,14 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 import { jwtVerify } from "jose";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
 
@@ -52,17 +46,11 @@ export async function POST(request: NextRequest) {
     const { activityId, content } = body;
 
     if (!activityId) {
-      return NextResponse.json(
-        { error: "Activity ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Activity ID is required" }, { status: 400 });
     }
 
     if (!content || !content.trim()) {
-      return NextResponse.json(
-        { error: "Comment content is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
     }
 
     // Check if activity exists
@@ -73,42 +61,30 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (activityError || !activity) {
-      return NextResponse.json(
-        { error: "Activity not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Activity not found" }, { status: 404 });
     }
 
     // Generate comment ID
     const commentId = `cmt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Create the comment
-    const { error: insertError } = await supabaseAdmin
-      .from("comments")
-      .insert({
-        comment_id: commentId,
-        activity_id: activityId,
-        publisher_wallet: walletAddress,
-        content: content.trim(),
-        timestamp: new Date().toISOString(),
-        likes: 0,
-      });
+    const { error: insertError } = await supabaseAdmin.from("comments").insert({
+      comment_id: commentId,
+      activity_id: activityId,
+      publisher_wallet: walletAddress,
+      content: content.trim(),
+      timestamp: new Date().toISOString(),
+      likes: 0,
+    });
 
     if (insertError) {
       console.error("Failed to create comment:", insertError);
-      return NextResponse.json(
-        { error: "Failed to create comment" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create comment" }, { status: 500 });
     }
 
     return NextResponse.json({ commentId });
   } catch (error) {
     console.error("Create comment error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

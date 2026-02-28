@@ -36,10 +36,7 @@ export async function POST(request: NextRequest) {
     const challengeId = body.challenge_id || body.challengeId;
 
     if (!challengeId) {
-      return NextResponse.json(
-        { error: "challenge_id is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "challenge_id is required" }, { status: 400 });
     }
 
     // Check the challenge exists and is in enrollment phase
@@ -56,10 +53,7 @@ export async function POST(request: NextRequest) {
     // Check enrollment is still open (before start_time)
     const startTime = new Date(challenge.start_time);
     if (new Date() > startTime) {
-      return NextResponse.json(
-        { error: "Enrollment period has ended" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Enrollment period has ended" }, { status: 400 });
     }
 
     if (challenge.status !== "enrolling") {
@@ -126,10 +120,7 @@ export async function POST(request: NextRequest) {
 
     if (agentError || !agent) {
       console.error("Failed to enroll agent:", agentError);
-      return NextResponse.json(
-        { error: "Failed to enroll agent" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to enroll agent" }, { status: 500 });
     }
 
     // Record entry payment via TreasuryService
@@ -149,9 +140,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Enroll agent error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

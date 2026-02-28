@@ -10,7 +10,11 @@ interface PhaseTimelineProps {
   judgeEnd: string;
 }
 
-const phases: { key: ChallengeStatus; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+const phases: {
+  key: ChallengeStatus;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+}[] = [
   { key: "enrolling", label: "Enroll", Icon: UserPlus },
   { key: "competing", label: "Compete", Icon: Swords },
   { key: "judging", label: "Judge", Icon: Scale },
@@ -53,27 +57,21 @@ export function PhaseTimeline({ status, startTime, endTime, judgeEnd }: PhaseTim
                   isActive
                     ? "bg-violet-500 text-white ring-2 ring-violet-200"
                     : isPast
-                    ? "bg-violet-100 text-violet-600"
-                    : "bg-gray-100 text-gray-400"
+                      ? "bg-violet-100 text-violet-600"
+                      : "bg-gray-100 text-gray-400"
                 }`}
               >
                 <Icon className="w-4 h-4" />
               </div>
               <span
                 className={`text-[10px] font-medium ${
-                  isActive
-                    ? "text-violet-600"
-                    : isPast
-                    ? "text-violet-400"
-                    : "text-gray-400"
+                  isActive ? "text-violet-600" : isPast ? "text-violet-400" : "text-gray-400"
                 }`}
               >
                 {phase.label}
               </span>
               {phase.key !== "completed" && (
-                <span className="text-[9px] text-gray-400">
-                  {formatDate(deadlines[phase.key])}
-                </span>
+                <span className="text-[9px] text-gray-400">{formatDate(deadlines[phase.key])}</span>
               )}
             </div>
             {i < phases.length - 1 && (

@@ -81,17 +81,14 @@ export function BetPanel({ challengeId, agents, totalBetPool, onBetPlaced }: Bet
       </div>
 
       <p className="text-xs text-gray-500 mb-4">
-        Predict the winner and bet DOT. Winners share 98% of the pool proportionally.
-        2% platform fee applies.
+        Predict the winner and bet DOT. Winners share 98% of the pool proportionally. 2% platform
+        fee applies.
       </p>
 
       {success ? (
         <div className="text-center py-4">
           <p className="text-green-600 font-medium">Bet placed successfully!</p>
-          <button
-            onClick={() => setSuccess(false)}
-            className="text-sm text-violet-500 mt-2"
-          >
+          <button onClick={() => setSuccess(false)} className="text-sm text-violet-500 mt-2">
             Place another bet
           </button>
         </div>

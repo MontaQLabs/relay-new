@@ -143,7 +143,7 @@ export default function CreateActivitySlideIn({
     if (!files || files.length === 0) return;
 
     const file = files[0];
-    
+
     // Add new image with loading state
     const tempId = Date.now().toString();
     setImages((prev) => [...prev, { url: tempId, state: "loading" }]);
@@ -165,23 +165,17 @@ export default function CreateActivitySlideIn({
       if (uploadError) throw uploadError;
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("activity-images")
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("activity-images").getPublicUrl(filePath);
 
       // Update image state to success
       setImages((prev) =>
-        prev.map((img) =>
-          img.url === tempId ? { url: urlData.publicUrl, state: "success" } : img
-        )
+        prev.map((img) => (img.url === tempId ? { url: urlData.publicUrl, state: "success" } : img))
       );
     } catch (error) {
       console.error("Failed to upload image:", error);
       // Update image state to error
       setImages((prev) =>
-        prev.map((img) =>
-          img.url === tempId ? { ...img, state: "error" } : img
-        )
+        prev.map((img) => (img.url === tempId ? { ...img, state: "error" } : img))
       );
     }
 
@@ -213,7 +207,7 @@ export default function CreateActivitySlideIn({
     const hasAttendees = maxAttendees > 0;
     // Check all images are successfully uploaded
     const allImagesUploaded = images.every((img) => img.state === "success");
-    
+
     return hasName && hasTime && hasType && hasAttendees && allImagesUploaded;
   };
 
@@ -246,9 +240,7 @@ export default function CreateActivitySlideIn({
         timestamp: selectedTime!.toISOString(),
         type: selectedType,
         maxAttendees,
-        pictures: images
-          .filter((img) => img.state === "success")
-          .map((img) => img.url),
+        pictures: images.filter((img) => img.state === "success").map((img) => img.url),
         status: "open" as const,
       };
 
@@ -300,9 +292,7 @@ export default function CreateActivitySlideIn({
       <div className="flex-1 flex flex-col overflow-auto">
         {/* Name Field */}
         <div className="px-5 py-4 border-t border-gray-100">
-          <label className="text-sm font-medium text-black block mb-2">
-            Name
-          </label>
+          <label className="text-sm font-medium text-black block mb-2">Name</label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -313,9 +303,7 @@ export default function CreateActivitySlideIn({
 
         {/* Description Field */}
         <div className="px-5 py-4 border-t border-gray-100">
-          <label className="text-sm font-medium text-black block mb-2">
-            Description
-          </label>
+          <label className="text-sm font-medium text-black block mb-2">Description</label>
           <Textarea
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
@@ -332,11 +320,7 @@ export default function CreateActivitySlideIn({
         {/* Paid Ticket Toggle */}
         <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
           <span className="text-sm font-medium text-black">Paid ticket coming soon...</span>
-          <Switch
-            checked={isPaidTicket}
-            onCheckedChange={setIsPaidTicket}
-            disabled
-          />
+          <Switch checked={isPaidTicket} onCheckedChange={setIsPaidTicket} disabled />
         </div>
 
         {/* Time Field */}
@@ -397,9 +381,7 @@ export default function CreateActivitySlideIn({
 
         {/* Upload Pictures Field */}
         <div className="px-5 py-4 border-t border-gray-100">
-          <label className="text-sm font-medium text-black block mb-3">
-            Upload picture
-          </label>
+          <label className="text-sm font-medium text-black block mb-3">Upload picture</label>
           <div className="flex flex-wrap gap-3">
             {/* Uploaded Images */}
             {images.map((image, index) => (
@@ -476,9 +458,7 @@ export default function CreateActivitySlideIn({
         <SheetContent side="bottom" hideCloseButton className="px-5 pb-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <SheetTitle className="text-xl font-semibold text-black">
-              Select Date & Time
-            </SheetTitle>
+            <SheetTitle className="text-xl font-semibold text-black">Select Date & Time</SheetTitle>
             <button
               onClick={() => setIsTimePickerOpen(false)}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -490,9 +470,7 @@ export default function CreateActivitySlideIn({
 
           {/* Date Input */}
           <div className="mb-4">
-            <label className="text-sm font-medium text-black block mb-2">
-              Date
-            </label>
+            <label className="text-sm font-medium text-black block mb-2">Date</label>
             <input
               type="date"
               value={tempDate}
@@ -503,9 +481,7 @@ export default function CreateActivitySlideIn({
 
           {/* Time Input */}
           <div className="mb-8">
-            <label className="text-sm font-medium text-black block mb-2">
-              Time
-            </label>
+            <label className="text-sm font-medium text-black block mb-2">Time</label>
             <input
               type="time"
               value={tempTime}
@@ -530,9 +506,7 @@ export default function CreateActivitySlideIn({
         <SheetContent side="bottom" hideCloseButton className="px-5 pb-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <SheetTitle className="text-xl font-semibold text-black">
-              Activity Types
-            </SheetTitle>
+            <SheetTitle className="text-xl font-semibold text-black">Activity Types</SheetTitle>
             <button
               onClick={() => setIsTypePickerOpen(false)}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"

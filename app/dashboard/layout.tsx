@@ -6,11 +6,7 @@ import BottomNav from "@/components/dashboard/BottomNav";
 import { NetworkModeProvider } from "@/app/contexts/NetworkModeContext";
 import { TestnetBanner } from "@/components/TestnetBanner";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isSettingsPage = pathname?.startsWith("/dashboard/settings");
 

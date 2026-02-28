@@ -65,9 +65,7 @@ export function useCoins(options: UseCoinsOptions = {}): UseCoinsReturn {
 
           // Update selected token with new price data
           if (selectedToken) {
-            const updatedToken = coinsWithPrices.find(
-              (c) => c.ticker === selectedToken.ticker
-            );
+            const updatedToken = coinsWithPrices.find((c) => c.ticker === selectedToken.ticker);
             if (updatedToken) {
               setSelectedToken(updatedToken);
             }

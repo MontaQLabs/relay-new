@@ -59,7 +59,9 @@ export default function ImportWalletPage() {
       }
     } catch (err) {
       console.error("Failed to import wallet:", err);
-      setError(err instanceof Error ? err.message : "Invalid seed phrase. Please check your words.");
+      setError(
+        err instanceof Error ? err.message : "Invalid seed phrase. Please check your words."
+      );
       setIsLoading(false);
     }
   };
@@ -73,11 +75,7 @@ export default function ImportWalletPage() {
       {/* Header */}
       <div className="pt-12 px-6 pb-6">
         {/* Back button */}
-        <button
-          onClick={handleBack}
-          className="mb-6 -ml-2 p-2 cursor-pointer"
-          aria-label="Go back"
-        >
+        <button onClick={handleBack} className="mb-6 -ml-2 p-2 cursor-pointer" aria-label="Go back">
           <svg
             className="w-6 h-6"
             style={{ color: "#1a1a1a" }}
@@ -86,11 +84,7 @@ export default function ImportWalletPage() {
             stroke="currentColor"
             strokeWidth={2}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
@@ -100,10 +94,7 @@ export default function ImportWalletPage() {
         >
           Import Wallet
         </h1>
-        <p
-          className="text-base mt-2 animate-slide-up"
-          style={{ color: "#8e8e93" }}
-        >
+        <p className="text-base mt-2 animate-slide-up" style={{ color: "#8e8e93" }}>
           Enter your 12-word recovery phrase
         </p>
       </div>
@@ -141,7 +132,10 @@ export default function ImportWalletPage() {
 
         {/* Error message */}
         {error && (
-          <div className="mt-4 p-4 rounded-xl animate-fade-in" style={{ backgroundColor: "#fef2f2" }}>
+          <div
+            className="mt-4 p-4 rounded-xl animate-fade-in"
+            style={{ backgroundColor: "#fef2f2" }}
+          >
             <p className="text-sm" style={{ color: "#dc2626" }}>
               {error}
             </p>
@@ -151,7 +145,8 @@ export default function ImportWalletPage() {
         {/* Help text */}
         <div className="mt-6 animate-slide-up animation-delay-200">
           <p className="text-sm" style={{ color: "#8e8e93" }}>
-            You can paste your entire recovery phrase at once. Make sure to enter the words in the correct order.
+            You can paste your entire recovery phrase at once. Make sure to enter the words in the
+            correct order.
           </p>
         </div>
       </div>

@@ -93,7 +93,9 @@ export default function FriendsPage() {
                 <UserPlus className="w-12 h-12 text-gray-400" />
               </div>
               <h2 className="text-xl font-semibold text-black mb-2">No Friends Yet</h2>
-              <p className="text-sm text-gray-500 text-center mb-8">Add your first friend to get started</p>
+              <p className="text-sm text-gray-500 text-center mb-8">
+                Add your first friend to get started
+              </p>
             </div>
           ) : (
             <div className="px-5 py-4">
@@ -114,7 +116,9 @@ export default function FriendsPage() {
 
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-black truncate">{friend.nickname}</h3>
-                    <p className="text-sm text-gray-500 truncate">{truncateAddress(friend.walletAddress)}</p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {truncateAddress(friend.walletAddress)}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -135,7 +139,11 @@ export default function FriendsPage() {
       </SlideInPage>
 
       {/* Add Friend Sheet */}
-      <AddFriendSheet isOpen={isAddFriendOpen} onClose={() => setIsAddFriendOpen(false)} onSuccess={handleAddFriendSuccess} />
+      <AddFriendSheet
+        isOpen={isAddFriendOpen}
+        onClose={() => setIsAddFriendOpen(false)}
+        onSuccess={handleAddFriendSuccess}
+      />
 
       {/* Friend Detail Sheet */}
       <FriendDetailSheet

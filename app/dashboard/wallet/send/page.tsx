@@ -22,14 +22,8 @@ export default function SendPage() {
   const [selectedChain, setSelectedChain] = useState<ChainId>("polkadot");
 
   // Use coins hook
-  const {
-    coins,
-    knownAssets,
-    isLoading,
-    isPriceLoading,
-    selectedToken,
-    setSelectedToken,
-  } = useCoins();
+  const { coins, knownAssets, isLoading, isPriceLoading, selectedToken, setSelectedToken } =
+    useCoins();
 
   // Get token price
   const getTokenPrice = useCallback(
@@ -141,7 +135,9 @@ export default function SendPage() {
     const withinBalance = !isAmountExceedingBalance();
     const hasFeeEstimate = feeEstimate !== null && !feeError;
     const notCheckingFees = !isCheckingFees;
-    return hasValidAddress && hasToken && hasAmount && withinBalance && hasFeeEstimate && notCheckingFees;
+    return (
+      hasValidAddress && hasToken && hasAmount && withinBalance && hasFeeEstimate && notCheckingFees
+    );
   };
 
   const handleConfirm = () => {
@@ -182,9 +178,7 @@ export default function SendPage() {
       <div className="flex-1 flex flex-col px-5 pt-4 gap-4 overflow-auto">
         {/* Step 0: Chain Selection */}
         <div className="animate-slide-up">
-          <label className="text-sm font-medium text-muted-foreground mb-2 block">
-            Network
-          </label>
+          <label className="text-sm font-medium text-muted-foreground mb-2 block">Network</label>
           <div className="bg-gray-50 rounded-2xl p-3">
             <ChainSelector
               selectedChain={selectedChain}
@@ -241,14 +235,10 @@ export default function SendPage() {
 
         {/* Step 3: Amount Input */}
         <div className="animate-slide-up animation-delay-200">
-          <label className="text-sm font-medium text-muted-foreground mb-2 block">
-            Amount
-          </label>
+          <label className="text-sm font-medium text-muted-foreground mb-2 block">Amount</label>
           <div
             className={`rounded-2xl p-4 transition-all ${
-              isAmountExceedingBalance()
-                ? "bg-red-50 border-2 border-red-300"
-                : "bg-gray-50"
+              isAmountExceedingBalance() ? "bg-red-50 border-2 border-red-300" : "bg-gray-50"
             }`}
           >
             {/* Currency Toggle */}
@@ -280,8 +270,12 @@ export default function SendPage() {
             </div>
 
             {/* Amount Input */}
-            <div className={`flex items-center gap-2 ${selectedToken?.amount === 0 ? "opacity-50" : ""}`}>
-              <span className={`text-4xl font-bold ${isAmountExceedingBalance() ? "text-red-500" : "text-black"}`}>
+            <div
+              className={`flex items-center gap-2 ${selectedToken?.amount === 0 ? "opacity-50" : ""}`}
+            >
+              <span
+                className={`text-4xl font-bold ${isAmountExceedingBalance() ? "text-red-500" : "text-black"}`}
+              >
                 {isUsdMode ? "$" : ""}
               </span>
               <input
@@ -311,7 +305,9 @@ export default function SendPage() {
                       <>
                         ≈{" "}
                         {isUsdMode ? (
-                          <span>{getConvertedAmount()} {selectedToken.ticker}</span>
+                          <span>
+                            {getConvertedAmount()} {selectedToken.ticker}
+                          </span>
                         ) : (
                           <span>${getConvertedAmount()}</span>
                         )}

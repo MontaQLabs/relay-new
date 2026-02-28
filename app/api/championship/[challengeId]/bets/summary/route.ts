@@ -8,12 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 
 export async function GET(
   _request: NextRequest,
@@ -56,13 +51,15 @@ export async function GET(
       agentPools[bet.agent_id].count += 1;
     }
 
-    const agentSummaries = (agents || []).map((agent: { id: string; agent_name: string; status?: string }) => ({
-      agent_id: agent.id,
-      agent_name: agent.agent_name,
-      status: agent.status || "enrolled",
-      pool_size: (agentPools[agent.id]?.pool || BigInt(0)).toString(),
-      bet_count: agentPools[agent.id]?.count || 0,
-    }));
+    const agentSummaries = (agents || []).map(
+      (agent: { id: string; agent_name: string; status?: string }) => ({
+        agent_id: agent.id,
+        agent_name: agent.agent_name,
+        status: agent.status || "enrolled",
+        pool_size: (agentPools[agent.id]?.pool || BigInt(0)).toString(),
+        bet_count: agentPools[agent.id]?.count || 0,
+      })
+    );
 
     return NextResponse.json({
       total_pool: challenge.total_bet_pool_dot,
@@ -70,9 +67,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Bets summary error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

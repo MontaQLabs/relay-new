@@ -8,7 +8,13 @@ import { Keyring } from "@polkadot/keyring";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import { SS58_FORMAT } from "../types/constants";
 import { initChainRegistry, getStoredNetworkMode } from "../chains/registry";
-import type { ChainId, ChainCoin, ChainFeeEstimate, ChainTransferResult, ChainTransaction } from "../chains/types";
+import type {
+  ChainId,
+  ChainCoin,
+  ChainFeeEstimate,
+  ChainTransferResult,
+  ChainTransaction,
+} from "../chains/types";
 
 // CoinGecko API endpoint for price fetching
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price";
@@ -44,7 +50,7 @@ export type PriceMap = Record<string, TokenPrice>;
  * Fetches real-time USD prices for the given token tickers from CoinGecko API
  * Returns a map of ticker -> { usd: price, usd_24h_change: change }
  * If a token price is unavailable, it won't be included in the result
- * 
+ *
  * @param tickers - Array of token ticker symbols (e.g., ["DOT", "USDt", "USDC"])
  * @returns Promise<PriceMap> - Map of ticker to price info
  */
@@ -88,7 +94,7 @@ export const fetchTokenPrices = async (tickers: string[]): Promise<PriceMap> => 
 
     for (const ticker of tickers) {
       const coinGeckoId = tickerToIdMap.get(ticker);
-      
+
       if (coinGeckoId && data[coinGeckoId]) {
         priceMap[ticker] = {
           usd: data[coinGeckoId].usd ?? 0,
@@ -131,7 +137,7 @@ const getStablecoinDefaults = (tickers: string[]): PriceMap => {
 /**
  * Gets the USD price for a single token
  * Returns 0 if price is unavailable
- * 
+ *
  * @param ticker - Token ticker symbol
  * @returns Promise<number> - USD price
  */
@@ -144,7 +150,7 @@ export const getTokenPrice = async (ticker: string): Promise<number> => {
  * Calculates the total USD value of a coin portfolio
  * Uses real-time prices from CoinGecko API
  * If a coin's price is unavailable, uses 0 for that coin
- * 
+ *
  * @param coins - Array of coins with amounts
  * @returns Promise<{ totalValue: number; coinsWithPrices: Coin[] }> - Total USD value and coins with updated fiat values
  */
@@ -182,9 +188,9 @@ export const calculatePortfolioValue = async (
 
 // Re-export types used by the fee estimation
 export interface FeeEstimate {
-  fee: bigint;        // Fee in smallest unit (planck for DOT, or asset decimals)
+  fee: bigint; // Fee in smallest unit (planck for DOT, or asset decimals)
   feeFormatted: string; // Human-readable fee
-  feeTicker: string;    // The ticker of the fee currency (always DOT for Asset Hub)
+  feeTicker: string; // The ticker of the fee currency (always DOT for Asset Hub)
 }
 
 // Result type for transfer operations
@@ -226,7 +232,7 @@ const DOT_DECIMALS = 10;
  * Fetches all coins owned by the user on Polkadot Asset Hub
  * Queries native DOT balance and known assets from the provided list
  * Saves the result to localStorage under USER_KEY
- * 
+ *
  * @param knownAssets - Array of known assets to query balances for (fetched from Supabase)
  * @returns Promise<Coin[]> - Array of coins owned by the user
  */
@@ -285,7 +291,7 @@ export const fetchDotCoins = async (knownAssets: KnownAsset[]): Promise<Coin[]> 
     for (const asset of knownAssets) {
       try {
         const assetAccount = await api.query.Assets.Account.getValue(asset.id, address);
-        
+
         if (assetAccount) {
           const assetBalance = assetAccount.balance;
           const amount = Number(assetBalance) / Math.pow(10, asset.decimals);
@@ -322,35 +328,35 @@ export const fetchDotCoins = async (knownAssets: KnownAsset[]): Promise<Coin[]> 
 /**
  * Gets asset ID for a given ticker symbol on Polkadot Asset Hub
  * Returns undefined for native DOT
- * 
+ *
  * @param ticker - The asset ticker symbol (e.g., "USDT", "USDC", "DOT")
  * @param knownAssets - Array of known assets to search in
  * @returns Asset ID or undefined for native DOT
  */
 const getAssetId = (ticker: string, knownAssets: KnownAsset[]): number | undefined => {
-  const asset = knownAssets.find(a => a.ticker === ticker);
+  const asset = knownAssets.find((a) => a.ticker === ticker);
   return asset?.id;
 };
 
 /**
  * Gets decimals for a given ticker symbol
- * 
+ *
  * @param ticker - The asset ticker symbol
  * @param knownAssets - Array of known assets to search in
  * @returns Decimals for the asset
  */
 const getDecimals = (ticker: string, knownAssets: KnownAsset[]): number => {
   if (ticker === "DOT") return DOT_DECIMALS;
-  const asset = knownAssets.find(a => a.ticker === ticker);
+  const asset = knownAssets.find((a) => a.ticker === ticker);
   return asset?.decimals ?? 6;
 };
 
 /**
  * Estimates transaction fees for a transfer on Polkadot Asset Hub
  * Uses PAPI's getEstimatedFees method to calculate fees
- * 
+ *
  * @param senderAddress - The address sending the transfer
- * @param recipientAddress - The address receiving the transfer  
+ * @param recipientAddress - The address receiving the transfer
  * @param ticker - The asset ticker symbol (e.g., "DOT", "USDT", "USDC")
  * @param amount - The amount to transfer (in human-readable units)
  * @param knownAssets - Array of known assets (fetched from Supabase)
@@ -389,7 +395,7 @@ export const estimateTransferFee = async (
       if (assetId === undefined) {
         throw new Error(`Unknown asset ticker: ${ticker}`);
       }
-      
+
       tx = api.tx.Assets.transfer_keep_alive({
         id: assetId,
         target: { type: "Id", value: recipientAddress },
@@ -403,7 +409,7 @@ export const estimateTransferFee = async (
 
     // Format the fee in DOT (10 decimals)
     const feeInDot = Number(estimatedFee) / Math.pow(10, DOT_DECIMALS);
-    
+
     // Format with appropriate precision (show more decimals for small fees)
     let feeFormatted: string;
     if (feeInDot < 0.0001) {
@@ -433,7 +439,7 @@ export const estimateTransferFee = async (
 
 /**
  * Updates the coins field in the User object stored in localStorage
- * 
+ *
  * @param coins - Array of coins to save
  */
 const updateUserCoins = (coins: Coin[]): void => {
@@ -449,8 +455,8 @@ const updateUserCoins = (coins: Coin[]): void => {
     } else {
       // Create minimal user object if none exists
       const walletData = localStorage.getItem(WALLET_KEY);
-      const wallet: Wallet = walletData 
-        ? JSON.parse(walletData) 
+      const wallet: Wallet = walletData
+        ? JSON.parse(walletData)
         : { address: "", network: POLKADOT_NETWORK_NAME, status: "inactive", isBackedUp: false };
 
       user = {
@@ -478,7 +484,7 @@ const updateUserCoins = (coins: Coin[]): void => {
 /**
  * Sends a transfer transaction on Polkadot Asset Hub
  * Uses PAPI to create, sign, and submit the transaction
- * 
+ *
  * @param recipientAddress - The address receiving the transfer
  * @param ticker - The asset ticker symbol (e.g., "DOT", "USDT", "USDC")
  * @param network - The network to send on (currently only Asset Hub supported)
@@ -538,7 +544,7 @@ export const sendTransfer = async (
           error: `Unknown asset ticker: ${ticker}`,
         };
       }
-      
+
       tx = api.tx.Assets.transfer_keep_alive({
         id: assetId,
         target: { type: "Id", value: recipientAddress },
@@ -547,11 +553,7 @@ export const sendTransfer = async (
     }
 
     // Create a PAPI-compatible signer from the keypair
-    const signer = getPolkadotSigner(
-      keypair.publicKey,
-      "Sr25519",
-      (input) => keypair.sign(input)
-    );
+    const signer = getPolkadotSigner(keypair.publicKey, "Sr25519", (input) => keypair.sign(input));
 
     // Sign and submit the transaction
     const result = await tx.signAndSubmit(signer);
@@ -576,14 +578,14 @@ export const sendTransfer = async (
 /**
  * Fetches detailed information about an asset from Polkadot Asset Hub
  * Queries the Assets pallet for metadata and asset details
- * 
+ *
  * @param assetId - The numeric asset ID on Polkadot Asset Hub
  * @param iconUrl - Optional icon URL for the asset (from Supabase known_assets)
  * @param knownAsset - Optional known asset info for fallback values
  * @returns Promise<AssetDetails | null> - Detailed asset information or null if not found
  */
 export const fetchAssetDetails = async (
-  assetId: number, 
+  assetId: number,
   iconUrl?: string,
   knownAsset?: KnownAsset
 ): Promise<AssetDetails | null> => {
@@ -597,7 +599,7 @@ export const fetchAssetDetails = async (
 
     // Query asset details from Assets.Asset
     const assetInfo = await api.query.Assets.Asset.getValue(assetId);
-    
+
     if (!assetInfo) {
       console.log(`Asset ${assetId} not found`);
       return null;
@@ -605,10 +607,14 @@ export const fetchAssetDetails = async (
 
     // Query asset metadata from Assets.Metadata
     const metadata = await api.query.Assets.Metadata.getValue(assetId);
-    
+
     // Decode the Binary fields to strings
-    const name = metadata?.name ? new TextDecoder().decode(metadata.name.asBytes()) : knownAsset?.ticker || "Unknown";
-    const ticker = metadata?.symbol ? new TextDecoder().decode(metadata.symbol.asBytes()) : knownAsset?.ticker || "???";
+    const name = metadata?.name
+      ? new TextDecoder().decode(metadata.name.asBytes())
+      : knownAsset?.ticker || "Unknown";
+    const ticker = metadata?.symbol
+      ? new TextDecoder().decode(metadata.symbol.asBytes())
+      : knownAsset?.ticker || "???";
     const decimals = metadata?.decimals ?? knownAsset?.decimals ?? 10;
 
     // Format supply with decimals
@@ -681,7 +687,7 @@ interface SubscanTransfersResponse {
 /**
  * Fetches transaction history from Polkadot Asset Hub using Subscan API
  * Returns an array of Transaction objects for the user's wallet
- * 
+ *
  * @param address - The wallet address to fetch transactions for (optional, uses localStorage if not provided)
  * @param page - Page number for pagination (default: 0)
  * @param pageSize - Number of transactions per page (default: 25)
@@ -791,7 +797,7 @@ export const fetchPolkadotTransactions = async (
 
 /**
  * Filters transactions by month and year
- * 
+ *
  * @param transactions - Array of transactions to filter
  * @param year - Year to filter by
  * @param month - Month to filter by (1-12)
@@ -810,7 +816,7 @@ export const filterTransactionsByMonth = (
 
 /**
  * Calculates the total sent and received amounts for a list of transactions
- * 
+ *
  * @param transactions - Array of transactions
  * @param ticker - Optional ticker to filter by
  * @returns Object with sent and received totals
@@ -824,7 +830,7 @@ export const calculateTransactionTotals = (
 
   for (const tx of transactions) {
     if (ticker && tx.ticker !== ticker) continue;
-    
+
     if (tx.type === "sent") {
       sent += tx.amount;
     } else {
@@ -850,9 +856,9 @@ export interface FeeCheckResult {
  * Checks if the user has enough balance to cover both the transfer amount and transaction fees
  * For DOT transfers: checks if amount + fee <= DOT balance
  * For non-DOT transfers: checks if fee <= DOT balance (fees are always paid in DOT)
- * 
+ *
  * This function should be called AFTER checking if the amount exceeds the token balance
- * 
+ *
  * @param senderAddress - The address sending the transfer
  * @param recipientAddress - The address receiving the transfer
  * @param ticker - The asset ticker symbol (e.g., "DOT", "USDT", "USDC")
@@ -894,8 +900,8 @@ export const checkEnoughFees = async (
         feeEstimate,
         dotBalanceNeeded: totalNeeded,
         dotBalanceAvailable: dotBalance,
-        error: hasEnough 
-          ? undefined 
+        error: hasEnough
+          ? undefined
           : `Insufficient DOT balance. You need ${totalNeeded.toFixed(6)} DOT (${amount} + ${feeInDot.toFixed(6)} fee) but only have ${dotBalance.toFixed(6)} DOT.`,
       };
     } else {
@@ -907,8 +913,8 @@ export const checkEnoughFees = async (
         feeEstimate,
         dotBalanceNeeded: feeInDot,
         dotBalanceAvailable: dotBalance,
-        error: hasEnough 
-          ? undefined 
+        error: hasEnough
+          ? undefined
           : `Insufficient DOT for fees. You need ${feeInDot.toFixed(6)} DOT for the transaction fee but only have ${dotBalance.toFixed(6)} DOT.`,
       };
     }
@@ -948,9 +954,7 @@ export const fetchChainBalances = async (
  * Fetch balances across all chains for the current wallet.
  * Returns a map of chainId -> ChainCoin[].
  */
-export const fetchAllChainBalances = async (): Promise<
-  Record<string, ChainCoin[]>
-> => {
+export const fetchAllChainBalances = async (): Promise<Record<string, ChainCoin[]>> => {
   if (typeof window === "undefined") return {};
 
   const walletData = localStorage.getItem(WALLET_KEY);
@@ -1016,9 +1020,7 @@ export const sendChainTransfer = async (
   amount: number,
   tokenIdentifier?: string | number
 ): Promise<ChainTransferResult> => {
-  const mnemonic = typeof window !== "undefined"
-    ? localStorage.getItem(WALLET_SEED_KEY)
-    : null;
+  const mnemonic = typeof window !== "undefined" ? localStorage.getItem(WALLET_SEED_KEY) : null;
 
   if (!mnemonic) {
     return {
@@ -1028,18 +1030,14 @@ export const sendChainTransfer = async (
   }
 
   // Get sender address for this chain
-  const walletData = typeof window !== "undefined"
-    ? localStorage.getItem(WALLET_KEY)
-    : null;
+  const walletData = typeof window !== "undefined" ? localStorage.getItem(WALLET_KEY) : null;
 
   if (!walletData) {
     return { success: false, error: "No wallet found." };
   }
 
   const wallet: Wallet = JSON.parse(walletData);
-  const chainAccount = wallet.chainAccounts?.find(
-    (a) => a.chainId === chainId
-  );
+  const chainAccount = wallet.chainAccounts?.find((a) => a.chainId === chainId);
 
   if (!chainAccount) {
     return {

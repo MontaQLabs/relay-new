@@ -5,12 +5,7 @@
  * for BIP-44 key derivation from the shared mnemonic.
  */
 
-import {
-  Account,
-  keyToImplicitAddress,
-  formatNearAmount,
-  parseNearAmount,
-} from "near-api-js";
+import { Account, keyToImplicitAddress, formatNearAmount, parseNearAmount } from "near-api-js";
 import { parseSeedPhrase } from "near-api-js/seed-phrase";
 
 import type {
@@ -125,9 +120,7 @@ export class NearChainAdapter implements ChainAdapter {
     };
   }
 
-  async sendTransfer(
-    params: SignedTransferParams
-  ): Promise<ChainTransferResult> {
+  async sendTransfer(params: SignedTransferParams): Promise<ChainTransferResult> {
     try {
       const { keyPair, accountId } = deriveNearAccount(params.mnemonic);
 
@@ -154,10 +147,7 @@ export class NearChainAdapter implements ChainAdapter {
 
   // -- Transaction history --------------------------------------------------
 
-  async fetchTransactions(
-    address: string,
-    page = 0
-  ): Promise<ChainTransaction[]> {
+  async fetchTransactions(address: string, page = 0): Promise<ChainTransaction[]> {
     try {
       const response = await fetch(
         `${this.nearblocksApiUrl}/account/${address}/txns?page=${page + 1}&per_page=25&order=desc`
@@ -183,9 +173,7 @@ export class NearChainAdapter implements ChainAdapter {
           const isSent = tx.signer_account_id === address;
 
           let amount = 0;
-          const transferAction = tx.actions?.find(
-            (a) => a.action === "TRANSFER"
-          );
+          const transferAction = tx.actions?.find((a) => a.action === "TRANSFER");
           if (transferAction?.args) {
             try {
               const args =
@@ -202,9 +190,7 @@ export class NearChainAdapter implements ChainAdapter {
           }
 
           const timestamp = tx.block_timestamp
-            ? new Date(
-                Number(BigInt(tx.block_timestamp) / BigInt(1000000))
-              ).toISOString()
+            ? new Date(Number(BigInt(tx.block_timestamp) / BigInt(1000000))).toISOString()
             : new Date().toISOString();
 
           return {

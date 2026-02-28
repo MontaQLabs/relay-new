@@ -34,86 +34,92 @@ Relay is an Web3 application that combines community management with cryptocurre
 
 ### Technology Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js 16, React 19, TailwindCSS 4 |
-| Backend | Next.js API Routes (Edge-compatible) |
-| Database | Supabase (PostgreSQL with RLS), only for community and activity storage |
-| Blockchain | Polkadot Asset Hub via Polkadot API |
-| Authentication | Wallet-based JWT (sr25519 signatures) |
-| Testing | Vitest, Testing Library |
+| Layer          | Technology                                                              |
+| -------------- | ----------------------------------------------------------------------- |
+| Frontend       | Next.js 16, React 19, TailwindCSS 4                                     |
+| Backend        | Next.js API Routes (Edge-compatible)                                    |
+| Database       | Supabase (PostgreSQL with RLS), only for community and activity storage |
+| Blockchain     | Polkadot Asset Hub via Polkadot API                                     |
+| Authentication | Wallet-based JWT (sr25519 signatures)                                   |
+| Testing        | Vitest, Testing Library                                                 |
 
 ---
 
 ## Product Architecture
 
 ### Backend Clarification
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Web2 + Web3 SERVICES                           │
+│ Web2 + Web3 SERVICES │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌───────────────────────────┐          ┌───────────────────────────────┐   │
-│  │     Supabase Database     │          │   Polkadot Asset Hub          │   │
-│  │     (PostgreSQL + RLS)    │          │   (Blockchain)                │   │
-│  │                           │          │                               │   │
-│  │  - users                  │          │  - Native DOT transfers       │   │
-│  │  - communities            │          │  - Asset Hub tokens           │   │
-│  │  - activities             │          │                               │   │
-│  │  - comments               │          │                               │   │
-│  │  - friends                │          │                               │   │
-│  │  - transactions           │          │                               │   │
-│  │  - community_tokens       │          │                               │   │
-│  │  - known_assets           │          │                               │   │
-│  └───────────────────────────┘          └───────────────────────────────┘   │
+│ ┌───────────────────────────┐ ┌───────────────────────────────┐ │
+│ │ Supabase Database │ │ Polkadot Asset Hub │ │
+│ │ (PostgreSQL + RLS) │ │ (Blockchain) │ │
+│ │ │ │ │ │
+│ │ - users │ │ - Native DOT transfers │ │
+│ │ - communities │ │ - Asset Hub tokens │ │
+│ │ - activities │ │ │ │
+│ │ - comments │ │ │ │
+│ │ - friends │ │ │ │
+│ │ - transactions │ │ │ │
+│ │ - community_tokens │ │ │ │
+│ │ - known_assets │ │ │ │
+│ └───────────────────────────┘ └───────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
+
 ```
 
 ### Directory Structure
 
 ```
+
 relay-new/
-├── app/                          # Next.js App Router
-│   ├── api/                      # API Routes
-│   │   ├── auth/                 # Authentication endpoints
-│   │   │   ├── nonce/            # Generate auth nonce
-│   │   │   └── verify/           # Verify signature & issue JWT
-│   │   ├── activity/             # Activity management
-│   │   ├── community/            # Community CRUD operations
-│   │   ├── friends/              # Friend list management
-│   │   └── user/                 # User profile operations
-│   ├── dashboard/                # Main application pages
-│   │   ├── community/            # Community views
-│   │   ├── settings/             # User settings
-│   │   └── wallet/               # Wallet operations
-│   ├── db/                       # Database utilities
-│   │   └── supabase.ts           # Supabase client & operations
-│   ├── types/                    # TypeScript type definitions
-│   │   ├── frontend_type.ts      # Domain types
-│   │   └── constants.ts          # App constants
-│   └── utils/                    # Utility functions
-│       └── auth.ts               # Authentication utilities
-├── components/                   # Reusable UI components
-├── lib/                          # Shared libraries
-├── public/                       # Static assets
-├── tests/                        # Test suites
-├── supabase-schema.sql           # Main database schema
+├── app/ # Next.js App Router
+│ ├── api/ # API Routes
+│ │ ├── auth/ # Authentication endpoints
+│ │ │ ├── nonce/ # Generate auth nonce
+│ │ │ └── verify/ # Verify signature & issue JWT
+│ │ ├── activity/ # Activity management
+│ │ ├── community/ # Community CRUD operations
+│ │ ├── friends/ # Friend list management
+│ │ └── user/ # User profile operations
+│ ├── dashboard/ # Main application pages
+│ │ ├── community/ # Community views
+│ │ ├── settings/ # User settings
+│ │ └── wallet/ # Wallet operations
+│ ├── db/ # Database utilities
+│ │ └── supabase.ts # Supabase client & operations
+│ ├── types/ # TypeScript type definitions
+│ │ ├── frontend_type.ts # Domain types
+│ │ └── constants.ts # App constants
+│ └── utils/ # Utility functions
+│ └── auth.ts # Authentication utilities
+├── components/ # Reusable UI components
+├── lib/ # Shared libraries
+├── public/ # Static assets
+├── tests/ # Test suites
+├── supabase-schema.sql # Main database schema
 ├── supabase-community-tokens.sql # Token extension schema
-└── supabase-migration-*.sql      # Migration scripts
+└── supabase-migration-\*.sql # Migration scripts
+
 ```
 
 ### Data Flow
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Frontend   │────▶│   Next.js    │────▶│   Supabase   │
-│  Components  │     │  API Routes  │     │   Database   │
-└──────────────┘     └──────────────┘     └──────────────┘
-       │                    │                    │
-       │                    │                    │
-       ▼                    ▼                    ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  supabase.ts │     │   auth.ts    │     │  RLS Policies│
-│  (queries)   │     │  (server)    │     │  (security)  │
-└──────────────┘     └──────────────┘     └──────────────┘
+
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Frontend │────▶│ Next.js │────▶│ Supabase │
+│ Components │ │ API Routes │ │ Database │
+└──────────────┘ └──────────────┘ └──────────────┘
+│ │ │
+│ │ │
+▼ ▼ ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ supabase.ts │ │ auth.ts │ │ RLS Policies│
+│ (queries) │ │ (server) │ │ (security) │
+└──────────────┘ └──────────────┘ └──────────────┘
+
 ```
 
 ---
@@ -127,41 +133,43 @@ Relay uses a cryptographic signature-based authentication system. Users prove ow
 **How it works:**
 
 ```
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         AUTHENTICATION FLOW                                 │
+│ AUTHENTICATION FLOW │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  1. User wants to authenticate                                              │
-│     └─▶ Call authenticateWithWallet() from auth.ts                          │
-│                                                                             │
-│  2. Get wallet address from stored mnemonic                                 │
-│     └─▶ Uses @polkadot/keyring with sr25519 curve                           │
-│                                                                             │
-│  3. Request nonce from server                                               │
-│     └─▶ POST /api/auth/nonce { walletAddress }                              │
-│     └─▶ Server stores nonce in auth_nonces table (5 min expiry)             │
-│     └─▶ Returns { message, nonce }                                          │
-│                                                                             │
-│  4. Sign the message with wallet                                            │
-│     └─▶ Uses keypair.sign(message) with sr25519                             │
-│     └─▶ Creates cryptographic proof of wallet ownership                     │
-│                                                                             │
-│  5. Verify signature and get JWT                                            │
-│     └─▶ POST /api/auth/verify { walletAddress, signature, nonce }           │
-│     └─▶ Server verifies using @polkadot/util-crypto signatureVerify         │
-│     └─▶ Server creates/updates user in users table                          │
-│     └─▶ Server generates JWT with wallet_address claim (24h expiry)         │
-│     └─▶ Returns { token }                                                   │
-│                                                                             │
-│  6. Set JWT in Supabase client                                              │
-│     └─▶ All subsequent requests include the JWT                             │
-│                                                                             │
-│  7. RLS policies check JWT for wallet_address                               │
-│     └─▶ auth.jwt() ->> 'wallet_address' in SQL policies                     │
-│     └─▶ Users can only access their own data                                │
-│                                                                             │
+│ │
+│ 1. User wants to authenticate │
+│ └─▶ Call authenticateWithWallet() from auth.ts │
+│ │
+│ 2. Get wallet address from stored mnemonic │
+│ └─▶ Uses @polkadot/keyring with sr25519 curve │
+│ │
+│ 3. Request nonce from server │
+│ └─▶ POST /api/auth/nonce { walletAddress } │
+│ └─▶ Server stores nonce in auth_nonces table (5 min expiry) │
+│ └─▶ Returns { message, nonce } │
+│ │
+│ 4. Sign the message with wallet │
+│ └─▶ Uses keypair.sign(message) with sr25519 │
+│ └─▶ Creates cryptographic proof of wallet ownership │
+│ │
+│ 5. Verify signature and get JWT │
+│ └─▶ POST /api/auth/verify { walletAddress, signature, nonce } │
+│ └─▶ Server verifies using @polkadot/util-crypto signatureVerify │
+│ └─▶ Server creates/updates user in users table │
+│ └─▶ Server generates JWT with wallet_address claim (24h expiry) │
+│ └─▶ Returns { token } │
+│ │
+│ 6. Set JWT in Supabase client │
+│ └─▶ All subsequent requests include the JWT │
+│ │
+│ 7. RLS policies check JWT for wallet_address │
+│ └─▶ auth.jwt() ->> 'wallet_address' in SQL policies │
+│ └─▶ Users can only access their own data │
+│ │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+
+````
 
 **Security Features:**
 - **No password storage**: Authentication is based on cryptographic signatures
@@ -230,7 +238,7 @@ Before installation, ensure you have:
 ```bash
 git clone https://github.com/MontaQ-Labs/relay-new.git
 cd relay-new
-```
+````
 
 ### Step 2: Install Dependencies
 
@@ -239,6 +247,7 @@ npm install
 ```
 
 This will:
+
 - Install all npm packages
 - Run `papi generate` (postinstall script) to generate Polkadot API descriptors
 
@@ -271,12 +280,12 @@ Once your project is ready:
 1. Go to **Settings** → **API**
 2. Note down these values:
 
-| Key | Description | Location |
-|-----|-------------|----------|
-| **Project URL** | Supabase API endpoint | "Project URL" section |
-| **anon/public key** | Client-side key (safe to expose) | "Project API keys" → `anon` `public` |
-| **service_role key** | Server-side key (**SECRET**) | "Project API keys" → `service_role` |
-| **JWT Secret** | For signing tokens | "JWT Settings" → `JWT Secret` |
+| Key                  | Description                      | Location                             |
+| -------------------- | -------------------------------- | ------------------------------------ |
+| **Project URL**      | Supabase API endpoint            | "Project URL" section                |
+| **anon/public key**  | Client-side key (safe to expose) | "Project API keys" → `anon` `public` |
+| **service_role key** | Server-side key (**SECRET**)     | "Project API keys" → `service_role`  |
+| **JWT Secret**       | For signing tokens               | "JWT Settings" → `JWT Secret`        |
 
 ### Step 3: Create Environment File
 
@@ -306,12 +315,12 @@ SUPABASE_JWT_SECRET=your-jwt-secret-from-supabase-dashboard
 
 Keys should look like:
 
-| Variable | Format |
-|----------|--------|
-| URL | `https://abcdefghij.supabase.co` (~30 chars) |
-| anon key | `eyJhbGciOiJI...` (~200+ chars, starts with `eyJ`) |
+| Variable         | Format                                             |
+| ---------------- | -------------------------------------------------- |
+| URL              | `https://abcdefghij.supabase.co` (~30 chars)       |
+| anon key         | `eyJhbGciOiJI...` (~200+ chars, starts with `eyJ`) |
 | service_role key | `eyJhbGciOiJI...` (~200+ chars, starts with `eyJ`) |
-| JWT Secret | Random string (~40+ chars) |
+| JWT Secret       | Random string (~40+ chars)                         |
 
 ---
 
@@ -327,6 +336,7 @@ Keys should look like:
 6. Click **"Run"** (or Cmd/Ctrl + Enter)
 
 Expected output:
+
 ```
 ✅ Relay database schema created successfully!
 
@@ -352,6 +362,7 @@ To enable community tokens on Polkadot Asset Hub:
 2. Run in SQL Editor
 
 Expected output:
+
 ```
 ✅ Community tokens schema extension created successfully!
 
@@ -414,19 +425,19 @@ ON CONFLICT (asset_id) DO UPDATE SET
 1. Go to **Table Editor** in the sidebar
 2. Verify these tables exist:
 
-| Table | Purpose |
-|-------|---------|
-| `users` | User profiles |
-| `auth_nonces` | Authentication nonces |
-| `friends` | User friend lists |
-| `transactions` | Transaction records |
-| `communities` | Community data |
-| `community_members` | Community membership |
-| `activities` | Community activities |
-| `activity_attendees` | Activity participation |
-| `comments` | Activity comments |
-| `community_tokens` | Community token configs |
-| `known_assets` | Polkadot Asset Hub tokens |
+| Table                | Purpose                   |
+| -------------------- | ------------------------- |
+| `users`              | User profiles             |
+| `auth_nonces`        | Authentication nonces     |
+| `friends`            | User friend lists         |
+| `transactions`       | Transaction records       |
+| `communities`        | Community data            |
+| `community_members`  | Community membership      |
+| `activities`         | Community activities      |
+| `activity_attendees` | Activity participation    |
+| `comments`           | Activity comments         |
+| `community_tokens`   | Community token configs   |
+| `known_assets`       | Polkadot Asset Hub tokens |
 
 ---
 
@@ -452,16 +463,16 @@ npm start
 
 ### Available Scripts
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| `dev` | `npm run dev` | Start development server |
-| `build` | `npm run build` | Build for production |
-| `start` | `npm start` | Start production server |
-| `lint` | `npm run lint` | Run ESLint |
-| `test` | `npm test` | Run all tests |
-| `test:watch` | `npm run test:watch` | Run tests in watch mode |
-| `test:ui` | `npm run test:ui` | Run tests with UI |
-| `test:coverage` | `npm run test:coverage` | Run tests with coverage |
+| Script          | Command                 | Description              |
+| --------------- | ----------------------- | ------------------------ |
+| `dev`           | `npm run dev`           | Start development server |
+| `build`         | `npm run build`         | Build for production     |
+| `start`         | `npm start`             | Start production server  |
+| `lint`          | `npm run lint`          | Run ESLint               |
+| `test`          | `npm test`              | Run all tests            |
+| `test:watch`    | `npm run test:watch`    | Run tests in watch mode  |
+| `test:ui`       | `npm run test:ui`       | Run tests with UI        |
+| `test:coverage` | `npm run test:coverage` | Run tests with coverage  |
 
 ---
 
@@ -474,6 +485,7 @@ npm start
 Generate an authentication nonce for wallet signature.
 
 **Request:**
+
 ```json
 {
   "walletAddress": "1A2B3C4D..."
@@ -481,6 +493,7 @@ Generate an authentication nonce for wallet signature.
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Sign this message to authenticate with Relay...",
@@ -493,6 +506,7 @@ Generate an authentication nonce for wallet signature.
 Verify wallet signature and receive JWT token.
 
 **Request:**
+
 ```json
 {
   "walletAddress": "1A2B3C4D...",
@@ -502,6 +516,7 @@ Verify wallet signature and receive JWT token.
 ```
 
 **Response:**
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -510,40 +525,40 @@ Verify wallet signature and receive JWT token.
 
 ### Community Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/community` | List all communities |
-| POST | `/api/community/create` | Create new community |
-| GET | `/api/community/search?q=term` | Search communities |
-| POST | `/api/community/join` | Join a community |
-| POST | `/api/community/leave` | Leave a community |
-| GET | `/api/community/members` | Get community members |
+| Method | Endpoint                       | Description           |
+| ------ | ------------------------------ | --------------------- |
+| GET    | `/api/community`               | List all communities  |
+| POST   | `/api/community/create`        | Create new community  |
+| GET    | `/api/community/search?q=term` | Search communities    |
+| POST   | `/api/community/join`          | Join a community      |
+| POST   | `/api/community/leave`         | Leave a community     |
+| GET    | `/api/community/members`       | Get community members |
 
 ### Activity Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/activity/join` | Join an activity |
-| POST | `/api/activity/leave` | Leave an activity |
-| POST | `/api/activity/like` | Like an activity |
-| POST | `/api/activity/comment` | Add a comment |
-| GET | `/api/activity/comments` | Get activity comments |
+| Method | Endpoint                 | Description           |
+| ------ | ------------------------ | --------------------- |
+| POST   | `/api/activity/join`     | Join an activity      |
+| POST   | `/api/activity/leave`    | Leave an activity     |
+| POST   | `/api/activity/like`     | Like an activity      |
+| POST   | `/api/activity/comment`  | Add a comment         |
+| GET    | `/api/activity/comments` | Get activity comments |
 
 ### User Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/user/profile` | Get user profile |
-| GET | `/api/user/nicknames` | Get nicknames for addresses |
+| Method | Endpoint              | Description                 |
+| ------ | --------------------- | --------------------------- |
+| GET    | `/api/user/profile`   | Get user profile            |
+| GET    | `/api/user/nicknames` | Get nicknames for addresses |
 
 ### Friends Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/friends` | List all friends |
-| POST | `/api/friends` | Add a friend |
-| PUT | `/api/friends/[walletAddress]` | Update friend |
-| DELETE | `/api/friends/[walletAddress]` | Remove friend |
+| Method | Endpoint                       | Description      |
+| ------ | ------------------------------ | ---------------- |
+| GET    | `/api/friends`                 | List all friends |
+| POST   | `/api/friends`                 | Add a friend     |
+| PUT    | `/api/friends/[walletAddress]` | Update friend    |
+| DELETE | `/api/friends/[walletAddress]` | Remove friend    |
 
 ---
 
@@ -620,22 +635,27 @@ SUPABASE_JWT_SECRET=your-secret
 ### Common Errors
 
 #### "Wallet address is required"
+
 - **Cause**: Calling auth without a wallet
 - **Fix**: Ensure user has created/imported a wallet first
 
 #### "Invalid or expired nonce"
+
 - **Cause**: Nonce expired (>5 min) or already used
 - **Fix**: Request a new nonce and try again
 
 #### "Invalid signature"
+
 - **Cause**: Message was modified or wrong key used
 - **Fix**: Ensure the exact message from server is signed
 
 #### "Permission denied for table..."
+
 - **Cause**: RLS policy blocking access
 - **Fix**: Check that JWT contains correct `wallet_address`
 
 #### "JWT expired"
+
 - **Cause**: Token older than 24 hours
 - **Fix**: Call `refreshAuth()` to get new token
 
@@ -644,6 +664,7 @@ SUPABASE_JWT_SECRET=your-secret
 1. **Check browser console** for detailed error messages
 
 2. **Verify environment variables**:
+
    ```bash
    echo $NEXT_PUBLIC_SUPABASE_URL
    ```
@@ -652,6 +673,7 @@ SUPABASE_JWT_SECRET=your-secret
    - Go to Dashboard → Logs → Postgres
 
 4. **Test RLS policies** in SQL Editor:
+
    ```sql
    SELECT auth.jwt();
    ```
@@ -707,12 +729,12 @@ If you need to start fresh:
 
 ### Environment Variable Security
 
-| Variable | Exposure | Notes |
-|----------|----------|-------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Public | Safe to expose |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Safe to expose |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | Server-only |
-| `SUPABASE_JWT_SECRET` | **Secret** | Server-only |
+| Variable                        | Exposure   | Notes          |
+| ------------------------------- | ---------- | -------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Public     | Safe to expose |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public     | Safe to expose |
+| `SUPABASE_SERVICE_ROLE_KEY`     | **Secret** | Server-only    |
+| `SUPABASE_JWT_SECRET`           | **Secret** | Server-only    |
 
 ---
 
@@ -736,7 +758,7 @@ This project is open source. See the LICENSE file for details.
 ## Support
 
 For questions or issues:
+
 - Open a GitHub issue
 - Check the [Supabase documentation](https://supabase.com/docs)
 - Check the [Polkadot documentation](https://wiki.polkadot.network)
-

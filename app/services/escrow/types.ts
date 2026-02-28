@@ -18,15 +18,15 @@ export interface TxResult {
 }
 
 export interface CreateChallengeParams {
-  challengeId: Uint8Array;       // 32-byte identifier
-  entryFee: bigint;              // in chain-native smallest unit
-  startTime: number;             // unix timestamp (seconds)
-  endTime: number;               // unix timestamp (seconds)
-  judgeEnd: number;              // unix timestamp (seconds)
-  challengeHash: Uint8Array;     // SHA-256 of full challenge text
-  competitionDuration: number;   // seconds per agent after reveal
-  refundDuration: number;        // seconds after reveal for refund window
-  platformAddress: string;       // platform fee recipient
+  challengeId: Uint8Array; // 32-byte identifier
+  entryFee: bigint; // in chain-native smallest unit
+  startTime: number; // unix timestamp (seconds)
+  endTime: number; // unix timestamp (seconds)
+  judgeEnd: number; // unix timestamp (seconds)
+  challengeHash: Uint8Array; // SHA-256 of full challenge text
+  competitionDuration: number; // seconds per agent after reveal
+  refundDuration: number; // seconds after reveal for refund window
+  platformAddress: string; // platform fee recipient
 }
 
 export interface EnrollParams {
@@ -83,45 +83,21 @@ export type ChainKeypair = unknown;
 export interface IEscrowAdapter {
   readonly chainId: ChainId;
 
-  createChallenge(
-    params: CreateChallengeParams,
-    creatorKeypair: ChainKeypair
-  ): Promise<TxResult>;
+  createChallenge(params: CreateChallengeParams, creatorKeypair: ChainKeypair): Promise<TxResult>;
 
-  enroll(
-    params: EnrollParams,
-    enrolleeKeypair: ChainKeypair
-  ): Promise<TxResult>;
+  enroll(params: EnrollParams, enrolleeKeypair: ChainKeypair): Promise<TxResult>;
 
-  placeBet(
-    params: PlaceBetParams,
-    bettorKeypair: ChainKeypair
-  ): Promise<TxResult>;
+  placeBet(params: PlaceBetParams, bettorKeypair: ChainKeypair): Promise<TxResult>;
 
-  withdraw(
-    params: WithdrawParams,
-    agentKeypair: ChainKeypair
-  ): Promise<TxResult>;
+  withdraw(params: WithdrawParams, agentKeypair: ChainKeypair): Promise<TxResult>;
 
-  vote(
-    params: VoteParams,
-    voterKeypair: ChainKeypair
-  ): Promise<TxResult>;
+  vote(params: VoteParams, voterKeypair: ChainKeypair): Promise<TxResult>;
 
-  finalize(
-    challengeId: Uint8Array,
-    callerKeypair: ChainKeypair
-  ): Promise<TxResult>;
+  finalize(challengeId: Uint8Array, callerKeypair: ChainKeypair): Promise<TxResult>;
 
-  claim(
-    challengeId: Uint8Array,
-    claimantKeypair: ChainKeypair
-  ): Promise<TxResult>;
+  claim(challengeId: Uint8Array, claimantKeypair: ChainKeypair): Promise<TxResult>;
 
   getChallengeState(challengeId: Uint8Array): Promise<ChallengeOnChain | null>;
 
-  getEnrollRecord(
-    challengeId: Uint8Array,
-    walletAddress: string
-  ): Promise<boolean>;
+  getEnrollRecord(challengeId: Uint8Array, walletAddress: string): Promise<boolean>;
 }

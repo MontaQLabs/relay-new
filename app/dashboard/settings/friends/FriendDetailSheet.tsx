@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Friend } from "@/app/types/frontend_type";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import EditFriendSheet from "./EditFriendSheet";
 
 interface FriendDetailSheetProps {
@@ -46,9 +41,7 @@ export default function FriendDetailSheet({
   // Truncate address for display
   const truncateAddress = (address: string) => {
     if (!address) return "";
-    return address.length > 40
-      ? `${address.slice(0, 20)}...${address.slice(-20)}`
-      : address;
+    return address.length > 40 ? `${address.slice(0, 20)}...${address.slice(-20)}` : address;
   };
 
   return (
@@ -109,9 +102,7 @@ export default function FriendDetailSheet({
             {/* Remark */}
             <div className="py-4 border-b border-gray-100">
               <label className="block text-sm text-gray-500 mb-1">Remark</label>
-              <p className="text-base font-medium text-black">
-                {friend.remark || "No remark"}
-              </p>
+              <p className="text-base font-medium text-black">{friend.remark || "No remark"}</p>
             </div>
           </div>
         </SheetContent>

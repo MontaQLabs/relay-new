@@ -32,10 +32,7 @@ export async function GET(
       .single();
 
     if (enrollErr || !enrollment) {
-      return NextResponse.json(
-        { enrolled: false },
-        { status: 200 }
-      );
+      return NextResponse.json({ enrolled: false }, { status: 200 });
     }
 
     const now = new Date();
@@ -80,9 +77,6 @@ export async function GET(
     return NextResponse.json(response);
   } catch (error) {
     console.error("My status error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

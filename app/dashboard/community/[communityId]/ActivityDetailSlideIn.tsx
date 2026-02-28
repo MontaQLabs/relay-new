@@ -59,7 +59,7 @@ export default function ActivityDetailSlideIn({
   // Local attendees state to avoid full page refresh
   const [localAttendees, setLocalAttendees] = useState<string[]>(activity.attendees);
   const [hasAttendanceChanged, setHasAttendanceChanged] = useState(false);
-  
+
   const walletAddress = getWalletAddress();
   const subscriptionRef = useRef<RealtimeChannel | null>(null);
 
@@ -83,14 +83,14 @@ export default function ActivityDetailSlideIn({
     try {
       const response = await fetch(`/api/activity/comments?activityId=${activity.activityId}`);
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch comments");
       }
-      
+
       const fetchedComments: Comment[] = data.comments;
       setComments(fetchedComments);
-      
+
       // Fetch nicknames for comment publishers via API
       if (fetchedComments.length > 0) {
         const publisherAddresses = fetchedComments.map((c) => c.publisher);
@@ -100,7 +100,7 @@ export default function ActivityDetailSlideIn({
           body: JSON.stringify({ walletAddresses: publisherAddresses }),
         });
         const nicknamesData = await nicknamesResponse.json();
-        
+
         if (nicknamesResponse.ok) {
           setUserNicknames(nicknamesData.nicknames);
         }
@@ -115,7 +115,7 @@ export default function ActivityDetailSlideIn({
   useEffect(() => {
     if (isOpen) {
       fetchComments();
-      
+
       // Subscribe to new comments using base Supabase client (real-time requires client-side)
       subscriptionRef.current = supabase
         .channel(`comments:${activity.activityId}`)
@@ -276,9 +276,10 @@ export default function ActivityDetailSlideIn({
   const attendeesCount = localAttendees.filter((addr) => addr !== activity.owner).length;
 
   // Filter comments based on active tab
-  const filteredComments = activeTab === "my_posts" && walletAddress
-    ? comments.filter((c) => c.publisher === walletAddress)
-    : comments;
+  const filteredComments =
+    activeTab === "my_posts" && walletAddress
+      ? comments.filter((c) => c.publisher === walletAddress)
+      : comments;
 
   if (!isOpen && !isExiting) return null;
 
@@ -315,13 +316,15 @@ export default function ActivityDetailSlideIn({
               />
             </div>
             <div>
-              <p className="font-semibold text-black text-sm">{ownerNickname || `${activity.owner.slice(0, 6)}...${activity.owner.slice(-4)}`}</p>
+              <p className="font-semibold text-black text-sm">
+                {ownerNickname || `${activity.owner.slice(0, 6)}...${activity.owner.slice(-4)}`}
+              </p>
               <p className="text-xs text-muted-foreground">
                 Posted at {formatDate(activity.timestamp)}
               </p>
             </div>
           </div>
-          
+
           {/* Status Badge */}
           <div className="flex items-center gap-1 px-3 py-1 rounded-full border border-green-500 text-green-500">
             <span className="w-2 h-2 rounded-full bg-green-500" />
@@ -403,9 +406,9 @@ export default function ActivityDetailSlideIn({
           ) : (
             <div className="space-y-4">
               {filteredComments.map((comment) => (
-                <CommentItem 
-                  key={comment.commentId} 
-                  comment={comment} 
+                <CommentItem
+                  key={comment.commentId}
+                  comment={comment}
                   nickname={userNicknames[comment.publisher]}
                 />
               ))}
@@ -466,9 +469,7 @@ export default function ActivityDetailSlideIn({
         <SheetContent side="bottom" hideCloseButton className="px-5 pb-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <SheetTitle className="text-lg font-semibold text-black">
-              Add Comment
-            </SheetTitle>
+            <SheetTitle className="text-lg font-semibold text-black">Add Comment</SheetTitle>
             <button
               onClick={() => setIsCommentSheetOpen(false)}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -497,11 +498,7 @@ export default function ActivityDetailSlideIn({
               disabled={!commentInput.trim() || isSubmittingComment}
               className="h-12 px-6 rounded-xl bg-violet-500 hover:bg-violet-600 text-white font-semibold"
             >
-              {isSubmittingComment ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Send"
-              )}
+              {isSubmittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send"}
             </Button>
           </div>
         </SheetContent>
@@ -523,11 +520,11 @@ function CommentItem({ comment, nickname }: { comment: Comment; nickname?: strin
         />
       </div>
       <div className="flex-1">
-        <p className="font-semibold text-black text-sm">{nickname || `${comment.publisher.slice(0, 6)}...${comment.publisher.slice(-4)}`}</p>
-        <p className="text-sm text-gray-700">{comment.content}</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {formatDate(comment.timestamp)}
+        <p className="font-semibold text-black text-sm">
+          {nickname || `${comment.publisher.slice(0, 6)}...${comment.publisher.slice(-4)}`}
         </p>
+        <p className="text-sm text-gray-700">{comment.content}</p>
+        <p className="text-xs text-muted-foreground mt-1">{formatDate(comment.timestamp)}</p>
       </div>
     </div>
   );
@@ -541,9 +538,7 @@ function EmptyCommentsState() {
         <MessageCircle className="w-8 h-8 text-gray-300" />
       </div>
       <h3 className="text-base font-semibold text-black mb-1">No comments yet</h3>
-      <p className="text-sm text-muted-foreground">
-        Be the first to share your thoughts!
-      </p>
+      <p className="text-sm text-muted-foreground">Be the first to share your thoughts!</p>
     </div>
   );
 }
