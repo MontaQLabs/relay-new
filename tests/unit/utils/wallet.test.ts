@@ -37,6 +37,10 @@ vi.mock("@polkadot/util-crypto", () => ({
   encodeAddress: vi.fn(() => TEST_WALLET_ADDRESS),
 }));
 
+vi.mock("@/app/chains/registry", () => ({
+  initChainRegistry: vi.fn().mockRejectedValue(new Error("mock")),
+}));
+
 // Import after mocking
 import {
   exists,

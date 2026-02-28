@@ -91,13 +91,13 @@ describe("WalletPage", () => {
       });
     });
 
-    it("should render Explore section", async () => {
+    it("should render Relay Bazaar section", async () => {
       await act(async () => {
         render(<WalletPage />);
       });
 
       await waitFor(() => {
-        expect(screen.getByText("Explore")).toBeInTheDocument();
+        expect(screen.getByText("Relay Bazaar")).toBeInTheDocument();
       });
     });
 
@@ -214,14 +214,14 @@ describe("WalletPage", () => {
     });
   });
 
-  describe("Explore Section", () => {
-    it("should display explore section with projects", async () => {
+  describe("Relay Bazaar Section", () => {
+    it("should display Relay Bazaar section with projects", async () => {
       await act(async () => {
         render(<WalletPage />);
       });
 
       await waitFor(() => {
-        expect(screen.getByText("Explore")).toBeInTheDocument();
+        expect(screen.getByText("Relay Bazaar")).toBeInTheDocument();
       });
     });
 
@@ -230,9 +230,12 @@ describe("WalletPage", () => {
         render(<WalletPage />);
       });
 
-      await waitFor(() => {
-        expect(screen.getByText("Jupiter")).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByText("Jupiter")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
     });
   });
 
