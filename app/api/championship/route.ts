@@ -13,14 +13,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 import type { ChallengeStatus } from "@/app/types/frontend_type";
 import { decryptChallenge } from "@/app/utils/championship-crypto";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,17 +24,9 @@ export async function GET(request: NextRequest) {
     const chainId = searchParams.get("chain_id");
     const category = searchParams.get("category");
 
-    const validStatuses: ChallengeStatus[] = [
-      "enrolling",
-      "competing",
-      "judging",
-      "completed",
-    ];
+    const validStatuses: ChallengeStatus[] = ["enrolling", "competing", "judging", "completed"];
     if (status && !validStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status parameter" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid status parameter" }, { status: 400 });
     }
 
     let query = supabaseAdmin
@@ -55,10 +42,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Failed to fetch challenges:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch challenges" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to fetch challenges" }, { status: 500 });
     }
 
     const now = new Date();
@@ -124,9 +108,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ challenges });
   } catch (error) {
     console.error("Championship list error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

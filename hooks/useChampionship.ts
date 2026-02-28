@@ -30,9 +30,7 @@ export function useChallenges(status?: ChallengeStatus): UseChallengesReturn {
     setError(null);
 
     try {
-      const url = status
-        ? `/api/championship?status=${status}`
-        : "/api/championship";
+      const url = status ? `/api/championship?status=${status}` : "/api/championship";
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -185,10 +183,7 @@ interface UseBetStatsReturn {
   refetch: () => void;
 }
 
-export function useBetStats(
-  challengeId: string,
-  wallet?: string | null
-): UseBetStatsReturn {
+export function useBetStats(challengeId: string, wallet?: string | null): UseBetStatsReturn {
   const [totalPool, setTotalPool] = useState("0");
   const [bets, setBets] = useState<ChallengeBet[]>([]);
   const [betsByAgent, setBetsByAgent] = useState<Record<string, string>>({});

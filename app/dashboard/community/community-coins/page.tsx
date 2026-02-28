@@ -73,10 +73,7 @@ export default function CommunityCoinsPage() {
     }, 300);
   };
 
-  const handleInputChange = (
-    field: keyof CommunityTokenForm,
-    value: string
-  ) => {
+  const handleInputChange = (field: keyof CommunityTokenForm, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -177,7 +174,7 @@ export default function CommunityCoinsPage() {
 
       // Success!
       setButtonState("success");
-      
+
       // Clear the draft from localStorage
       localStorage.removeItem("community-draft");
 
@@ -235,11 +232,7 @@ export default function CommunityCoinsPage() {
         {/* Toggle Section */}
         <div className="flex items-center justify-between py-4 border-b border-gray-200">
           <span className="text-base text-black">Issue community coins? (Coming soon...)</span>
-          <Switch
-            checked={issueCoins}
-            onCheckedChange={setIssueCoins}
-            disabled={true}
-          />
+          <Switch checked={issueCoins} onCheckedChange={setIssueCoins} disabled={true} />
         </div>
 
         {/* Form Fields - Only shown when toggle is on */}
@@ -357,18 +350,12 @@ export default function CommunityCoinsPage() {
                 type="button"
                 onClick={() => setConfigLocked(!configLocked)}
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                  configLocked
-                    ? "border-violet-500 bg-violet-500"
-                    : "border-gray-300 bg-white"
+                  configLocked ? "border-violet-500 bg-violet-500" : "border-gray-300 bg-white"
                 }`}
               >
-                {configLocked && (
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                )}
+                {configLocked && <div className="w-2 h-2 rounded-full bg-white" />}
               </button>
-              <span className="text-base text-black">
-                Configuration is not changeable
-              </span>
+              <span className="text-base text-black">Configuration is not changeable</span>
             </div>
           </div>
         )}
@@ -387,15 +374,19 @@ export default function CommunityCoinsPage() {
       <div className="px-5 pb-8 pt-4">
         <Button
           onClick={handleCreate}
-          disabled={(issueCoins && !isFormValid) || buttonState === "processing" || buttonState === "success"}
+          disabled={
+            (issueCoins && !isFormValid) ||
+            buttonState === "processing" ||
+            buttonState === "success"
+          }
           className={`w-full h-14 rounded-2xl font-semibold text-base transition-all ${
             buttonState === "success"
               ? "bg-green-500 hover:bg-green-500 text-white"
               : buttonState === "processing"
-              ? "bg-[#1a1a1a] text-white cursor-wait"
-              : !issueCoins || isFormValid
-              ? "bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                ? "bg-[#1a1a1a] text-white cursor-wait"
+                : !issueCoins || isFormValid
+                  ? "bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >
           {buttonState === "processing" ? (

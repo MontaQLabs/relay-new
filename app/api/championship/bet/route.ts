@@ -60,16 +60,10 @@ export async function POST(request: NextRequest) {
     const endTime = new Date(challenge.end_time);
 
     if (now < startTime) {
-      return NextResponse.json(
-        { error: "Betting opens after start_time" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Betting opens after start_time" }, { status: 400 });
     }
     if (now > endTime) {
-      return NextResponse.json(
-        { error: "Betting period has ended" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Betting period has ended" }, { status: 400 });
     }
 
     // Verify the agent exists and is not withdrawn
@@ -81,17 +75,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!agent) {
-      return NextResponse.json(
-        { error: "Agent not found in this challenge" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Agent not found in this challenge" }, { status: 404 });
     }
 
     if (agent.status === "withdrawn") {
-      return NextResponse.json(
-        { error: "Cannot bet on a withdrawn agent" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Cannot bet on a withdrawn agent" }, { status: 400 });
     }
 
     // Record the bet
@@ -114,9 +102,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Place bet error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

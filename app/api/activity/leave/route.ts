@@ -9,14 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { jwtVerify } from "jose";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
 
@@ -52,10 +46,7 @@ export async function POST(request: NextRequest) {
     const { activityId } = body;
 
     if (!activityId) {
-      return NextResponse.json(
-        { error: "Activity ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Activity ID is required" }, { status: 400 });
     }
 
     // Leave the activity
@@ -67,19 +58,12 @@ export async function POST(request: NextRequest) {
 
     if (leaveError) {
       console.error("Failed to leave activity:", leaveError);
-      return NextResponse.json(
-        { error: "Failed to leave activity" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to leave activity" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Leave activity error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

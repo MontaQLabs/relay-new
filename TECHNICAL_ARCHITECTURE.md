@@ -99,11 +99,11 @@ interface ChainAdapter {
   chainId: ChainId;
   chainName: string;
   chainType: "substrate" | "evm" | "solana" | "near";
-  
+
   // Account operations
   deriveAddress(mnemonic: string): Promise<string>;
   isValidAddress(address: string): boolean;
-  
+
   // Balance & transaction operations
   fetchBalances(address: string): Promise<ChainCoin[]>;
   estimateFee(params: TransferParams): Promise<ChainFeeEstimate>;
@@ -114,13 +114,13 @@ interface ChainAdapter {
 
 ### Supported Chains
 
-| Chain | Type | Native Token | RPC Endpoint | Adapter |
-|-------|------|--------------|--------------|---------|
-| Polkadot Asset Hub | Substrate | DOT | `wss://polkadot-asset-hub-rpc.polkadot.io` | `PolkadotChainAdapter` |
-| Solana | Solana | SOL | `https://api.testnet.solana.com` | `SolanaChainAdapter` |
-| NEAR | NEAR | NEAR | `https://rpc.testnet.near.org` | `NearChainAdapter` |
-| Base | EVM | ETH | `https://sepolia.base.org` | `EVMChainAdapter` |
-| Monad | EVM | MON | Custom RPC | `EVMChainAdapter` |
+| Chain              | Type      | Native Token | RPC Endpoint                               | Adapter                |
+| ------------------ | --------- | ------------ | ------------------------------------------ | ---------------------- |
+| Polkadot Asset Hub | Substrate | DOT          | `wss://polkadot-asset-hub-rpc.polkadot.io` | `PolkadotChainAdapter` |
+| Solana             | Solana    | SOL          | `https://api.testnet.solana.com`           | `SolanaChainAdapter`   |
+| NEAR               | NEAR      | NEAR         | `https://rpc.testnet.near.org`             | `NearChainAdapter`     |
+| Base               | EVM       | ETH          | `https://sepolia.base.org`                 | `EVMChainAdapter`      |
+| Monad              | EVM       | MON          | Custom RPC                                 | `EVMChainAdapter`      |
 
 ### Address Derivation
 
@@ -135,13 +135,13 @@ const pair = keyring.addFromMnemonic(mnemonic);
 
 // Solana: Ed25519 from BIP-44 path m/44'/501'/0'/0'
 const seed = mnemonicToSeedSync(mnemonic);
-const derivedSeed = derivePath("m/44'/501'/0'/0'", seed.toString('hex'));
+const derivedSeed = derivePath("m/44'/501'/0'/0'", seed.toString("hex"));
 const keypair = Keypair.fromSeed(derivedSeed.key);
 
 // NEAR: Ed25519 from BIP-44 path m/44'/397'/0'
 const seed = mnemonicToSeedSync(mnemonic);
-const derivedSeed = derivePath("m/44'/397'/0'", seed.toString('hex'));
-const keyPair = KeyPair.fromString(derivedSeed.key.toString('hex'));
+const derivedSeed = derivePath("m/44'/397'/0'", seed.toString("hex"));
+const keyPair = KeyPair.fromString(derivedSeed.key.toString("hex"));
 
 // EVM (Base/Monad): ECDSA from BIP-44 path m/44'/60'/0'/0/0
 const account = mnemonicToAccount(mnemonic);
@@ -153,9 +153,9 @@ const account = mnemonicToAccount(mnemonic);
 // Lazy initialization on first access
 export async function initChainRegistry(): Promise<ChainRegistry> {
   const registry = getChainRegistry();
-  
+
   if (registry.getAll().length > 0) return registry;
-  
+
   // Dynamic imports for code splitting
   const [
     { PolkadotChainAdapter },
@@ -168,13 +168,13 @@ export async function initChainRegistry(): Promise<ChainRegistry> {
     import("./solana/adapter"),
     import("./near/adapter"),
   ]);
-  
+
   registry.register(new PolkadotChainAdapter());
   registry.register(createBaseAdapter());
   registry.register(createMonadAdapter());
   registry.register(new SolanaChainAdapter());
   registry.register(new NearChainAdapter());
-  
+
   return registry;
 }
 ```
@@ -259,7 +259,7 @@ interface ITreasuryService {
     amountDot: string;
     txHash: string;
   }): Promise<{ verified: boolean; error?: string }>;
-  
+
   recordBet(params: {
     challengeId: string;
     walletAddress: string;
@@ -267,7 +267,7 @@ interface ITreasuryService {
     amountDot: string;
     txHash: string;
   }): Promise<{ verified: boolean; error?: string }>;
-  
+
   // Verification
   verifyOnChainTransfer(params: {
     txHash: string;
@@ -275,11 +275,11 @@ interface ITreasuryService {
     expectedDestination: string;
     expectedAmount: string;
   }): Promise<boolean>;
-  
+
   // Payouts
   calculatePayouts(challengeId: string): Promise<PayoutPlan>;
   executePayouts(challengeId: string, plan: PayoutPlan): Promise<PayoutResult[]>;
-  
+
   // Queries
   getEntryPool(challengeId: string): Promise<string>;
   getBetPool(challengeId: string): Promise<string>;
@@ -288,11 +288,13 @@ interface ITreasuryService {
 ```
 
 **Current Implementation**: `SupabaseTreasuryService`
+
 - Stores financial data in Supabase
 - Verifies on-chain transfers via RPC calls
 - Calculates and records payouts in database
 
 **Future Migration**: Smart contract implementation
+
 - Replace `SupabaseTreasuryService` with `SmartContractTreasuryService`
 - All financial operations execute on-chain
 - No changes required to API routes or frontend
@@ -306,6 +308,7 @@ interface ITreasuryService {
 **Language**: Rust (Anchor framework)
 
 **Key Instructions**:
+
 - `create`: Initialize a new challenge escrow
 - `enroll`: Enroll an agent and deposit entry fee
 - `bet`: Place a bet on an agent
@@ -315,6 +318,7 @@ interface ITreasuryService {
 - `claim`: Claim payouts or refunds
 
 **Account Structure**:
+
 ```rust
 pub struct Challenge {
     pub creator: Pubkey,
@@ -344,6 +348,7 @@ pub struct Challenge {
 **Language**: Rust (NEAR SDK)
 
 **Key Methods**:
+
 - `new`: Initialize contract
 - `create`: Create a new challenge
 - `enroll`: Enroll an agent
@@ -356,6 +361,7 @@ pub struct Challenge {
 - `get_agent_count`: Query agent count
 
 **Storage Structure**:
+
 ```rust
 pub struct ChampionshipEscrow {
     pub platform: AccountId,
@@ -681,7 +687,7 @@ All protected routes use JWT verification:
 async function verifyToken(request: NextRequest): Promise<string | null> {
   const authHeader = request.headers.get("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
-  
+
   const token = authHeader.substring(7);
   try {
     const secret = new TextEncoder().encode(JWT_SECRET);
@@ -715,6 +721,7 @@ return NextResponse.json(
 ### Contract Deployment Status
 
 #### Solana Contract
+
 - **Network**: Solana Testnet
 - **Program ID**: `AvNFV1Bg6ZfngTuGdd5uDDxV22nsmumYd3JUpkQu9MPT`
 - **Program Data**: `F7SY2yJrNrJwUj7BbNiArECK8EQpgXtrABUR41D33GEr`
@@ -724,6 +731,7 @@ return NextResponse.json(
 - **Program Size**: 357,592 bytes (~349 KB)
 
 #### NEAR Contract
+
 - **Network**: NEAR Testnet
 - **Account ID**: `championship.montaq.testnet`
 - **Balance**: 4.990806 Ⓝ
@@ -784,56 +792,56 @@ return NextResponse.json(
 
 ### Frontend
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Next.js | 16.0.7 | React framework, App Router, API routes |
-| React | 19.2.0 | UI library |
-| TypeScript | 5.x | Type safety |
-| TailwindCSS | 4.x | Styling |
-| Radix UI | Latest | Accessible component primitives |
-| Lucide React | Latest | Icons |
+| Technology   | Version | Purpose                                 |
+| ------------ | ------- | --------------------------------------- |
+| Next.js      | 16.0.7  | React framework, App Router, API routes |
+| React        | 19.2.0  | UI library                              |
+| TypeScript   | 5.x     | Type safety                             |
+| TailwindCSS  | 4.x     | Styling                                 |
+| Radix UI     | Latest  | Accessible component primitives         |
+| Lucide React | Latest  | Icons                                   |
 
 ### Backend
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Next.js API Routes | 16.0.7 | Serverless API endpoints |
-| Supabase | 2.47.10 | PostgreSQL database, RLS, auth |
-| jose | 5.9.6 | JWT verification |
+| Technology         | Version | Purpose                        |
+| ------------------ | ------- | ------------------------------ |
+| Next.js API Routes | 16.0.7  | Serverless API endpoints       |
+| Supabase           | 2.47.10 | PostgreSQL database, RLS, auth |
+| jose               | 5.9.6   | JWT verification               |
 
 ### Blockchain Integration
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| polkadot-api | 1.22.0 | Polkadot/Substrate interaction |
-| @polkadot/keyring | 13.5.9 | Key management, sr25519 |
-| @polkadot/util-crypto | 13.5.9 | Cryptographic utilities |
-| @solana/web3.js | 1.98.4 | Solana RPC client |
-| @solana/spl-token | 0.4.14 | SPL token operations |
-| near-api-js | 7.1.1 | NEAR RPC client |
-| viem | 2.46.1 | EVM chain interaction |
+| Technology            | Version | Purpose                        |
+| --------------------- | ------- | ------------------------------ |
+| polkadot-api          | 1.22.0  | Polkadot/Substrate interaction |
+| @polkadot/keyring     | 13.5.9  | Key management, sr25519        |
+| @polkadot/util-crypto | 13.5.9  | Cryptographic utilities        |
+| @solana/web3.js       | 1.98.4  | Solana RPC client              |
+| @solana/spl-token     | 0.4.14  | SPL token operations           |
+| near-api-js           | 7.1.1   | NEAR RPC client                |
+| viem                  | 2.46.1  | EVM chain interaction          |
 
 ### Cryptography
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| @scure/bip39 | 2.0.1 | BIP-39 mnemonic generation/validation |
-| ed25519-hd-key | 1.3.0 | HD key derivation for Solana/NEAR |
+| Technology     | Version | Purpose                               |
+| -------------- | ------- | ------------------------------------- |
+| @scure/bip39   | 2.0.1   | BIP-39 mnemonic generation/validation |
+| ed25519-hd-key | 1.3.0   | HD key derivation for Solana/NEAR     |
 
 ### Testing
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Vitest | 2.1.8 | Test runner |
-| @testing-library/react | 16.1.0 | React component testing |
-| @testing-library/jest-dom | 6.6.3 | DOM matchers |
+| Technology                | Version | Purpose                 |
+| ------------------------- | ------- | ----------------------- |
+| Vitest                    | 2.1.8   | Test runner             |
+| @testing-library/react    | 16.1.0  | React component testing |
+| @testing-library/jest-dom | 6.6.3   | DOM matchers            |
 
 ### Development Tools
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| ESLint | 9.x | Code linting |
-| TypeScript | 5.x | Type checking |
+| Technology    | Version     | Purpose                            |
+| ------------- | ----------- | ---------------------------------- |
+| ESLint        | 9.x         | Code linting                       |
+| TypeScript    | 5.x         | Type checking                      |
 | papi generate | Postinstall | Polkadot API descriptor generation |
 
 ---
@@ -938,6 +946,7 @@ Relay is a sophisticated multi-chain Web3 application that provides:
 - **Smart contract abstraction** for future migration
 
 The architecture is designed for:
+
 - **Scalability**: Chain adapter pattern allows easy addition of new chains
 - **Security**: RLS, JWT, cryptographic signatures
 - **Flexibility**: Treasury service abstraction enables smart contract migration

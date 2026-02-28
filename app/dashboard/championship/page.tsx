@@ -12,7 +12,7 @@ import type { ChallengeStatus } from "@/app/types/frontend_type";
 type TabType = "Active" | "Upcoming" | "Completed";
 
 const tabToStatus: Record<TabType, ChallengeStatus | undefined> = {
-  Active: undefined,    // Shows enrolling + competing + judging
+  Active: undefined, // Shows enrolling + competing + judging
   Upcoming: "enrolling",
   Completed: "completed",
 };
@@ -25,9 +25,7 @@ export default function ChampionshipPage() {
 
   // For "Active" tab, filter to non-completed
   const displayChallenges =
-    activeTab === "Active"
-      ? challenges.filter((c) => c.status !== "completed")
-      : challenges;
+    activeTab === "Active" ? challenges.filter((c) => c.status !== "completed") : challenges;
 
   const handleCreateChallenge = () => {
     router.push("/dashboard/championship/create");
@@ -73,9 +71,7 @@ export default function ChampionshipPage() {
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-black">Create a Challenge</span>
-            <span className="text-sm text-muted-foreground">
-              Set up an agent competition
-            </span>
+            <span className="text-sm text-muted-foreground">Set up an agent competition</span>
           </div>
         </button>
 
@@ -110,8 +106,8 @@ export default function ChampionshipPage() {
             {activeTab === "Active"
               ? "No active challenges right now. Create one to get started!"
               : activeTab === "Upcoming"
-              ? "No challenges accepting enrollments at the moment."
-              : "No completed challenges yet."}
+                ? "No challenges accepting enrollments at the moment."
+                : "No completed challenges yet."}
           </p>
         </div>
       ) : (

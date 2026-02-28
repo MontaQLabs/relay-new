@@ -39,10 +39,7 @@ export const formatTime = (timestamp: string): string => {
  * @param options - Intl.DateTimeFormatOptions
  * @returns Formatted date string
  */
-export const formatDate = (
-  timestamp: string,
-  options?: Intl.DateTimeFormatOptions
-): string => {
+export const formatDate = (timestamp: string, options?: Intl.DateTimeFormatOptions): string => {
   const date = new Date(timestamp);
   return date.toLocaleDateString(
     "en-US",
@@ -73,10 +70,7 @@ export const formatCurrency = (value: number, decimals: number = 2): string => {
  * @param maxDecimals - Maximum decimal places (default: 4)
  * @returns Formatted amount string
  */
-export const formatCryptoAmount = (
-  value: number,
-  maxDecimals: number = 4
-): string => {
+export const formatCryptoAmount = (value: number, maxDecimals: number = 4): string => {
   return value.toLocaleString("en-US", {
     maximumFractionDigits: maxDecimals,
   });
@@ -143,10 +137,10 @@ export const formatPoolBond = (amount: number): string => {
 export const formatUnlockTime = (currentEra: number, unlockEra: number): string => {
   const erasRemaining = unlockEra - currentEra;
   if (erasRemaining <= 0) return "Ready to withdraw";
-  
+
   // Each era is approximately 24 hours on Polkadot
   const hoursRemaining = erasRemaining * 24;
-  
+
   if (hoursRemaining < 24) return `~${hoursRemaining} hours`;
   const daysRemaining = Math.ceil(hoursRemaining / 24);
   return `~${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`;

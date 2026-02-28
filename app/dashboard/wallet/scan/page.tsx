@@ -57,7 +57,11 @@ export default function ScanPage() {
     if (selectedToken.amount > 0 && selectedToken.fiatValue > 0) {
       return selectedToken.fiatValue / selectedToken.amount;
     }
-    if (selectedToken.ticker === "USDT" || selectedToken.ticker === "USDt" || selectedToken.ticker === "USDC") {
+    if (
+      selectedToken.ticker === "USDT" ||
+      selectedToken.ticker === "USDt" ||
+      selectedToken.ticker === "USDC"
+    ) {
       return 1;
     }
     return 0;
@@ -228,10 +232,7 @@ export default function ScanPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-6">
         {/* Scanner Container */}
         <div className="relative w-full max-w-[300px] aspect-square">
-          <div
-            id="qr-reader"
-            className="w-full h-full rounded-3xl overflow-hidden bg-gray-900"
-          />
+          <div id="qr-reader" className="w-full h-full rounded-3xl overflow-hidden bg-gray-900" />
 
           {/* Overlay Frame */}
           <div className="absolute inset-0 pointer-events-none">
@@ -306,11 +307,15 @@ export default function ScanPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Recipient Address</label>
               <div className="p-4 bg-gray-50 rounded-xl">
-                <p className={`text-sm font-mono break-all ${addressValid ? "text-emerald-600" : "text-gray-600"}`}>
+                <p
+                  className={`text-sm font-mono break-all ${addressValid ? "text-emerald-600" : "text-gray-600"}`}
+                >
                   {scannedAddress}
                 </p>
                 {!addressValid && scannedAddress && (
-                  <p className="text-xs text-amber-600 mt-2">⚠️ This address format could not be verified</p>
+                  <p className="text-xs text-amber-600 mt-2">
+                    ⚠️ This address format could not be verified
+                  </p>
                 )}
               </div>
             </div>
@@ -350,7 +355,9 @@ export default function ScanPage() {
                   }`}
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <span className={`font-medium ${isAmountExceedingBalance() ? "text-red-500" : "text-gray-500"}`}>
+                  <span
+                    className={`font-medium ${isAmountExceedingBalance() ? "text-red-500" : "text-gray-500"}`}
+                  >
                     {selectedToken?.ticker || ""}
                   </span>
                 </div>
@@ -457,8 +464,8 @@ export default function ScanPage() {
                 {isCoinsLoading || isPriceLoading
                   ? "Loading..."
                   : isCheckingFees
-                  ? "Checking fees..."
-                  : "Continue to Review"}
+                    ? "Checking fees..."
+                    : "Continue to Review"}
               </Button>
               <Button
                 onClick={handleSheetClose}

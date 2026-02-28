@@ -84,30 +84,36 @@ export function useStaking(): UseStakingReturn {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch paginated pool summaries for a specific page
-  const fetchPoolsPage = useCallback(async (page: number, forceRefresh = false) => {
-    setIsLoadingPools(true);
-    setError(null);
+  const fetchPoolsPage = useCallback(
+    async (page: number, forceRefresh = false) => {
+      setIsLoadingPools(true);
+      setError(null);
 
-    try {
-      // Use paginated fetch - only fetches metadata for current page's pools
-      const result = await fetchPoolSummariesPaginated(page, pageSize, forceRefresh);
-      setPoolSummaries(result.pools);
-      setCurrentPage(result.currentPage);
-      setTotalPages(result.totalPages);
-      setTotalPools(result.totalPools);
-    } catch (err) {
-      console.error("Failed to fetch pool summaries:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch pools");
-    } finally {
-      setIsLoadingPools(false);
-    }
-  }, [pageSize]);
+      try {
+        // Use paginated fetch - only fetches metadata for current page's pools
+        const result = await fetchPoolSummariesPaginated(page, pageSize, forceRefresh);
+        setPoolSummaries(result.pools);
+        setCurrentPage(result.currentPage);
+        setTotalPages(result.totalPages);
+        setTotalPools(result.totalPools);
+      } catch (err) {
+        console.error("Failed to fetch pool summaries:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch pools");
+      } finally {
+        setIsLoadingPools(false);
+      }
+    },
+    [pageSize]
+  );
 
   // Go to a specific page
-  const goToPage = useCallback(async (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    await fetchPoolsPage(page);
-  }, [fetchPoolsPage, totalPages]);
+  const goToPage = useCallback(
+    async (page: number) => {
+      if (page < 1 || page > totalPages) return;
+      await fetchPoolsPage(page);
+    },
+    [fetchPoolsPage, totalPages]
+  );
 
   // Go to next page
   const nextPage = useCallback(async () => {
@@ -159,32 +165,34 @@ export function useStaking(): UseStakingReturn {
   }, []);
 
   // Refetch current page and status
-  const refetch = useCallback(async (forceRefresh = false) => {
-    await Promise.all([fetchPoolsPage(currentPage, forceRefresh), fetchStatus()]);
-  }, [fetchPoolsPage, fetchStatus, currentPage]);
+  const refetch = useCallback(
+    async (forceRefresh = false) => {
+      await Promise.all([fetchPoolsPage(currentPage, forceRefresh), fetchStatus()]);
+    },
+    [fetchPoolsPage, fetchStatus, currentPage]
+  );
 
   // Refetch pools (current page)
-  const refetchPools = useCallback(async (forceRefresh = false) => {
-    await fetchPoolsPage(currentPage, forceRefresh);
-  }, [fetchPoolsPage, currentPage]);
+  const refetchPools = useCallback(
+    async (forceRefresh = false) => {
+      await fetchPoolsPage(currentPage, forceRefresh);
+    },
+    [fetchPoolsPage, currentPage]
+  );
 
   // Initial fetch on mount - page 1
   useEffect(() => {
     Promise.all([fetchPoolsPage(1), fetchStatus()]);
-  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Computed values
   const isStaking = accountStatus?.nominationPool.pool !== null;
   const currentPoolId = accountStatus?.nominationPool.pool ?? null;
-  const stakedAmount = accountStatus
-    ? planckToDot(accountStatus.nominationPool.currentBond)
-    : 0;
+  const stakedAmount = accountStatus ? planckToDot(accountStatus.nominationPool.currentBond) : 0;
   const pendingRewards = accountStatus
     ? planckToDot(accountStatus.nominationPool.pendingRewards)
     : 0;
-  const spendableBalance = accountStatus
-    ? planckToDot(accountStatus.balance.spendable)
-    : 0;
+  const spendableBalance = accountStatus ? planckToDot(accountStatus.balance.spendable) : 0;
 
   return {
     poolSummaries,
@@ -292,12 +300,9 @@ export function useStakingActions(): UseStakingActionsReturn {
     }
   }, []);
 
-  const estimateFee = useCallback(
-    async (poolId: number, amount: number) => {
-      return estimateJoinPoolFee(poolId, amount);
-    },
-    []
-  );
+  const estimateFee = useCallback(async (poolId: number, amount: number) => {
+    return estimateJoinPoolFee(poolId, amount);
+  }, []);
 
   return {
     joinPool,

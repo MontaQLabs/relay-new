@@ -24,9 +24,7 @@ export function TabButton({
       <button
         onClick={onClick}
         className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
-          isActive
-            ? "bg-black text-white"
-            : "text-gray-600 hover:text-black"
+          isActive ? "bg-black text-white" : "text-gray-600 hover:text-black"
         }`}
       >
         {label}

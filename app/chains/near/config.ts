@@ -17,8 +17,7 @@ export const NATIVE_TICKER = "NEAR";
 export const NEAR_DECIMALS = 24;
 
 /** Chain icon URL. */
-export const ICON_URL =
-  "https://assets.coingecko.com/coins/images/10365/small/near.jpg";
+export const ICON_URL = "https://assets.coingecko.com/coins/images/10365/small/near.jpg";
 
 interface NearNetworkConfig {
   rpcUrl: string;

@@ -19,18 +19,14 @@ const SheetOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
-    className={cn(
-      "sheet-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm",
-      className
-    )}
+    className={cn("sheet-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm", className)}
     {...props}
     ref={ref}
   />
 ));
 SheetOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-interface SheetContentProps
-  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+interface SheetContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   side?: "top" | "bottom" | "left" | "right";
   hideCloseButton?: boolean;
 }
@@ -51,11 +47,7 @@ const SheetContent = React.forwardRef<
       <SheetOverlay />
       <DialogPrimitive.Content
         ref={ref}
-        className={cn(
-          "fixed z-50 gap-4 bg-white p-6 shadow-lg",
-          sideClasses[side],
-          className
-        )}
+        className={cn("fixed z-50 gap-4 bg-white p-6 shadow-lg", sideClasses[side], className)}
         {...props}
       >
         {children}
@@ -71,29 +63,14 @@ const SheetContent = React.forwardRef<
 });
 SheetContent.displayName = DialogPrimitive.Content.displayName;
 
-const SheetHeader = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      "flex flex-col space-y-2 text-center sm:text-left",
-      className
-    )}
-    {...props}
-  />
+const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props} />
 );
 SheetHeader.displayName = "SheetHeader";
 
-const SheetFooter = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-      className
-    )}
+    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
     {...props}
   />
 );

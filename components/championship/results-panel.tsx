@@ -26,16 +26,12 @@ export function ResultsPanel({
       <div className="grid grid-cols-2 gap-3">
         <div className="p-3 bg-violet-50 rounded-xl">
           <p className="text-xs text-violet-500 font-medium">Entry Pool</p>
-          <p className="text-lg font-bold text-violet-700">
-            {formatPlanckAsDot(totalEntryPool)}
-          </p>
+          <p className="text-lg font-bold text-violet-700">{formatPlanckAsDot(totalEntryPool)}</p>
           <p className="text-[10px] text-violet-400">95% to winner / 5% platform</p>
         </div>
         <div className="p-3 bg-amber-50 rounded-xl">
           <p className="text-xs text-amber-500 font-medium">Bet Pool</p>
-          <p className="text-lg font-bold text-amber-700">
-            {formatPlanckAsDot(totalBetPool)}
-          </p>
+          <p className="text-lg font-bold text-amber-700">{formatPlanckAsDot(totalBetPool)}</p>
           <p className="text-[10px] text-amber-400">98% to winners / 2% platform</p>
         </div>
       </div>
@@ -65,10 +61,7 @@ export function ResultsPanel({
           <h3 className="font-semibold text-gray-900 mb-3">Payouts</h3>
           <div className="space-y-2">
             {payouts.map((payout, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
+              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2">
                   {payout.payoutType.includes("platform") ? (
                     <ArrowUpRight className="w-4 h-4 text-gray-400" />
@@ -80,10 +73,10 @@ export function ResultsPanel({
                       {payout.payoutType === "entry_prize"
                         ? "Entry Prize"
                         : payout.payoutType === "bet_winnings"
-                        ? "Bet Winnings"
-                        : payout.payoutType === "platform_entry_fee"
-                        ? "Platform Fee (Entry)"
-                        : "Platform Fee (Bets)"}
+                          ? "Bet Winnings"
+                          : payout.payoutType === "platform_entry_fee"
+                            ? "Platform Fee (Entry)"
+                            : "Platform Fee (Bets)"}
                     </p>
                     <p className="text-xs text-gray-400">
                       {payout.recipient.slice(0, 6)}...{payout.recipient.slice(-4)}
@@ -99,8 +92,8 @@ export function ResultsPanel({
                       payout.status === "completed"
                         ? "text-green-500"
                         : payout.status === "pending"
-                        ? "text-amber-500"
-                        : "text-red-500"
+                          ? "text-amber-500"
+                          : "text-red-500"
                     }`}
                   >
                     {payout.status}

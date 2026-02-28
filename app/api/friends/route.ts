@@ -8,14 +8,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 import { jwtVerify } from "jose";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
 
@@ -71,10 +65,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ friends });
   } catch (error) {
     console.error("Get friends error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -109,10 +100,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      return NextResponse.json(
-        { error: "Friend already exists" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Friend already exists" }, { status: 400 });
     }
 
     // Add friend
@@ -135,9 +123,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Add friend error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

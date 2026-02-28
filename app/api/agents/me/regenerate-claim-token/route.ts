@@ -15,10 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);
     if (!auth || auth.accountType !== "agent" || !auth.agentId) {
-      return NextResponse.json(
-        { error: "Unauthorized. Agent API key required." },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized. Agent API key required." }, { status: 401 });
     }
 
     const admin = getAdminClient();
@@ -50,18 +47,12 @@ export async function POST(request: NextRequest) {
       .eq("id", auth.agentId);
 
     if (updateError) {
-      return NextResponse.json(
-        { error: "Failed to regenerate claim token" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to regenerate claim token" }, { status: 500 });
     }
 
     return NextResponse.json({ claim_token: claimToken });
   } catch (error) {
     console.error("Regenerate claim token error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

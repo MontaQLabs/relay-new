@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
 import { getAuthToken } from "@/app/utils/auth";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 
 interface AddFriendSheetProps {
@@ -17,11 +12,7 @@ interface AddFriendSheetProps {
   onSuccess: () => void;
 }
 
-export default function AddFriendSheet({
-  isOpen,
-  onClose,
-  onSuccess,
-}: AddFriendSheetProps) {
+export default function AddFriendSheet({ isOpen, onClose, onSuccess }: AddFriendSheetProps) {
   const [nickname, setNickname] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
   const [network, setNetwork] = useState("");
@@ -78,9 +69,7 @@ export default function AddFriendSheet({
       onSuccess();
     } catch (error) {
       console.error("Failed to add friend:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to add friend. Please try again."
-      );
+      setError(error instanceof Error ? error.message : "Failed to add friend. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -121,9 +110,7 @@ export default function AddFriendSheet({
         <div className="space-y-6">
           {/* Username */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Username
-            </label>
+            <label className="block text-sm font-medium text-black mb-2">Username</label>
             <Input
               type="text"
               value={nickname}
@@ -136,9 +123,7 @@ export default function AddFriendSheet({
 
           {/* Network */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Network
-            </label>
+            <label className="block text-sm font-medium text-black mb-2">Network</label>
             <Input
               type="text"
               value={network}
@@ -151,9 +136,7 @@ export default function AddFriendSheet({
 
           {/* Address */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Address
-            </label>
+            <label className="block text-sm font-medium text-black mb-2">Address</label>
             <Input
               type="text"
               value={walletAddress}
@@ -166,9 +149,7 @@ export default function AddFriendSheet({
 
           {/* Remark */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Remark
-            </label>
+            <label className="block text-sm font-medium text-black mb-2">Remark</label>
             <Input
               type="text"
               value={remark}
@@ -194,7 +175,10 @@ export default function AddFriendSheet({
               disabled={isLoading || !nickname.trim() || !walletAddress.trim() || !network.trim()}
               className="w-full h-14 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               style={{
-                backgroundColor: isLoading || !nickname.trim() || !walletAddress.trim() || !network.trim() ? "#d1d1d6" : "#a855f7",
+                backgroundColor:
+                  isLoading || !nickname.trim() || !walletAddress.trim() || !network.trim()
+                    ? "#d1d1d6"
+                    : "#a855f7",
               }}
             >
               {isLoading ? (

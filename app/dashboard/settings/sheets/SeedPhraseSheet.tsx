@@ -2,12 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Check, AlertCircle, EyeOff, ChevronLeft } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { WALLET_SEED_KEY, IS_BACKED_UP_KEY } from "@/app/types/constants";
 
 interface SeedPhraseSheetProps {
@@ -132,12 +127,18 @@ export function SeedPhraseSheet({ isOpen, onClose }: SeedPhraseSheetProps) {
 
   const getStepNumber = () => {
     switch (step) {
-      case "reveal": return 1;
-      case "verify1": return 2;
-      case "verify2": return 3;
-      case "error": return lastVerifyStep === "verify1" ? 2 : 3;
-      case "success": return 3;
-      default: return 1;
+      case "reveal":
+        return 1;
+      case "verify1":
+        return 2;
+      case "verify2":
+        return 3;
+      case "error":
+        return lastVerifyStep === "verify1" ? 2 : 3;
+      case "success":
+        return 3;
+      default:
+        return 1;
     }
   };
 
@@ -166,14 +167,18 @@ export function SeedPhraseSheet({ isOpen, onClose }: SeedPhraseSheetProps) {
           Export Seed Phrase
         </SheetTitle>
         <p className="text-sm text-gray-600 mt-2">
-          If the seed phrase is lost, all of your assets would be lost. Please back it up in a secure place.
+          If the seed phrase is lost, all of your assets would be lost. Please back it up in a
+          secure place.
         </p>
       </SheetHeader>
 
       <div className="mb-4 flex flex-col justify-center">
         {!isRevealed ? (
           <div className="bg-gray-100 rounded-2xl p-8 flex flex-col items-center justify-center">
-            <button onClick={handleReveal} className="flex flex-col items-center gap-2 cursor-pointer">
+            <button
+              onClick={handleReveal}
+              className="flex flex-col items-center gap-2 cursor-pointer"
+            >
               <EyeOff className="w-8 h-8 text-black" />
               <span className="text-base font-medium text-black">Click to Reveal</span>
               <span className="text-sm text-gray-600">Make sure nobody is looking</span>
@@ -187,7 +192,10 @@ export function SeedPhraseSheet({ isOpen, onClose }: SeedPhraseSheetProps) {
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {seedPhrase.map((word, index) => (
-              <div key={index} className="h-12 rounded-xl border flex items-center px-3 bg-gray-50 border-gray-200">
+              <div
+                key={index}
+                className="h-12 rounded-xl border flex items-center px-3 bg-gray-50 border-gray-200"
+              >
                 <span className="text-sm font-medium mr-2 text-gray-500">{index + 1}.</span>
                 <span className="text-base font-medium flex-1 text-black">{word}</span>
               </div>
@@ -368,13 +376,15 @@ export function SeedPhraseSheet({ isOpen, onClose }: SeedPhraseSheetProps) {
 
   // Check localStorage directly to avoid false-negative on first render
   // (useEffect hasn't populated seedPhrase state yet)
-  const hasSeedInStorage =
-    typeof window !== "undefined" && !!localStorage.getItem(WALLET_SEED_KEY);
+  const hasSeedInStorage = typeof window !== "undefined" && !!localStorage.getItem(WALLET_SEED_KEY);
 
   if (seedPhrase.length === 0 && isOpen && !hasSeedInStorage) {
     return (
       <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-        <SheetContent side="bottom" className="rounded-t-3xl px-6 pb-8 max-h-[90vh] overflow-y-auto">
+        <SheetContent
+          side="bottom"
+          className="rounded-t-3xl px-6 pb-8 max-h-[90vh] overflow-y-auto"
+        >
           <SheetHeader className="text-left pb-4">
             <button onClick={handleClose} className="mb-4 -ml-2 p-2 cursor-pointer">
               <ChevronLeft className="w-6 h-6 text-black" />
@@ -384,7 +394,9 @@ export function SeedPhraseSheet({ isOpen, onClose }: SeedPhraseSheetProps) {
             </SheetTitle>
           </SheetHeader>
           <div className="py-8 text-center">
-            <p className="text-gray-600">No seed phrase found. Please create or import a wallet first.</p>
+            <p className="text-gray-600">
+              No seed phrase found. Please create or import a wallet first.
+            </p>
           </div>
         </SheetContent>
       </Sheet>

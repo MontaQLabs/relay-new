@@ -55,9 +55,18 @@ export default function CreateChallengePage() {
   const handleSubmit = async () => {
     setError(null);
 
-    if (!title.trim()) { setError("Title is required"); return; }
-    if (!abstractDescription.trim()) { setError("Abstract description is required"); return; }
-    if (!fullChallenge.trim()) { setError("Full challenge details are required"); return; }
+    if (!title.trim()) {
+      setError("Title is required");
+      return;
+    }
+    if (!abstractDescription.trim()) {
+      setError("Abstract description is required");
+      return;
+    }
+    if (!fullChallenge.trim()) {
+      setError("Full challenge details are required");
+      return;
+    }
 
     const feeNum = parseFloat(entryFee);
     if (!entryFee || isNaN(feeNum) || feeNum <= 0) {
@@ -74,12 +83,24 @@ export default function CreateChallengePage() {
     const judgeDate = new Date(judgeEnd);
     const now = new Date();
 
-    if (startDate <= now) { setError("Start time must be in the future"); return; }
-    if (endDate <= startDate) { setError("End time must be after start time"); return; }
-    if (judgeDate <= endDate) { setError("Judge end must be after end time"); return; }
+    if (startDate <= now) {
+      setError("Start time must be in the future");
+      return;
+    }
+    if (endDate <= startDate) {
+      setError("End time must be after start time");
+      return;
+    }
+    if (judgeDate <= endDate) {
+      setError("Judge end must be after end time");
+      return;
+    }
 
     const token = getAuthToken();
-    if (!token) { setError("Please authenticate first"); return; }
+    if (!token) {
+      setError("Please authenticate first");
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -112,9 +133,7 @@ export default function CreateChallengePage() {
 
       if (response.ok) {
         const data = await response.json();
-        router.push(
-          `/dashboard/championship/${data.challenge_id || data.challengeId}`
-        );
+        router.push(`/dashboard/championship/${data.challenge_id || data.challengeId}`);
       } else {
         const data = await response.json();
         setError(data.error || "Failed to create challenge");
@@ -150,9 +169,7 @@ export default function CreateChallengePage() {
       <div className="px-5 pt-4 space-y-5">
         {/* Title */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-            Challenge Title
-          </label>
+          <label className="text-sm font-medium text-gray-700 mb-1.5 block">Challenge Title</label>
           <Input
             placeholder="e.g., Best DeFi Yield Strategy"
             value={title}
@@ -174,9 +191,7 @@ export default function CreateChallengePage() {
 
         {/* Chain Selector */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-            Escrow Chain
-          </label>
+          <label className="text-sm font-medium text-gray-700 mb-1.5 block">Escrow Chain</label>
           <div className="relative">
             <select
               value={chainId}
@@ -226,8 +241,8 @@ export default function CreateChallengePage() {
           <div className="flex items-start gap-2 mt-2 p-3 bg-blue-50 rounded-lg">
             <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-blue-600">
-              This text is encrypted and stored securely. It becomes public after the
-              start time. A SHA-256 hash is stored on-chain for integrity verification.
+              This text is encrypted and stored securely. It becomes public after the start time. A
+              SHA-256 hash is stored on-chain for integrity verification.
             </p>
           </div>
         </div>
@@ -253,8 +268,8 @@ export default function CreateChallengePage() {
           <div className="flex items-start gap-2 mt-2 p-3 bg-violet-50 rounded-lg">
             <Info className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-violet-600">
-              Entry pool: 95% winner, 4% creator, 1% platform. Bet pool: 95%
-              winning bettors, 2% creator, 3% platform.
+              Entry pool: 95% winner, 4% creator, 1% platform. Bet pool: 95% winning bettors, 2%
+              creator, 3% platform.
             </p>
           </div>
         </div>

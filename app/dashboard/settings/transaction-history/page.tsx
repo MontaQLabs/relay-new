@@ -12,12 +12,7 @@ import {
   ArrowUpRight,
   Coins,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import {
   fetchPolkadotTransactions,
@@ -83,20 +78,7 @@ function formatAmount(amount: number): string {
 }
 
 // Month names in English
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const MONTHS_FULL = [
   "January",
@@ -119,15 +101,10 @@ export default function TransactionHistoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(
-    () => new Date().getMonth() + 1
-  );
-  const [selectedYear, setSelectedYear] = useState(() =>
-    new Date().getFullYear()
-  );
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] =
-    useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   // Temp state for month picker
   const [tempMonth, setTempMonth] = useState(selectedMonth);
@@ -178,28 +155,19 @@ export default function TransactionHistoryPage() {
 
     // Sort by timestamp (newest first)
     return filtered.sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
   }, [transactions, activeTab, selectedMonth, selectedYear, searchQuery]);
 
   // Calculate totals for the current month
   const monthlyTotals = useMemo(() => {
-    const monthTransactions = filterTransactionsByMonth(
-      transactions,
-      selectedYear,
-      selectedMonth
-    );
+    const monthTransactions = filterTransactionsByMonth(transactions, selectedYear, selectedMonth);
     return calculateTransactionTotals(monthTransactions);
   }, [transactions, selectedMonth, selectedYear]);
 
   // Get primary ticker for display (most common in current transactions)
   const primaryTicker = useMemo(() => {
-    const monthTransactions = filterTransactionsByMonth(
-      transactions,
-      selectedYear,
-      selectedMonth
-    );
+    const monthTransactions = filterTransactionsByMonth(transactions, selectedYear, selectedMonth);
     if (monthTransactions.length === 0) return "DOT";
 
     const tickerCounts: Record<string, number> = {};
@@ -207,9 +175,7 @@ export default function TransactionHistoryPage() {
       tickerCounts[tx.ticker] = (tickerCounts[tx.ticker] || 0) + 1;
     }
 
-    return (
-      Object.entries(tickerCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "DOT"
-    );
+    return Object.entries(tickerCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "DOT";
   }, [transactions, selectedMonth, selectedYear]);
 
   // Handle month picker confirmation
@@ -266,14 +232,10 @@ export default function TransactionHistoryPage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`pb-2 text-sm font-medium capitalize transition-colors relative ${
-                activeTab === tab
-                  ? "text-violet-600"
-                  : "text-gray-500 hover:text-gray-700"
+                activeTab === tab ? "text-violet-600" : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              {tab === "all"
-                ? "All"
-                : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "all" ? "All" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               {activeTab === tab && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600 rounded-full" />
               )}
@@ -287,13 +249,8 @@ export default function TransactionHistoryPage() {
         {/* Month Summary Card */}
         <div className="mx-4 mt-4 bg-white rounded-3xl p-4 shadow-sm">
           {/* Month selector */}
-          <button
-            onClick={openMonthPicker}
-            className="flex items-center gap-1 mb-3"
-          >
-            <span className="text-lg font-bold text-gray-900">
-              {MONTHS[selectedMonth - 1]}
-            </span>
+          <button onClick={openMonthPicker} className="flex items-center gap-1 mb-3">
+            <span className="text-lg font-bold text-gray-900">{MONTHS[selectedMonth - 1]}</span>
             <ChevronDown className="w-5 h-5 text-gray-500" />
           </button>
 
@@ -303,18 +260,14 @@ export default function TransactionHistoryPage() {
               <p className="text-xs text-gray-500 mb-1">Sent</p>
               <p className="text-lg font-bold text-gray-900">
                 {formatAmount(monthlyTotals.sent)}{" "}
-                <span className="text-sm font-normal text-gray-500">
-                  {primaryTicker}
-                </span>
+                <span className="text-sm font-normal text-gray-500">{primaryTicker}</span>
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Received</p>
               <p className="text-lg font-bold text-gray-900">
                 {formatAmount(monthlyTotals.received)}{" "}
-                <span className="text-sm font-normal text-gray-500">
-                  {primaryTicker}
-                </span>
+                <span className="text-sm font-normal text-gray-500">{primaryTicker}</span>
               </p>
             </div>
           </div>
@@ -335,9 +288,7 @@ export default function TransactionHistoryPage() {
               <p className="text-sm text-gray-400 mt-1">
                 {searchQuery
                   ? "Try a different search term"
-                  : `No ${
-                      activeTab === "all" ? "" : activeTab + " "
-                    }transactions in ${
+                  : `No ${activeTab === "all" ? "" : activeTab + " "}transactions in ${
                       MONTHS_FULL[selectedMonth - 1]
                     } ${selectedYear}`}
               </p>
@@ -360,29 +311,21 @@ export default function TransactionHistoryPage() {
                     <p className="text-sm text-gray-500 truncate">
                       {tx.type === "received" ? "From: " : "To: "}
                       {truncateAddress(
-                        tx.type === "received"
-                          ? tx.senderAddress
-                          : tx.receiverAddress
+                        tx.type === "received" ? tx.senderAddress : tx.receiverAddress
                       )}
                     </p>
-                    <p className="text-xs text-gray-400">
-                      {formatTransactionDate(tx.timestamp)}
-                    </p>
+                    <p className="text-xs text-gray-400">{formatTransactionDate(tx.timestamp)}</p>
                   </div>
 
                   <div className="text-right">
                     <p
                       className={`font-semibold ${
-                        tx.type === "received"
-                          ? "text-green-600"
-                          : "text-gray-900"
+                        tx.type === "received" ? "text-green-600" : "text-gray-900"
                       }`}
                     >
                       {tx.type === "received" ? "+" : "-"}
                       {formatAmount(tx.amount)}{" "}
-                      <span className="text-sm font-normal text-gray-500">
-                        {tx.ticker}
-                      </span>
+                      <span className="text-sm font-normal text-gray-500">{tx.ticker}</span>
                     </p>
                   </div>
                 </button>
@@ -405,9 +348,7 @@ export default function TransactionHistoryPage() {
 
           {/* Header */}
           <div className="flex items-center justify-between px-5 mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Choose Month
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">Choose Month</h3>
             <button
               onClick={handleConfirmMonth}
               className="text-violet-600 font-semibold hover:text-violet-700 transition-colors"
@@ -425,9 +366,7 @@ export default function TransactionHistoryPage() {
                   key={year}
                   onClick={() => setTempYear(year)}
                   className={`w-full py-3 text-center transition-colors ${
-                    tempYear === year
-                      ? "text-gray-900 font-bold text-lg"
-                      : "text-gray-400"
+                    tempYear === year ? "text-gray-900 font-bold text-lg" : "text-gray-400"
                   }`}
                 >
                   {year}
@@ -442,9 +381,7 @@ export default function TransactionHistoryPage() {
                   key={month}
                   onClick={() => setTempMonth(month)}
                   className={`w-full py-3 text-center transition-colors ${
-                    tempMonth === month
-                      ? "text-gray-900 font-bold text-lg"
-                      : "text-gray-400"
+                    tempMonth === month ? "text-gray-900 font-bold text-lg" : "text-gray-400"
                   }`}
                 >
                   {month}月
@@ -460,10 +397,7 @@ export default function TransactionHistoryPage() {
         open={selectedTransaction !== null}
         onOpenChange={(open) => !open && setSelectedTransaction(null)}
       >
-        <SheetContent
-          side="right"
-          className="w-full sm:max-w-md px-5 pb-8 overflow-auto"
-        >
+        <SheetContent side="right" className="w-full sm:max-w-md px-5 pb-8 overflow-auto">
           {selectedTransaction && (
             <>
               {/* Header */}
@@ -496,8 +430,8 @@ export default function TransactionHistoryPage() {
                     selectedTransaction.status === "completed"
                       ? "bg-violet-50 border-violet-200"
                       : selectedTransaction.status === "pending"
-                      ? "bg-yellow-50 border-yellow-200"
-                      : "bg-red-50 border-red-200"
+                        ? "bg-yellow-50 border-yellow-200"
+                        : "bg-red-50 border-red-200"
                   }`}
                 >
                   {selectedTransaction.status === "completed" && (
@@ -508,8 +442,8 @@ export default function TransactionHistoryPage() {
                       selectedTransaction.status === "completed"
                         ? "text-violet-600"
                         : selectedTransaction.status === "pending"
-                        ? "text-yellow-600"
-                        : "text-red-600"
+                          ? "text-yellow-600"
+                          : "text-red-600"
                     }`}
                   >
                     {selectedTransaction.status}
@@ -530,9 +464,7 @@ export default function TransactionHistoryPage() {
                 {/* Sender/Receiver */}
                 <div className="py-4">
                   <p className="text-sm text-gray-500 mb-1">
-                    {selectedTransaction.type === "received"
-                      ? "Sender"
-                      : "Receiver"}
+                    {selectedTransaction.type === "received" ? "Sender" : "Receiver"}
                   </p>
                   <p className="text-gray-900 font-medium">
                     {selectedTransaction.type === "received"
@@ -558,9 +490,7 @@ export default function TransactionHistoryPage() {
                 {/* Network */}
                 <div className="py-4">
                   <p className="text-sm text-gray-500 mb-1">Network</p>
-                  <p className="text-gray-900 font-medium">
-                    {selectedTransaction.network}
-                  </p>
+                  <p className="text-gray-900 font-medium">{selectedTransaction.network}</p>
                 </div>
 
                 {/* Network Fee */}

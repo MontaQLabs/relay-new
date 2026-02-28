@@ -10,13 +10,7 @@ const labelRoutes: Record<string, string> = {
 };
 
 // Action Button Component
-export const ActionButton = ({
-  icon,
-  label,
-}: {
-  icon: React.ReactNode;
-  label: string;
-}) => {
+export const ActionButton = ({ icon, label }: { icon: React.ReactNode; label: string }) => {
   const router = useRouter();
 
   const handleClick = () => {

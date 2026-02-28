@@ -40,9 +40,7 @@ export function TokenPicker({
     return (
       <div className="bg-gray-50 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
         {coins.length === 0 ? (
-          <div className="p-4 text-center text-gray-500 text-sm">
-            No tokens available
-          </div>
+          <div className="p-4 text-center text-gray-500 text-sm">No tokens available</div>
         ) : (
           <div className="divide-y divide-gray-200">
             {coins.map((coin) => {
@@ -64,12 +62,8 @@ export function TokenPicker({
 
                   <div className="flex items-center gap-2">
                     <div className="text-right">
-                      <div className="text-sm font-medium text-black">
-                        {coin.amount.toFixed(4)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        ${coin.fiatValue.toFixed(2)}
-                      </div>
+                      <div className="text-sm font-medium text-black">{coin.amount.toFixed(4)}</div>
+                      <div className="text-xs text-gray-500">${coin.fiatValue.toFixed(2)}</div>
                     </div>
                     {isSelected && (
                       <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
@@ -122,12 +116,7 @@ interface TokenListProps {
  * Full token list component (always expanded)
  * Used on the Send page where the list is always visible
  */
-export function TokenList({
-  coins,
-  selectedToken,
-  onSelect,
-  isLoading = false,
-}: TokenListProps) {
+export function TokenList({ coins, selectedToken, onSelect, isLoading = false }: TokenListProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -157,9 +146,7 @@ export function TokenList({
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <div className="font-medium text-black">{coin.amount}</div>
-                <div className="text-sm text-muted-foreground">
-                  ${coin.fiatValue.toFixed(2)}
-                </div>
+                <div className="text-sm text-muted-foreground">${coin.fiatValue.toFixed(2)}</div>
               </div>
               {isSelected && (
                 <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">

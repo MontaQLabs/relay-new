@@ -15,12 +15,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ActionButton } from "@/components/action-button";
 import { CoinAvatar, ChainSelector } from "@/components/crypto";
 import { useCoins, useEcosystemProjects } from "@/hooks";
@@ -110,7 +105,9 @@ export default function WalletPage() {
         const wallet: Wallet = JSON.parse(walletData);
         setChainAccounts(wallet.chainAccounts || []);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   // Helper: convert a ChainCoin to a Coin using fetched prices
@@ -176,11 +173,7 @@ export default function WalletPage() {
             className="text-white hover:text-black transition-colors"
             aria-label={showBalance ? "Hide balance" : "Show balance"}
           >
-            {showBalance ? (
-              <EyeIcon className="w-4 h-4" />
-            ) : (
-              <EyeOffIcon className="w-4 h-4" />
-            )}
+            {showBalance ? <EyeIcon className="w-4 h-4" /> : <EyeOffIcon className="w-4 h-4" />}
           </button>
         </div>
 
@@ -296,56 +289,60 @@ export default function WalletPage() {
               <div className="w-6 h-6 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
             </div>
           ) : filteredProjects.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              No projects found
-            </div>
+            <div className="py-8 text-center text-sm text-muted-foreground">No projects found</div>
           ) : (
             <>
               <div className="space-y-2">
                 {filteredProjects
                   .slice(explorePage * PROJECTS_PER_PAGE, (explorePage + 1) * PROJECTS_PER_PAGE)
                   .map((project, index) => (
-                  <button
-                    key={project.id}
-                    onClick={() => setSelectedProject(project)}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors animate-fade-in text-left"
-                    style={{ animationDelay: `${index * 30}ms` }}
-                  >
-                    <ProjectLogo project={project} size="md" />
+                    <button
+                      key={project.id}
+                      onClick={() => setSelectedProject(project)}
+                      className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors animate-fade-in text-left"
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
+                      <ProjectLogo project={project} size="md" />
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-black truncate">{project.name}</span>
-                        <CategoryBadge category={project.category} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-black truncate">
+                            {project.name}
+                          </span>
+                          <CategoryBadge category={project.category} />
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {project.description}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {project.description}
-                      </p>
-                    </div>
 
-                    <div className="flex flex-col items-end shrink-0">
-                      {project.tvl !== undefined ? (
-                        <>
-                          <span className="text-sm font-semibold text-black">{formatTvl(project.tvl)}</span>
-                          {project.tvlChange24h != null && (
-                            <span className={`flex items-center gap-0.5 text-xs font-medium ${
-                              project.tvlChange24h >= 0 ? "text-emerald-600" : "text-red-500"
-                            }`}>
-                              {project.tvlChange24h >= 0 ? (
-                                <TrendingUp className="w-3 h-3" />
-                              ) : (
-                                <TrendingDown className="w-3 h-3" />
-                              )}
-                              {Math.abs(project.tvlChange24h).toFixed(1)}%
+                      <div className="flex flex-col items-end shrink-0">
+                        {project.tvl !== undefined ? (
+                          <>
+                            <span className="text-sm font-semibold text-black">
+                              {formatTvl(project.tvl)}
                             </span>
-                          )}
-                        </>
-                      ) : (
-                        <ChainBadge chainId={project.chainId} />
-                      )}
-                    </div>
-                  </button>
-                ))}
+                            {project.tvlChange24h != null && (
+                              <span
+                                className={`flex items-center gap-0.5 text-xs font-medium ${
+                                  project.tvlChange24h >= 0 ? "text-emerald-600" : "text-red-500"
+                                }`}
+                              >
+                                {project.tvlChange24h >= 0 ? (
+                                  <TrendingUp className="w-3 h-3" />
+                                ) : (
+                                  <TrendingDown className="w-3 h-3" />
+                                )}
+                                {Math.abs(project.tvlChange24h).toFixed(1)}%
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <ChainBadge chainId={project.chainId} />
+                        )}
+                      </div>
+                    </button>
+                  ))}
               </div>
 
               {/* Pagination Controls */}
@@ -409,14 +406,18 @@ export default function WalletPage() {
                 <div className="grid grid-cols-2 gap-3 mb-5">
                   <div className="bg-gray-50 rounded-2xl p-4">
                     <p className="text-xs text-muted-foreground mb-1">Total Value Locked</p>
-                    <p className="text-lg font-semibold text-black">{formatTvl(selectedProject.tvl)}</p>
+                    <p className="text-lg font-semibold text-black">
+                      {formatTvl(selectedProject.tvl)}
+                    </p>
                   </div>
                   {selectedProject.tvlChange24h != null && (
                     <div className="bg-gray-50 rounded-2xl p-4">
                       <p className="text-xs text-muted-foreground mb-1">24h Change</p>
-                      <p className={`text-lg font-semibold flex items-center gap-1 ${
-                        selectedProject.tvlChange24h >= 0 ? "text-emerald-600" : "text-red-500"
-                      }`}>
+                      <p
+                        className={`text-lg font-semibold flex items-center gap-1 ${
+                          selectedProject.tvlChange24h >= 0 ? "text-emerald-600" : "text-red-500"
+                        }`}
+                      >
                         {selectedProject.tvlChange24h >= 0 ? (
                           <TrendingUp className="w-4 h-4" />
                         ) : (
@@ -518,12 +519,8 @@ function CoinRow({ coin, index }: { coin: Coin; index: number }) {
       </div>
 
       <div className="flex flex-col items-end">
-        <span className="font-semibold text-black">
-          {formatCryptoAmount(coin.amount)}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          ${formatCurrency(coin.fiatValue)}
-        </span>
+        <span className="font-semibold text-black">{formatCryptoAmount(coin.amount)}</span>
+        <span className="text-xs text-muted-foreground">${formatCurrency(coin.fiatValue)}</span>
       </div>
     </div>
   );
@@ -555,19 +552,21 @@ function ProjectLogo({ project, size }: { project: ProjectWithStats; size: "sm" 
   const textClasses = { sm: "text-xs", md: "text-sm", lg: "text-lg" };
 
   return (
-    <div className={`${sizeClasses[size]} rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0`}>
+    <div
+      className={`${sizeClasses[size]} rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0`}
+    >
       {project.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={project.logoUrl}
           alt={project.name}
           className={`${imgClasses[size]} object-contain rounded-full`}
-          onError={(e) => { e.currentTarget.style.display = "none"; }}
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
         />
       ) : (
-        <span className={`${textClasses[size]} font-bold text-gray-500`}>
-          {project.name[0]}
-        </span>
+        <span className={`${textClasses[size]} font-bold text-gray-500`}>{project.name[0]}</span>
       )}
     </div>
   );
@@ -625,9 +624,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 function CategoryBadge({ category }: { category: string }) {
   return (
-    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-      CATEGORY_STYLES[category] || "bg-gray-100 text-gray-500"
-    }`}>
+    <span
+      className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+        CATEGORY_STYLES[category] || "bg-gray-100 text-gray-500"
+      }`}
+    >
       {CATEGORY_LABELS[category] || category}
     </span>
   );

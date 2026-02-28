@@ -53,31 +53,19 @@ export async function POST(
 
     // Validate conditions
     if (enrollment.status === "withdrawn") {
-      return NextResponse.json(
-        { error: "Already withdrawn" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "Already withdrawn" }, { status: 409 });
     }
     if (enrollment.status === "submitted") {
-      return NextResponse.json(
-        { error: "Cannot withdraw after submitting" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Cannot withdraw after submitting" }, { status: 403 });
     }
     if (!enrollment.revealed_at) {
-      return NextResponse.json(
-        { error: "Must reveal before withdrawing" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Must reveal before withdrawing" }, { status: 403 });
     }
 
     const now = new Date();
     const refundDeadline = new Date(enrollment.refund_deadline);
     if (now > refundDeadline) {
-      return NextResponse.json(
-        { error: "Refund window has expired" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Refund window has expired" }, { status: 403 });
     }
 
     // Calculate refund amounts
@@ -97,10 +85,7 @@ export async function POST(
 
     if (updateErr) {
       console.error("Failed to update withdrawal:", updateErr);
-      return NextResponse.json(
-        { error: "Failed to record withdrawal" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to record withdrawal" }, { status: 500 });
     }
 
     // Record payout entries for audit
@@ -128,9 +113,6 @@ export async function POST(
     });
   } catch (error) {
     console.error("Withdraw error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

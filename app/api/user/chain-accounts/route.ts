@@ -10,13 +10,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 import { jwtVerify } from "jose";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
 
@@ -76,10 +71,7 @@ export async function POST(request: NextRequest) {
   const accounts: ChainAccountInput[] = body.accounts;
 
   if (!Array.isArray(accounts) || accounts.length === 0) {
-    return NextResponse.json(
-      { error: "accounts array is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "accounts array is required" }, { status: 400 });
   }
 
   // Validate input

@@ -72,9 +72,7 @@ async function fetchAllProtocols(): Promise<Map<string, ProtocolTvlInfo>> {
  * @param slugs - Array of DeFiLlama protocol slugs to look up
  * @returns Map from slug to TVL info (only includes slugs that were found)
  */
-export async function fetchProtocolsTvl(
-  slugs: string[]
-): Promise<Map<string, ProtocolTvlInfo>> {
+export async function fetchProtocolsTvl(slugs: string[]): Promise<Map<string, ProtocolTvlInfo>> {
   if (slugs.length === 0) return new Map();
 
   const allProtocols = await fetchAllProtocols();

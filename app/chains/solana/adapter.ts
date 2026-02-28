@@ -110,10 +110,9 @@ export class SolanaChainAdapter implements ChainAdapter {
 
     // SPL token balances
     try {
-      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-        new PublicKey(address),
-        { programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }
-      );
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(new PublicKey(address), {
+        programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+      });
 
       for (const { account } of tokenAccounts.value) {
         const parsed = account.data.parsed?.info;
@@ -168,16 +167,13 @@ export class SolanaChainAdapter implements ChainAdapter {
     };
   }
 
-  async sendTransfer(
-    params: SignedTransferParams
-  ): Promise<ChainTransferResult> {
+  async sendTransfer(params: SignedTransferParams): Promise<ChainTransferResult> {
     try {
       const connection = this.getConnection();
       const kp = keypairFromMnemonic(params.mnemonic);
       const recipient = new PublicKey(params.recipientAddress);
 
-      const isNative =
-        params.ticker === NATIVE_TICKER || !params.tokenIdentifier;
+      const isNative = params.ticker === NATIVE_TICKER || !params.tokenIdentifier;
 
       if (isNative) {
         const tx = new Transaction().add(
@@ -193,29 +189,15 @@ export class SolanaChainAdapter implements ChainAdapter {
       }
 
       // SPL token transfer
-      const { getOrCreateAssociatedTokenAccount, transfer } = await import(
-        "@solana/spl-token"
-      );
+      const { getOrCreateAssociatedTokenAccount, transfer } = await import("@solana/spl-token");
       const mint = new PublicKey(params.tokenIdentifier as string);
 
-      const senderATA = await getOrCreateAssociatedTokenAccount(
-        connection,
-        kp,
-        mint,
-        kp.publicKey
-      );
+      const senderATA = await getOrCreateAssociatedTokenAccount(connection, kp, mint, kp.publicKey);
 
-      const recipientATA = await getOrCreateAssociatedTokenAccount(
-        connection,
-        kp,
-        mint,
-        recipient
-      );
+      const recipientATA = await getOrCreateAssociatedTokenAccount(connection, kp, mint, recipient);
 
       const decimals = 9;
-      const amountRaw = BigInt(
-        Math.floor(params.amount * Math.pow(10, decimals))
-      );
+      const amountRaw = BigInt(Math.floor(params.amount * Math.pow(10, decimals)));
 
       const signature = await transfer(
         connection,
@@ -237,9 +219,7 @@ export class SolanaChainAdapter implements ChainAdapter {
 
   // -- Transaction history --------------------------------------------------
 
-  async fetchTransactions(
-    address: string,
-  ): Promise<ChainTransaction[]> {
+  async fetchTransactions(address: string): Promise<ChainTransaction[]> {
     try {
       const connection = this.getConnection();
       const pubkey = new PublicKey(address);

@@ -2,13 +2,7 @@
  * Avatar utility functions using DiceBear API
  */
 
-type DiceBearStyle =
-  | "avataaars"
-  | "shapes"
-  | "identicon"
-  | "bottts"
-  | "lorelei"
-  | "notionists";
+type DiceBearStyle = "avataaars" | "shapes" | "identicon" | "bottts" | "lorelei" | "notionists";
 
 /**
  * Generate a DiceBear avatar URL
@@ -16,10 +10,7 @@ type DiceBearStyle =
  * @param style - DiceBear style to use (default: avataaars)
  * @returns Avatar URL string
  */
-export const getDiceBearAvatar = (
-  seed: string,
-  style: DiceBearStyle = "avataaars"
-): string => {
+export const getDiceBearAvatar = (seed: string, style: DiceBearStyle = "avataaars"): string => {
   return `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
 };
 

@@ -23,7 +23,14 @@ import {
 import { getWalletAddress, rederiveWalletForNetwork } from "@/app/utils/wallet";
 import { getUserByWallet } from "@/app/db/supabase";
 import { getAuthToken, signOut } from "@/app/utils/auth";
-import { WALLET_KEY, WALLET_SEED_KEY, IS_ENCRYPTED_KEY, USER_KEY, IS_BACKED_UP_KEY, ENCRYPTED_WALLET_KEY } from "@/app/types/constants";
+import {
+  WALLET_KEY,
+  WALLET_SEED_KEY,
+  IS_ENCRYPTED_KEY,
+  USER_KEY,
+  IS_BACKED_UP_KEY,
+  ENCRYPTED_WALLET_KEY,
+} from "@/app/types/constants";
 import type { User, Wallet } from "@/app/types/frontend_type";
 import type { ChainAccount } from "@/app/chains/types";
 import { useNetworkMode } from "@/app/contexts/NetworkModeContext";
@@ -96,7 +103,9 @@ export default function SettingsPage() {
           if (walletData) {
             try {
               localWallet = JSON.parse(walletData) as Wallet;
-            } catch { /* corrupt data – ignore */ }
+            } catch {
+              /* corrupt data – ignore */
+            }
           }
 
           const userData = await getUserByWallet(walletAddress);
@@ -263,7 +272,13 @@ export default function SettingsPage() {
       } catch (refetchError) {
         console.error("Failed to refetch user data:", refetchError);
         setUser((prev) =>
-          prev ? { ...prev, avatar: updates.avatar ?? prev.avatar, nickname: updates.nickname ?? prev.nickname } : prev
+          prev
+            ? {
+                ...prev,
+                avatar: updates.avatar ?? prev.avatar,
+                nickname: updates.nickname ?? prev.nickname,
+              }
+            : prev
         );
       }
 
@@ -274,7 +289,9 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Failed to save profile:", error);
       setButtonState("error");
-      setErrorMessage(error instanceof Error ? error.message : "Failed to save profile. Please try again.");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to save profile. Please try again."
+      );
       setTimeout(() => setButtonState("idle"), 2000);
     }
   };
@@ -425,7 +442,11 @@ export default function SettingsPage() {
               className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
               aria-label="Copy address"
             >
-              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-400" />}
+              {copied ? (
+                <Check className="w-4 h-4 text-green-500" />
+              ) : (
+                <Copy className="w-4 h-4 text-gray-400" />
+              )}
             </button>
           </div>
         </div>
@@ -464,7 +485,13 @@ export default function SettingsPage() {
               >
                 <Camera className="w-4 h-4 text-white" />
               </button>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
             </div>
 
             <div className="w-full max-w-sm">
@@ -582,12 +609,18 @@ export default function SettingsPage() {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className={`font-semibold ${item.disabled ? "text-gray-400" : "text-black"}`}>{item.title}</h3>
+                <h3 className={`font-semibold ${item.disabled ? "text-gray-400" : "text-black"}`}>
+                  {item.title}
+                </h3>
                 {item.disabled && (
-                  <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">Coming soon</span>
+                  <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">
+                    Coming soon
+                  </span>
                 )}
               </div>
-              {item.description && <p className="text-sm text-muted-foreground truncate">{item.description}</p>}
+              {item.description && (
+                <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+              )}
             </div>
 
             {item.badge && (
@@ -597,7 +630,9 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <ChevronRight className={`w-5 h-5 flex-shrink-0 ${item.disabled ? "text-gray-300" : "text-gray-400"}`} />
+            <ChevronRight
+              className={`w-5 h-5 flex-shrink-0 ${item.disabled ? "text-gray-300" : "text-gray-400"}`}
+            />
           </button>
         ))}
       </div>
@@ -612,7 +647,10 @@ export default function SettingsPage() {
       </button>
 
       {/* Sheet Components */}
-      <ChangePasswordSheet isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
+      <ChangePasswordSheet
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
       <SeedPhraseSheet isOpen={isSeedPhraseOpen} onClose={() => setIsSeedPhraseOpen(false)} />
       <LogoutSheet
         isOpen={isLogoutSheetOpen}
@@ -630,7 +668,11 @@ export default function SettingsPage() {
 // ---------------------------------------------------------------------------
 
 /** Chain display metadata per network mode. */
-interface ChainMeta { name: string; color: string; explorer?: string }
+interface ChainMeta {
+  name: string;
+  color: string;
+  explorer?: string;
+}
 
 const CHAIN_INFO_MAINNET: Record<string, ChainMeta> = {
   polkadot: {
@@ -759,7 +801,11 @@ function WalletManagement({ wallet, isTestnet }: { wallet: Wallet | null; isTest
         <div
           ref={scrollRef}
           className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            WebkitOverflowScrolling: "touch",
+          }}
         >
           {displayAccounts.map((acct, idx) => {
             const info = CHAIN_INFO[acct.chainId] || {
@@ -771,7 +817,9 @@ function WalletManagement({ wallet, isTestnet }: { wallet: Wallet | null; isTest
             return (
               <div
                 key={acct.chainId}
-                ref={(el) => { observerRefs.current[idx] = el; }}
+                ref={(el) => {
+                  observerRefs.current[idx] = el;
+                }}
                 className="w-full flex-shrink-0 snap-center px-5 py-4"
               >
                 <div className="flex items-center gap-3">
@@ -780,9 +828,7 @@ function WalletManagement({ wallet, isTestnet }: { wallet: Wallet | null; isTest
                     className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                     style={{ backgroundColor: info.color }}
                   >
-                    {acct.chainId === "polkadot"
-                      ? "DOT"
-                      : acct.chainId.slice(0, 3).toUpperCase()}
+                    {acct.chainId === "polkadot" ? "DOT" : acct.chainId.slice(0, 3).toUpperCase()}
                   </div>
 
                   {/* Name + address */}

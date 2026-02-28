@@ -40,16 +40,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
     }
     if (!body.abstract_description || body.abstract_description.trim() === "") {
-      return NextResponse.json(
-        { error: "abstract_description is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "abstract_description is required" }, { status: 400 });
     }
     if (!body.full_challenge || body.full_challenge.trim() === "") {
-      return NextResponse.json(
-        { error: "full_challenge is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "full_challenge is required" }, { status: 400 });
     }
     if (!body.start_time || !body.end_time || !body.judge_end) {
       return NextResponse.json(
@@ -58,15 +52,9 @@ export async function POST(request: NextRequest) {
       );
     }
     if (!body.entry_fee || BigInt(body.entry_fee) <= BigInt(0)) {
-      return NextResponse.json(
-        { error: "entry_fee must be positive" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "entry_fee must be positive" }, { status: 400 });
     }
-    if (
-      !body.competition_duration_seconds ||
-      body.competition_duration_seconds <= 0
-    ) {
+    if (!body.competition_duration_seconds || body.competition_duration_seconds <= 0) {
       return NextResponse.json(
         { error: "competition_duration_seconds must be positive" },
         { status: 400 }
@@ -86,22 +74,13 @@ export async function POST(request: NextRequest) {
     const now = new Date();
 
     if (startTime <= now) {
-      return NextResponse.json(
-        { error: "start_time must be in the future" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "start_time must be in the future" }, { status: 400 });
     }
     if (endTime <= startTime) {
-      return NextResponse.json(
-        { error: "end_time must be after start_time" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "end_time must be after start_time" }, { status: 400 });
     }
     if (judgeEnd <= endTime) {
-      return NextResponse.json(
-        { error: "judge_end must be after end_time" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "judge_end must be after end_time" }, { status: 400 });
     }
 
     const chainId = body.chain_id || "solana";
@@ -136,10 +115,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error("Failed to create challenge:", insertError);
-      return NextResponse.json(
-        { error: "Failed to create challenge" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create challenge" }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -150,9 +126,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Create challenge error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

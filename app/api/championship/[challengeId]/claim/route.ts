@@ -35,10 +35,7 @@ export async function POST(
     }
 
     if (challenge.status !== "completed") {
-      return NextResponse.json(
-        { error: "Challenge is not yet finalized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Challenge is not yet finalized" }, { status: 403 });
     }
 
     // Check if already claimed
@@ -51,10 +48,7 @@ export async function POST(
       .limit(1);
 
     if (existingPayout && existingPayout.length > 0) {
-      return NextResponse.json(
-        { error: "Already claimed" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "Already claimed" }, { status: 409 });
     }
 
     // TODO: Execute on-chain claim via escrow adapter
@@ -131,8 +125,7 @@ export async function POST(
           if (totalWinnerBets > BigInt(0)) {
             const betPool = BigInt(challenge.total_bet_pool_dot);
             const winnerBetPool = (betPool * BigInt(95)) / BigInt(100);
-            const userShare =
-              (winnerBetPool * userBetTotal) / totalWinnerBets;
+            const userShare = (winnerBetPool * userBetTotal) / totalWinnerBets;
             if (userShare > BigInt(0)) {
               payout += userShare;
               payoutEntries.push({
@@ -146,10 +139,7 @@ export async function POST(
     }
 
     if (payout === BigInt(0)) {
-      return NextResponse.json(
-        { error: "Nothing to claim" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Nothing to claim" }, { status: 400 });
     }
 
     // Record payouts
@@ -170,9 +160,6 @@ export async function POST(
     });
   } catch (error) {
     console.error("Claim error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

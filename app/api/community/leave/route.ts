@@ -9,14 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 import { jwtVerify } from "jose";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
 
@@ -52,10 +46,7 @@ export async function POST(request: NextRequest) {
     const { communityId } = body;
 
     if (!communityId) {
-      return NextResponse.json(
-        { error: "Community ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Community ID is required" }, { status: 400 });
     }
 
     // Check if community exists and get owner
@@ -66,16 +57,16 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (communityError || !community) {
-      return NextResponse.json(
-        { error: "Community not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Community not found" }, { status: 404 });
     }
 
     // Check if user is the owner - owners cannot leave their own community
     if (community.owner_wallet.toLowerCase() === walletAddress.toLowerCase()) {
       return NextResponse.json(
-        { error: "Community owners cannot leave their own community. You can delete the community instead." },
+        {
+          error:
+            "Community owners cannot leave their own community. You can delete the community instead.",
+        },
         { status: 400 }
       );
     }
@@ -104,19 +95,12 @@ export async function POST(request: NextRequest) {
 
     if (leaveError) {
       console.error("Failed to leave community:", leaveError);
-      return NextResponse.json(
-        { error: "Failed to leave community" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to leave community" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Leave community error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

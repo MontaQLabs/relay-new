@@ -9,15 +9,11 @@
 
 import { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import type { ChainId } from "../chains/types";
+import { supabaseAdmin } from "./supabase-admin";
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,9 +52,7 @@ async function verifyJwt(token: string): Promise<string | null> {
  * Verify an API key (prefixed `rly_ak_`) against the agents table.
  * Returns the agent record if valid.
  */
-async function verifyApiKey(
-  apiKey: string
-): Promise<{
+async function verifyApiKey(apiKey: string): Promise<{
   walletAddress: string;
   agentId: string;
   chainAccounts: { chainId: ChainId; address: string }[];
@@ -105,9 +99,7 @@ async function verifyApiKey(
  *
  * Returns AuthContext on success, or null if unauthenticated.
  */
-export async function authenticateRequest(
-  request: NextRequest
-): Promise<AuthContext | null> {
+export async function authenticateRequest(request: NextRequest): Promise<AuthContext | null> {
   const authHeader = request.headers.get("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
 

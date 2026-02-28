@@ -3,16 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Wallet,
-  Download,
-  ArrowRight,
-  Hexagon,
-  Users,
-  Shield,
-  Sparkles,
-  Scan,
-} from "lucide-react";
+import { Wallet, Download, ArrowRight, Hexagon, Users, Shield, Sparkles, Scan } from "lucide-react";
 import { exists } from "./utils/wallet";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -31,8 +22,7 @@ function useIsMounted() {
 
 export default function LandingPage() {
   const router = useRouter();
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const mounted = useIsMounted();
 
@@ -46,10 +36,7 @@ export default function LandingPage() {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt
-      );
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
   }, []);
 
@@ -71,9 +58,7 @@ export default function LandingPage() {
       }
     } else {
       // Fallback: show instructions for manual installation
-      alert(
-        "To install: tap the share button in your browser and select 'Add to Home Screen'"
-      );
+      alert("To install: tap the share button in your browser and select 'Add to Home Screen'");
     }
   };
 
@@ -136,9 +121,7 @@ export default function LandingPage() {
               <Wallet className="h-8 w-8 text-white" strokeWidth={1.5} />
               <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-black bg-white" />
             </div>
-            <span className="text-xl font-semibold tracking-tight text-white">
-              Relay
-            </span>
+            <span className="text-xl font-semibold tracking-tight text-white">Relay</span>
           </div>
         </header>
 

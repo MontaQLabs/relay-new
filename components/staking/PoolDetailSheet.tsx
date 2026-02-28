@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Users, Percent, Coins, Loader2 } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import { formatCommission, formatMemberCount, formatPoolBond, formatStakingAmount } from "@/lib/format";
+  formatCommission,
+  formatMemberCount,
+  formatPoolBond,
+  formatStakingAmount,
+} from "@/lib/format";
 import { planckToDot, estimateJoinPoolFee } from "@/app/utils/staking";
 import type { PoolDetails } from "@/app/types/frontend_type";
 
@@ -134,9 +134,7 @@ export function PoolDetailSheet({
                 <span className="text-violet-600 font-bold text-lg">#{poolDetails.id}</span>
               </div>
               <div>
-                <SheetTitle className="text-xl font-bold text-black">
-                  {poolDetails.name}
-                </SheetTitle>
+                <SheetTitle className="text-xl font-bold text-black">{poolDetails.name}</SheetTitle>
                 <SheetDescription className="text-sm text-muted-foreground">
                   Nomination Pool
                 </SheetDescription>
@@ -161,9 +159,7 @@ export function PoolDetailSheet({
               </div>
               <div className="bg-gray-50 rounded-2xl p-3 text-center">
                 <Coins className="w-5 h-5 text-violet-500 mx-auto mb-1" />
-                <p className="text-lg font-semibold text-black">
-                  {formatPoolBond(bondInDot)}
-                </p>
+                <p className="text-lg font-semibold text-black">{formatPoolBond(bondInDot)}</p>
                 <p className="text-xs text-muted-foreground">Total Staked</p>
               </div>
             </div>
@@ -192,9 +188,7 @@ export function PoolDetailSheet({
                   DOT
                 </span>
               </div>
-              {error && (
-                <p className="text-red-500 text-sm mt-2">{error}</p>
-              )}
+              {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
             </div>
 
             {/* Fee Estimate */}
@@ -229,7 +223,8 @@ export function PoolDetailSheet({
 
             {/* Info Text */}
             <p className="text-xs text-muted-foreground text-center mt-4">
-              Your stake will start earning rewards after joining. Unbonding takes approximately 28 days.
+              Your stake will start earning rewards after joining. Unbonding takes approximately 28
+              days.
             </p>
           </>
         )}
