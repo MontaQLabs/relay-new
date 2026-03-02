@@ -203,7 +203,7 @@ export interface TransferResult {
 
 // Polkadot Asset Hub WebSocket endpoints
 const ASSET_HUB_WS_ENDPOINTS = [
-  // "wss://polkadot-asset-hub-rpc.polkadot.io",
+  "wss://polkadot-asset-hub-rpc.polkadot.io",
   "wss://statemint.api.onfinality.io/ws?apikey=15e1e599-9329-42ea-a32c-3b486e5a709c",
 ];
 
@@ -320,7 +320,6 @@ export const fetchDotCoins = async (knownAssets: KnownAsset[]): Promise<Coin[]> 
     console.error("Failed to fetch coins:", error);
     return [];
   } finally {
-    // Destroy the client to clean up WebSocket connection
     client.destroy();
   }
 };

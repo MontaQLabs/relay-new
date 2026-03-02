@@ -29,6 +29,7 @@ const CONFIGS: Record<NetworkMode, PolkadotNetworkConfig> = {
   mainnet: {
     ss58Format: 0,
     wsEndpoints: [
+      "wss://polkadot-asset-hub-rpc.polkadot.io",
       "wss://statemint.api.onfinality.io/ws?apikey=15e1e599-9329-42ea-a32c-3b486e5a709c",
     ],
     subscanApiUrl: "https://assethub-polkadot.api.subscan.io",

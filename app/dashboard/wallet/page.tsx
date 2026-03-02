@@ -69,13 +69,14 @@ export default function WalletPage() {
 
   // Fetch balances for non-Polkadot chains + their USD prices
   useEffect(() => {
+    let cancelled = false;
     const fetchOtherChains = async () => {
       setIsLoadingMultiChain(true);
       try {
         const balances = await fetchAllChainBalances();
+        if (cancelled) return;
         setMultiChainBalances(balances);
 
-        // Collect all non-Polkadot tickers and fetch their prices
         const tickers = new Set<string>();
         for (const [chainId, chainCoins] of Object.entries(balances)) {
           if (chainId === "polkadot") continue;
@@ -85,15 +86,20 @@ export default function WalletPage() {
         }
         if (tickers.size > 0) {
           const prices = await fetchTokenPrices(Array.from(tickers));
+          if (cancelled) return;
           setMultiChainPrices(prices);
         }
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to fetch multi-chain balances:", err);
       } finally {
-        setIsLoadingMultiChain(false);
+        if (!cancelled) setIsLoadingMultiChain(false);
       }
     };
     fetchOtherChains();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Get wallet chain accounts for address display
