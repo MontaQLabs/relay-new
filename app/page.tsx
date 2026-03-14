@@ -125,9 +125,7 @@ export default function LandingPage() {
         setIsInstallable(false);
       }
     } else {
-      alert(
-        "To install: tap the share button in your browser and select 'Add to Home Screen'"
-      );
+      alert("To install: tap the share button in your browser and select 'Add to Home Screen'");
     }
   };
 
@@ -157,9 +155,7 @@ export default function LandingPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
             <Wallet className="h-4 w-4 text-white" strokeWidth={1.5} />
           </div>
-          <span className="text-[17px] font-semibold tracking-tight">
-            Relay
-          </span>
+          <span className="text-[17px] font-semibold tracking-tight">Relay</span>
         </div>
         <button
           onClick={handleStart}
@@ -199,8 +195,8 @@ export default function LandingPage() {
 
         {/* Subheadline */}
         <p className="animate-slide-up mb-8 max-w-xs text-[15px] leading-relaxed text-white/50 opacity-0 animation-delay-200">
-          One wallet. Five chains. Communities, championships, and on-chain
-          escrow — all in one place.
+          One wallet. Five chains. Communities, championships, and on-chain escrow — all in one
+          place.
         </p>
 
         {/* CTA Buttons */}
@@ -209,8 +205,7 @@ export default function LandingPage() {
             onClick={handleStart}
             className="group h-14 w-full rounded-2xl text-[15px] font-semibold text-black transition-all active:scale-[0.98]"
             style={{
-              background:
-                "linear-gradient(135deg, #c084fc 0%, #a78bfa 50%, #818cf8 100%)",
+              background: "linear-gradient(135deg, #c084fc 0%, #a78bfa 50%, #818cf8 100%)",
             }}
           >
             <span className="flex items-center gap-2">
@@ -236,13 +231,8 @@ export default function LandingPage() {
               key={chain.name}
               className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1"
             >
-              <div
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: chain.color }}
-              />
-              <span className="text-[11px] font-medium text-white/60">
-                {chain.short}
-              </span>
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: chain.color }} />
+              <span className="text-[11px] font-medium text-white/60">{chain.short}</span>
             </div>
           ))}
         </div>
@@ -271,12 +261,8 @@ export default function LandingPage() {
                 >
                   <Icon className="h-5 w-5" strokeWidth={1.5} />
                 </div>
-                <h3 className="mb-1.5 text-[16px] font-semibold text-white">
-                  {feature.title}
-                </h3>
-                <p className="text-[13px] leading-relaxed text-white/50">
-                  {feature.description}
-                </p>
+                <h3 className="mb-1.5 text-[16px] font-semibold text-white">{feature.title}</h3>
+                <p className="text-[13px] leading-relaxed text-white/50">{feature.description}</p>
               </div>
             );
           })}
@@ -308,13 +294,9 @@ export default function LandingPage() {
                     <span className="text-[10px] font-bold tracking-widest text-violet-400/70">
                       {step.num}
                     </span>
-                    <h3 className="text-[15px] font-semibold text-white">
-                      {step.title}
-                    </h3>
+                    <h3 className="text-[15px] font-semibold text-white">{step.title}</h3>
                   </div>
-                  <p className="text-[13px] leading-relaxed text-white/45">
-                    {step.desc}
-                  </p>
+                  <p className="text-[13px] leading-relaxed text-white/45">{step.desc}</p>
                 </div>
               </div>
             );
@@ -333,8 +315,8 @@ export default function LandingPage() {
               Passwordless & self-custodial
             </h3>
             <p className="text-[13px] leading-relaxed text-white/45">
-              Your keys never leave your device. Auth is powered by sr25519
-              cryptographic signatures — no passwords, no middlemen.
+              Your keys never leave your device. Auth is powered by sr25519 cryptographic signatures
+              — no passwords, no middlemen.
             </p>
           </div>
         </div>
@@ -349,15 +331,13 @@ export default function LandingPage() {
           Ready to explore?
         </h2>
         <p className="mb-8 max-w-xs text-[14px] text-white/45">
-          No app store. No sign-up. Just your wallet — installed directly from
-          your browser.
+          No app store. No sign-up. Just your wallet — installed directly from your browser.
         </p>
         <Button
           onClick={handleStart}
           className="group h-14 w-full max-w-xs rounded-2xl text-[15px] font-semibold text-black transition-all active:scale-[0.98]"
           style={{
-            background:
-              "linear-gradient(135deg, #c084fc 0%, #a78bfa 50%, #818cf8 100%)",
+            background: "linear-gradient(135deg, #c084fc 0%, #a78bfa 50%, #818cf8 100%)",
           }}
         >
           <span className="flex items-center gap-2">
