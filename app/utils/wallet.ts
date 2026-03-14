@@ -1,7 +1,21 @@
 import { Wallet } from "../types/frontend_type";
 import { Keyring } from "@polkadot/keyring";
-import { mnemonicGenerate, mnemonicValidate, cryptoWaitReady, decodeAddress, encodeAddress } from "@polkadot/util-crypto";
-import { POLKADOT_NETWORK_NAME, SS58_FORMAT, WALLET_KEY, WALLET_SEED_KEY, ENCRYPTED_WALLET_KEY, IS_ENCRYPTED_KEY, USER_KEY } from "../types/constants";
+import {
+  mnemonicGenerate,
+  mnemonicValidate,
+  cryptoWaitReady,
+  decodeAddress,
+  encodeAddress,
+} from "@polkadot/util-crypto";
+import {
+  POLKADOT_NETWORK_NAME,
+  SS58_FORMAT,
+  WALLET_KEY,
+  WALLET_SEED_KEY,
+  ENCRYPTED_WALLET_KEY,
+  IS_ENCRYPTED_KEY,
+  USER_KEY,
+} from "../types/constants";
 import { initChainRegistry } from "../chains/registry";
 import type { ChainAccount, NetworkMode } from "../chains/types";
 
@@ -21,10 +35,7 @@ export const exists = (): boolean => {
  * @param mnemonic - BIP-39 mnemonic seed phrase
  * @param mode - Optional network mode override; defaults to stored mode.
  */
-async function deriveChainAccounts(
-  mnemonic: string,
-  mode?: NetworkMode
-): Promise<ChainAccount[]> {
+async function deriveChainAccounts(mnemonic: string, mode?: NetworkMode): Promise<ChainAccount[]> {
   try {
     const registry = await initChainRegistry(mode);
     return await registry.deriveAllAddresses(mnemonic);
@@ -40,7 +51,7 @@ async function deriveChainAccounts(
  * Creates a new multi-chain relay wallet.
  * Generates a BIP39 mnemonic and derives addresses for every registered chain.
  * The Polkadot address is used as the primary identity for auth.
- * 
+ *
  * @returns Promise<Wallet> - The newly created wallet object
  */
 export const createWallet = async (): Promise<Wallet> => {
@@ -50,7 +61,7 @@ export const createWallet = async (): Promise<Wallet> => {
 
   // Derive addresses on all supported chains
   const chainAccounts = await deriveChainAccounts(mnemonic);
-  const polkadotAccount = chainAccounts.find(a => a.chainId === "polkadot");
+  const polkadotAccount = chainAccounts.find((a) => a.chainId === "polkadot");
 
   const wallet: Wallet = {
     address: polkadotAccount?.address ?? "",
@@ -78,7 +89,7 @@ export const createWallet = async (): Promise<Wallet> => {
 /**
  * Imports an existing wallet using a space-separated seed phrase.
  * Validates the mnemonic, then derives addresses for every registered chain.
- * 
+ *
  * @param seedPhrase - Space-separated 12-word mnemonic seed phrase
  * @returns Promise<Wallet> - The imported wallet object
  * @throws Error if the mnemonic is invalid
@@ -86,7 +97,7 @@ export const createWallet = async (): Promise<Wallet> => {
 export const importWallet = async (seedPhrase: string): Promise<Wallet> => {
   await cryptoWaitReady();
 
-  const normalizedMnemonic = seedPhrase.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizedMnemonic = seedPhrase.trim().toLowerCase().replace(/\s+/g, " ");
 
   const isValid = mnemonicValidate(normalizedMnemonic);
   if (!isValid) {
@@ -95,7 +106,7 @@ export const importWallet = async (seedPhrase: string): Promise<Wallet> => {
 
   // Derive addresses on all supported chains
   const chainAccounts = await deriveChainAccounts(normalizedMnemonic);
-  const polkadotAccount = chainAccounts.find(a => a.chainId === "polkadot");
+  const polkadotAccount = chainAccounts.find((a) => a.chainId === "polkadot");
 
   const wallet: Wallet = {
     address: polkadotAccount?.address ?? "",
@@ -125,7 +136,7 @@ export const isCreated = (): boolean => {
   if (typeof window === "undefined") return false;
   const walletData = localStorage.getItem(WALLET_KEY);
   if (!walletData) return false;
-  
+
   try {
     const wallet = JSON.parse(walletData) as Wallet;
     // Validate the wallet has required fields
@@ -134,18 +145,20 @@ export const isCreated = (): boolean => {
   } catch {
     return false;
   }
-}
+};
 
 // Check if Web Crypto API is available (requires HTTPS or localhost)
 const isSecureContext = (): boolean => {
   if (typeof window === "undefined") return false;
-  return window.isSecureContext && typeof crypto !== "undefined" && typeof crypto.subtle !== "undefined";
+  return (
+    window.isSecureContext && typeof crypto !== "undefined" && typeof crypto.subtle !== "undefined"
+  );
 };
 
 // Encrypt the wallet data using the user specified password and store it in localStorage
 export const encryptWallet = async (wallet: Wallet, password: string): Promise<boolean> => {
   if (typeof window === "undefined") return false;
-  
+
   if (!isSecureContext()) {
     console.error("Web Crypto API not available. Ensure the app is served over HTTPS.");
     throw new Error("Encryption requires a secure connection (HTTPS)");
@@ -154,7 +167,7 @@ export const encryptWallet = async (wallet: Wallet, password: string): Promise<b
   try {
     // Get the mnemonic seed as well
     const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
-    
+
     // Create data object to encrypt (wallet + mnemonic)
     const dataToEncrypt = JSON.stringify({
       wallet,
@@ -218,12 +231,12 @@ export const encryptWallet = async (wallet: Wallet, password: string): Promise<b
     console.error("Failed to encrypt wallet:", error);
     return false;
   }
-}
+};
 
 // Decrypt the encrypted wallet stored in localStorage using the user specified password
 export const decryptWallet = async (password: string): Promise<Wallet | null> => {
   if (typeof window === "undefined") return null;
-  
+
   if (!isSecureContext()) {
     console.error("Web Crypto API not available. Ensure the app is served over HTTPS.");
     throw new Error("Decryption requires a secure connection (HTTPS)");
@@ -295,7 +308,7 @@ export const decryptWallet = async (password: string): Promise<Wallet | null> =>
     console.error("Failed to decrypt wallet:", error);
     return null;
   }
-}
+};
 
 /**
  * Check if an address is valid on *any* supported chain.
@@ -313,7 +326,9 @@ export const isAddrValid = (addr: string, chainId?: string): boolean => {
       const { getChainRegistry } = require("../chains/registry");
       const adapter = getChainRegistry().find(chainId);
       if (adapter) return adapter.isValidAddress(addr);
-    } catch { /* registry not initialised – fall through */ }
+    } catch {
+      /* registry not initialised – fall through */
+    }
   }
 
   // Default: check Polkadot (original behaviour)
@@ -324,7 +339,7 @@ export const isAddrValid = (addr: string, chainId?: string): boolean => {
   } catch {
     return false;
   }
-}
+};
 
 /**
  * Re-derive all chain addresses for the given network mode and update the
@@ -333,9 +348,7 @@ export const isAddrValid = (addr: string, chainId?: string): boolean => {
  *
  * Call this when the user toggles between mainnet and testnet.
  */
-export const rederiveWalletForNetwork = async (
-  mode: NetworkMode
-): Promise<Wallet | null> => {
+export const rederiveWalletForNetwork = async (mode: NetworkMode): Promise<Wallet | null> => {
   if (typeof window === "undefined") return null;
 
   const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
@@ -352,7 +365,9 @@ export const rederiveWalletForNetwork = async (
   if (walletData) {
     try {
       existingWallet = JSON.parse(walletData) as Wallet;
-    } catch { /* ignore corrupt data */ }
+    } catch {
+      /* ignore corrupt data */
+    }
   }
 
   const wallet: Wallet = {
@@ -371,19 +386,30 @@ export const rederiveWalletForNetwork = async (
 };
 
 /**
+ * Get the mnemonic seed phrase from localStorage.
+ * Only available when the wallet is unlocked (not encrypted).
+ * Returns null if encrypted, not in browser, or not found.
+ */
+export const getMnemonic = (): string | null => {
+  if (typeof window === "undefined") return null;
+  if (localStorage.getItem(IS_ENCRYPTED_KEY) === "true") return null;
+  return localStorage.getItem(WALLET_SEED_KEY);
+};
+
+/**
  * Get the wallet address from localStorage
  * @returns The wallet address or null if not found
  */
 export const getWalletAddress = (): string | null => {
   if (typeof window === "undefined") return null;
-  
+
   try {
     const walletData = localStorage.getItem(WALLET_KEY);
     if (!walletData) return null;
-    
+
     const wallet = JSON.parse(walletData) as Wallet;
     return wallet.address || null;
   } catch {
     return null;
   }
-}
+};

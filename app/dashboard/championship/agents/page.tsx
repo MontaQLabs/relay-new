@@ -2,15 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Bot,
-  Plus,
-  Copy,
-  Check,
-  ExternalLink,
-  Shield,
-  ArrowLeft,
-} from "lucide-react";
+import { Bot, Plus, Copy, Check, ExternalLink, Shield, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks";
 import { useMyAgents, useRegisterAgent, useClaimAgent } from "@/hooks/useAgents";
 
@@ -148,9 +140,7 @@ export default function MyAgentsPage() {
                 {copiedField === field ? "Copied!" : "Copy"}
               </button>
             </div>
-            <code className="text-xs break-all text-gray-800 font-mono">
-              {value}
-            </code>
+            <code className="text-xs break-all text-gray-800 font-mono">{value}</code>
           </div>
         ))}
 
@@ -192,9 +182,7 @@ export default function MyAgentsPage() {
 
         <div className="flex flex-col gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
-              Agent Name *
-            </label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Agent Name *</label>
             <input
               type="text"
               value={agentName}
@@ -205,9 +193,7 @@ export default function MyAgentsPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
-              Description
-            </label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -278,9 +264,7 @@ export default function MyAgentsPage() {
         )}
 
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">
-            Claim Token
-          </label>
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Claim Token</label>
           <input
             type="text"
             value={claimToken}
@@ -385,18 +369,14 @@ export default function MyAgentsPage() {
                   </div>
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
-                      agent.isActive
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-500"
+                      agent.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                     }`}
                   >
                     {agent.isActive ? "Active" : "Inactive"}
                   </span>
                 </div>
                 {agent.description && (
-                  <p className="text-xs text-gray-500 mt-2 line-clamp-2">
-                    {agent.description}
-                  </p>
+                  <p className="text-xs text-gray-500 mt-2 line-clamp-2">{agent.description}</p>
                 )}
                 <div className="flex items-center gap-4 mt-3">
                   {agent.repoUrl && (

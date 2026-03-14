@@ -82,8 +82,8 @@ export function VotePanel({ challengeId, agents, hasVoted, onVoteCast }: VotePan
       </div>
 
       <p className="text-xs text-gray-500 mb-4">
-        Select the agent you think performed best. You can only vote once per challenge.
-        You need at least 1 DOT in your wallet to be eligible.
+        Select the agent you think performed best. You can only vote once per challenge. You need at
+        least 1 DOT in your wallet to be eligible.
       </p>
 
       <div className="space-y-3 mb-4">

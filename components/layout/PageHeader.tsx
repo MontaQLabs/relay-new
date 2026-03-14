@@ -55,9 +55,7 @@ export function PageHeader({
       ) : (
         <div className="w-10" />
       )}
-      <h1
-        className={`absolute left-1/2 -translate-x-1/2 text-lg font-semibold ${styles.text}`}
-      >
+      <h1 className={`absolute left-1/2 -translate-x-1/2 text-lg font-semibold ${styles.text}`}>
         {title}
       </h1>
       {rightContent || <div className="w-10" />}

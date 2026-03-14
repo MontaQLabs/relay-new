@@ -14,8 +14,8 @@ export interface CommunityListProps {
   onLeaveSuccess?: () => void;
 }
 
-export function CommunityList({ 
-  communities, 
+export function CommunityList({
+  communities,
   currentUserWallet,
   showJoinButton = false,
   onJoinSuccess,
@@ -33,7 +33,7 @@ export function CommunityList({
 
     const checkMembership = async () => {
       setLoadingMembership(true);
-      
+
       try {
         const communityIds = communities.map((c) => c.communityId).join(",");
         const response = await fetch(
@@ -68,7 +68,7 @@ export function CommunityList({
 
   const handleJoin = async (communityId: string) => {
     if (!currentUserWallet) return;
-    
+
     const token = getAuthToken();
     if (!token) {
       console.error("No auth token available");
@@ -104,7 +104,7 @@ export function CommunityList({
 
   const handleLeave = async (communityId: string) => {
     if (!currentUserWallet) return;
-    
+
     const token = getAuthToken();
     if (!token) {
       console.error("No auth token available");
@@ -149,8 +149,8 @@ export function CommunityList({
   return (
     <div className="divide-y divide-gray-100">
       {communities.map((community) => (
-        <SwipeableCommunityItem 
-          key={community.communityId} 
+        <SwipeableCommunityItem
+          key={community.communityId}
           community={community}
           onClick={() => handleCommunityClick(community.communityId)}
           currentUserWallet={currentUserWallet}

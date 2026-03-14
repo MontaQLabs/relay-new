@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchDotCoins, calculatePortfolioValue } from "@/app/utils/crypto";
 import { getKnownAssets } from "@/app/db/supabase";
 import type { Coin, KnownAsset } from "@/app/types/frontend_type";
@@ -36,50 +36,48 @@ export function useCoins(options: UseCoinsOptions = {}): UseCoinsReturn {
   const [totalBalance, setTotalBalance] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selectedToken, setSelectedToken] = useState<Coin | null>(null);
+  const fetchIdRef = useRef(0);
 
   const fetchCoins = useCallback(async () => {
+    const id = ++fetchIdRef.current;
     setIsLoading(true);
     setError(null);
 
     try {
-      // First, fetch known assets from Supabase
       const assets = await getKnownAssets();
+      if (id !== fetchIdRef.current) return;
       setKnownAssets(assets);
 
-      // Then, fetch the coins from the blockchain using the known assets
       const fetchedCoins = await fetchDotCoins(assets);
+      if (id !== fetchIdRef.current) return;
       setCoins(fetchedCoins);
       setIsLoading(false);
 
-      // Calculate fallback total from raw coin values
       const fallbackTotal = fetchedCoins.reduce((sum, coin) => sum + coin.fiatValue, 0);
       setTotalBalance(fallbackTotal);
 
-      // Finally, fetch real-time prices if enabled
       if (fetchPrices && fetchedCoins.length > 0) {
         setIsPriceLoading(true);
         try {
           const { totalValue, coinsWithPrices } = await calculatePortfolioValue(fetchedCoins);
+          if (id !== fetchIdRef.current) return;
           setCoins(coinsWithPrices);
           setTotalBalance(totalValue);
 
-          // Update selected token with new price data
           if (selectedToken) {
-            const updatedToken = coinsWithPrices.find(
-              (c) => c.ticker === selectedToken.ticker
-            );
+            const updatedToken = coinsWithPrices.find((c) => c.ticker === selectedToken.ticker);
             if (updatedToken) {
               setSelectedToken(updatedToken);
             }
           }
         } catch (priceError) {
           console.error("Failed to fetch prices:", priceError);
-          // Keep the coins without price data
         } finally {
-          setIsPriceLoading(false);
+          if (id === fetchIdRef.current) setIsPriceLoading(false);
         }
       }
     } catch (err) {
+      if (id !== fetchIdRef.current) return;
       console.error("Failed to fetch coins:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch coins");
       setCoins([]);
@@ -92,6 +90,9 @@ export function useCoins(options: UseCoinsOptions = {}): UseCoinsReturn {
     if (autoFetch) {
       fetchCoins();
     }
+    return () => {
+      fetchIdRef.current++;
+    };
   }, [autoFetch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update selected token when coins are updated with prices

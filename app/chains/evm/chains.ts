@@ -20,8 +20,7 @@ const BASE_CONFIGS: Record<NetworkMode, EVMChainConfig> = {
     chainName: "Base",
     nativeTicker: "ETH",
     nativeDecimals: 18,
-    iconUrl:
-      "https://assets.coingecko.com/coins/images/1/small/bitcoin.png?1547033579",
+    iconUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png?1547033579",
     viemChain: base,
     rpcUrl: "https://mainnet.base.org",
     blockExplorerApiUrl: "https://api.basescan.org/api",
@@ -31,8 +30,7 @@ const BASE_CONFIGS: Record<NetworkMode, EVMChainConfig> = {
     chainName: "Base Sepolia",
     nativeTicker: "ETH",
     nativeDecimals: 18,
-    iconUrl:
-      "https://assets.coingecko.com/coins/images/1/small/bitcoin.png?1547033579",
+    iconUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png?1547033579",
     viemChain: baseSepolia,
     rpcUrl: "https://sepolia.base.org",
     blockExplorerApiUrl: "https://api-sepolia.basescan.org/api",

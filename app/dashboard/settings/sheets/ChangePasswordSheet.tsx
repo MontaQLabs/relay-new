@@ -83,9 +83,7 @@ export function ChangePasswordSheet({ isOpen, onClose }: ChangePasswordSheetProp
         <div className="flex-1 overflow-y-auto space-y-6">
           {/* Create Password field */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-[#1a1a1a]">
-              Create Password
-            </label>
+            <label className="block text-sm font-medium mb-2 text-[#1a1a1a]">Create Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -100,11 +98,7 @@ export function ChangePasswordSheet({ isOpen, onClose }: ChangePasswordSheetProp
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-1 cursor-pointer text-gray-400"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -128,11 +122,7 @@ export function ChangePasswordSheet({ isOpen, onClose }: ChangePasswordSheetProp
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-1 cursor-pointer text-gray-400"
                 aria-label={showConfirmPassword ? "Hide password" : "Show password"}
               >
-                {showConfirmPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -143,9 +133,7 @@ export function ChangePasswordSheet({ isOpen, onClose }: ChangePasswordSheetProp
               type="button"
               onClick={() => setAcknowledged(!acknowledged)}
               className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 cursor-pointer ${
-                acknowledged
-                  ? "border-[#1a1a1a] bg-[#1a1a1a]"
-                  : "border-gray-300 bg-transparent"
+                acknowledged ? "border-[#1a1a1a] bg-[#1a1a1a]" : "border-gray-300 bg-transparent"
               }`}
             >
               {acknowledged && (

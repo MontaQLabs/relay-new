@@ -17,8 +17,7 @@ export const NATIVE_TICKER = "DOT";
 export const DOT_DECIMALS = 10;
 
 /** Chain icon URL. */
-export const ICON_URL =
-  "https://assets.coingecko.com/coins/images/12171/small/polkadot.png";
+export const ICON_URL = "https://assets.coingecko.com/coins/images/12171/small/polkadot.png";
 
 interface PolkadotNetworkConfig {
   ss58Format: number;
@@ -30,15 +29,14 @@ const CONFIGS: Record<NetworkMode, PolkadotNetworkConfig> = {
   mainnet: {
     ss58Format: 0,
     wsEndpoints: [
+      "wss://polkadot-asset-hub-rpc.polkadot.io",
       "wss://statemint.api.onfinality.io/ws?apikey=15e1e599-9329-42ea-a32c-3b486e5a709c",
     ],
     subscanApiUrl: "https://assethub-polkadot.api.subscan.io",
   },
   testnet: {
     ss58Format: 42,
-    wsEndpoints: [
-      "wss://westend-asset-hub-rpc.polkadot.io",
-    ],
+    wsEndpoints: ["wss://westend-asset-hub-rpc.polkadot.io"],
     subscanApiUrl: "https://assethub-westend.api.subscan.io",
   },
 };

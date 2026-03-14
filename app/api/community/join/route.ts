@@ -9,14 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 import { jwtVerify } from "jose";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!;
 
@@ -52,10 +46,7 @@ export async function POST(request: NextRequest) {
     const { communityId } = body;
 
     if (!communityId) {
-      return NextResponse.json(
-        { error: "Community ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Community ID is required" }, { status: 400 });
     }
 
     // Check if community exists
@@ -66,10 +57,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (communityError || !community) {
-      return NextResponse.json(
-        { error: "Community not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Community not found" }, { status: 404 });
     }
 
     // Check if already a member
@@ -81,35 +69,23 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingMember) {
-      return NextResponse.json(
-        { error: "Already a member of this community" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Already a member of this community" }, { status: 400 });
     }
 
     // Join the community
-    const { error: joinError } = await supabaseAdmin
-      .from("community_members")
-      .insert({
-        community_id: communityId,
-        user_wallet: walletAddress,
-      });
+    const { error: joinError } = await supabaseAdmin.from("community_members").insert({
+      community_id: communityId,
+      user_wallet: walletAddress,
+    });
 
     if (joinError) {
       console.error("Failed to join community:", joinError);
-      return NextResponse.json(
-        { error: "Failed to join community" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to join community" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Join community error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

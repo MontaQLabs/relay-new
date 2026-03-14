@@ -23,9 +23,7 @@ export function SlideInPage({
   const animation = isExiting ? "animate-slide-out-right" : "animate-slide-in-right";
 
   return (
-    <div
-      className={`fixed inset-0 z-50 ${bgColor} flex flex-col ${animation} ${className}`}
-    >
+    <div className={`fixed inset-0 z-50 ${bgColor} flex flex-col ${animation} ${className}`}>
       {children}
     </div>
   );

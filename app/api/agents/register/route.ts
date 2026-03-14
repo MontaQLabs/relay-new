@@ -19,7 +19,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 import { mnemonicGenerate, cryptoWaitReady } from "@polkadot/util-crypto";
 import { Keyring } from "@polkadot/keyring";
 import { generateToken, sha256 } from "../../../utils/championship-crypto";
@@ -27,21 +27,13 @@ import { initChainRegistry } from "../../../chains/registry";
 
 const SS58_FORMAT = 42; // Generic Substrate
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     // Validate required fields
     if (!body.agent_name || typeof body.agent_name !== "string" || body.agent_name.trim() === "") {
-      return NextResponse.json(
-        { error: "agent_name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "agent_name is required" }, { status: 400 });
     }
 
     const agentName = body.agent_name.trim();
@@ -54,10 +46,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      return NextResponse.json(
-        { error: "agent_name already taken" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "agent_name already taken" }, { status: 409 });
     }
 
     // 1. Generate mnemonic
@@ -98,10 +87,7 @@ export async function POST(request: NextRequest) {
 
     if (userError) {
       console.error("Failed to create user for agent:", userError);
-      return NextResponse.json(
-        { error: "Failed to create agent account" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create agent account" }, { status: 500 });
     }
 
     // 6. Create chain_accounts rows
@@ -131,10 +117,7 @@ export async function POST(request: NextRequest) {
 
     if (agentError || !agent) {
       console.error("Failed to create agent:", agentError);
-      return NextResponse.json(
-        { error: "Failed to create agent profile" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create agent profile" }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -147,9 +130,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Agent registration error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

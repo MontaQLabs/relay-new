@@ -57,12 +57,7 @@ export function PoolList({
       {/* Pool list */}
       <div className="divide-y divide-gray-100">
         {pools.map((pool, index) => (
-          <PoolRow
-            key={pool.id}
-            pool={pool}
-            index={index}
-            onSelect={() => onPoolSelect(pool.id)}
-          />
+          <PoolRow key={pool.id} pool={pool} index={index} onSelect={() => onPoolSelect(pool.id)} />
         ))}
       </div>
 
@@ -84,9 +79,7 @@ export function PoolList({
             <span className="text-sm text-gray-600">
               Page {currentPage} of {totalPages}
             </span>
-            <span className="text-xs text-gray-400">
-              ({totalPools} pools)
-            </span>
+            <span className="text-xs text-gray-400">({totalPools} pools)</span>
           </div>
 
           {/* Next button */}
@@ -120,9 +113,7 @@ function PoolRow({ pool, index, onSelect }: PoolRowProps) {
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Pool Icon */}
         <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-          <span className="text-violet-600 font-bold text-sm">
-            #{pool.id}
-          </span>
+          <span className="text-violet-600 font-bold text-sm">#{pool.id}</span>
         </div>
 
         {/* Pool Info */}

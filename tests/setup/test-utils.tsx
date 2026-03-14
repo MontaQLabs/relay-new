@@ -2,9 +2,9 @@
  * Test utilities for React component testing
  */
 
-import React, { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
-import { vi } from 'vitest';
+import React, { ReactElement } from "react";
+import { render, RenderOptions } from "@testing-library/react";
+import { vi } from "vitest";
 
 // Mock Next.js router
 export const mockRouter = {
@@ -17,14 +17,14 @@ export const mockRouter = {
 };
 
 // Mock useRouter hook
-vi.mock('next/navigation', () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => mockRouter,
-  usePathname: () => '/dashboard/wallet',
+  usePathname: () => "/dashboard/wallet",
   useSearchParams: () => new URLSearchParams(),
 }));
 
 // Mock Next.js Image component
-vi.mock('next/image', () => ({
+vi.mock("next/image", () => ({
   default: ({ src, alt, ...props }: { src: string; alt: string; [key: string]: unknown }) => {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt={alt} {...props} />;
@@ -32,19 +32,16 @@ vi.mock('next/image', () => ({
 }));
 
 // Custom render function with providers
-type CustomRenderOptions = Omit<RenderOptions, 'wrapper'>;
+type CustomRenderOptions = Omit<RenderOptions, "wrapper">;
 
-function customRender(
-  ui: ReactElement,
-  options?: CustomRenderOptions
-) {
+function customRender(ui: ReactElement, options?: CustomRenderOptions) {
   return render(ui, {
     ...options,
   });
 }
 
 // Re-export everything from testing library
-export * from '@testing-library/react';
+export * from "@testing-library/react";
 export { customRender as render };
 
 // Helper to reset all mocks between tests
@@ -66,4 +63,3 @@ export const setupLocalStorage = (data: Record<string, string>) => {
 
 // Helper to wait for async operations
 export const waitForAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
-

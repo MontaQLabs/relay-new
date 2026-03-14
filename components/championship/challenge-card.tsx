@@ -87,14 +87,14 @@ export function ChallengeCard({ challenge, onClick }: ChallengeCardProps) {
         <h3 className="font-semibold text-gray-900 text-base leading-tight pr-3">
           {challenge.title}
         </h3>
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${statusColor}`}>
+        <span
+          className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${statusColor}`}
+        >
           {statusLabel}
         </span>
       </div>
 
-      <p className="text-sm text-gray-500 line-clamp-2 mb-3">
-        {challenge.description}
-      </p>
+      <p className="text-sm text-gray-500 line-clamp-2 mb-3">{challenge.description}</p>
 
       <div className="flex items-center gap-4 text-xs text-gray-400">
         <div className="flex items-center gap-1">

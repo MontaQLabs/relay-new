@@ -13,13 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Bulk membership check
     if (communityIds && wallet) {
       const ids = communityIds.split(",").filter((id) => id.trim());
-      
+
       if (ids.length === 0) {
         return NextResponse.json({ membership: {} });
       }
@@ -44,10 +38,7 @@ export async function GET(request: NextRequest) {
 
       if (error) {
         console.error("Failed to check membership:", error);
-        return NextResponse.json(
-          { error: "Failed to check membership" },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: "Failed to check membership" }, { status: 500 });
       }
 
       const membershipMap: Record<string, boolean> = {};
@@ -67,10 +58,7 @@ export async function GET(request: NextRequest) {
 
       if (error) {
         console.error("Failed to fetch members:", error);
-        return NextResponse.json(
-          { error: "Failed to fetch members" },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
       }
 
       const members = (data || []).map((m) => m.user_wallet);
@@ -83,10 +71,6 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("Community members error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

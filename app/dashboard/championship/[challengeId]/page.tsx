@@ -47,11 +47,7 @@ export default function ChallengeDetailPage({
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-5">
         <AlertCircle className="w-12 h-12 text-gray-300 mb-3" />
         <p className="text-gray-500">{error || "Challenge not found"}</p>
-        <Button
-          variant="outline"
-          onClick={() => router.back()}
-          className="mt-4"
-        >
+        <Button variant="outline" onClick={() => router.back()} className="mt-4">
           Go Back
         </Button>
       </div>
@@ -69,9 +65,7 @@ export default function ChallengeDetailPage({
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="font-semibold text-lg text-black truncate">
-            {challenge.title}
-          </h1>
+          <h1 className="font-semibold text-lg text-black truncate">{challenge.title}</h1>
           <p className="text-xs text-gray-400">
             by {challenge.creator.slice(0, 6)}...{challenge.creator.slice(-4)}
           </p>
@@ -100,8 +94,12 @@ export default function ChallengeDetailPage({
             <span>Entry: {formatPlanckAsDot(challenge.entryFeeDot)}</span>
             <span>Agents: {agents.length}</span>
             <span>
-              Pool: {formatPlanckAsDot(
-                (BigInt(challenge.totalEntryPoolDot || "0") + BigInt(challenge.totalBetPoolDot || "0")).toString()
+              Pool:{" "}
+              {formatPlanckAsDot(
+                (
+                  BigInt(challenge.totalEntryPoolDot || "0") +
+                  BigInt(challenge.totalBetPoolDot || "0")
+                ).toString()
               )}
             </span>
           </div>
@@ -219,9 +217,7 @@ function EnrollSection({
       {/* Enrolled Agents */}
       {agents.length > 0 && (
         <div>
-          <h3 className="font-semibold text-gray-900 mb-3">
-            Enrolled Agents ({agents.length})
-          </h3>
+          <h3 className="font-semibold text-gray-900 mb-3">Enrolled Agents ({agents.length})</h3>
           <div className="space-y-2">
             {agents.map((agent) => (
               <AgentCard key={agent.id} agent={agent} />
@@ -260,14 +256,32 @@ function EnrollForm({
   const handleSubmit = async () => {
     setError(null);
 
-    if (!agentName.trim()) { setError("Agent name is required"); return; }
-    if (!repoUrl.includes("github.com")) { setError("A valid GitHub URL is required"); return; }
-    if (!commitHash.trim()) { setError("Commit hash is required"); return; }
-    if (!endpointUrl.trim()) { setError("Endpoint URL is required"); return; }
-    if (!entryTxHash.trim()) { setError("Entry fee transaction hash is required"); return; }
+    if (!agentName.trim()) {
+      setError("Agent name is required");
+      return;
+    }
+    if (!repoUrl.includes("github.com")) {
+      setError("A valid GitHub URL is required");
+      return;
+    }
+    if (!commitHash.trim()) {
+      setError("Commit hash is required");
+      return;
+    }
+    if (!endpointUrl.trim()) {
+      setError("Endpoint URL is required");
+      return;
+    }
+    if (!entryTxHash.trim()) {
+      setError("Entry fee transaction hash is required");
+      return;
+    }
 
     const token = getAuthToken();
-    if (!token) { setError("Please authenticate first"); return; }
+    if (!token) {
+      setError("Please authenticate first");
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -362,7 +376,8 @@ function EnrollForm({
           onChange={(e) => setEntryTxHash(e.target.value)}
         />
         <p className="text-[10px] text-gray-400 mt-1">
-          Send {formatPlanckAsDot(entryFee)} to the challenge escrow address, then paste the transaction hash.
+          Send {formatPlanckAsDot(entryFee)} to the challenge escrow address, then paste the
+          transaction hash.
         </p>
       </div>
 
@@ -408,9 +423,7 @@ function CompeteSection({
     <div className="space-y-4">
       {/* Agents */}
       <div>
-        <h3 className="font-semibold text-gray-900 mb-3">
-          Competing Agents ({agents.length})
-        </h3>
+        <h3 className="font-semibold text-gray-900 mb-3">Competing Agents ({agents.length})</h3>
         <p className="text-xs text-gray-500 mb-3">
           Inspect the source code of each agent to make your prediction.
         </p>
@@ -500,11 +513,10 @@ function JudgeSection({
       {isCreator && judgeEnded && (
         <div className="p-4 border border-amber-200 rounded-xl bg-amber-50">
           <p className="text-sm text-amber-700 mb-3">
-            The judge phase has ended. Finalize the challenge to determine the winner and distribute payouts.
+            The judge phase has ended. Finalize the challenge to determine the winner and distribute
+            payouts.
           </p>
-          {finalizeError && (
-            <p className="text-xs text-red-500 mb-2">{finalizeError}</p>
-          )}
+          {finalizeError && <p className="text-xs text-red-500 mb-2">{finalizeError}</p>}
           <Button
             onClick={handleFinalize}
             disabled={isFinalizing}

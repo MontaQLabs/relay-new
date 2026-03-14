@@ -1,21 +1,13 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import type { NetworkMode } from "@/app/chains/types";
 import { NETWORK_MODE_KEY } from "@/app/types/constants";
 import { resetRegistry } from "@/app/chains/registry";
 
 function getInitialNetworkMode(): NetworkMode {
   if (typeof window === "undefined") return "mainnet";
-  return localStorage.getItem(NETWORK_MODE_KEY) === "testnet"
-    ? "testnet"
-    : "mainnet";
+  return localStorage.getItem(NETWORK_MODE_KEY) === "testnet" ? "testnet" : "mainnet";
 }
 
 interface NetworkModeContextValue {

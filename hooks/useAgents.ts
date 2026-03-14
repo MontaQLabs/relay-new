@@ -32,12 +32,9 @@ export function useMyAgents(walletAddress: string | null): UseMyAgentsReturn {
 
     try {
       const token = getAuthToken();
-      const response = await fetch(
-        `/api/agents?owner=${encodeURIComponent(walletAddress)}`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
-      );
+      const response = await fetch(`/api/agents?owner=${encodeURIComponent(walletAddress)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch agents");
@@ -137,7 +134,9 @@ export function useClaimAgent() {
   const [isClaiming, setIsClaiming] = useState(false);
 
   const claimAgent = useCallback(
-    async (claimToken: string): Promise<{ success: boolean; agentName?: string; error?: string }> => {
+    async (
+      claimToken: string
+    ): Promise<{ success: boolean; agentName?: string; error?: string }> => {
       setIsClaiming(true);
       try {
         const token = getAuthToken();

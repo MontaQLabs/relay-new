@@ -130,10 +130,7 @@ const setCachedPools = (pools: NominationPoolInfo[]): void => {
   if (typeof window === "undefined") return;
 
   try {
-    localStorage.setItem(
-      POOLS_CACHE_KEY,
-      JSON.stringify({ pools, timestamp: Date.now() })
-    );
+    localStorage.setItem(POOLS_CACHE_KEY, JSON.stringify({ pools, timestamp: Date.now() }));
   } catch (error) {
     console.error("Failed to cache pools:", error);
   }
@@ -184,10 +181,7 @@ const setCachedPoolIndex = (pools: PoolIndexEntry[]): void => {
   if (typeof window === "undefined") return;
 
   try {
-    localStorage.setItem(
-      POOL_INDEX_CACHE_KEY,
-      JSON.stringify({ pools, timestamp: Date.now() })
-    );
+    localStorage.setItem(POOL_INDEX_CACHE_KEY, JSON.stringify({ pools, timestamp: Date.now() }));
   } catch (error) {
     console.error("Failed to cache pool index:", error);
   }
@@ -240,9 +234,7 @@ const setCachedPoolSummaries = (pools: PoolSummary[]): void => {
  * @param forceRefresh - If true, bypasses the cache
  * @returns Promise<PoolIndexEntry[]> - Array of pool index entries (only open pools)
  */
-const fetchPoolIndex = async (
-  forceRefresh = false
-): Promise<PoolIndexEntry[]> => {
+const fetchPoolIndex = async (forceRefresh = false): Promise<PoolIndexEntry[]> => {
   // Check cache first
   if (!forceRefresh) {
     const cached = getCachedPoolIndex();
@@ -262,7 +254,10 @@ const fetchPoolIndex = async (
 
     // Build pool index (no metadata yet - that's expensive)
     const index: PoolIndexEntry[] = bondedPoolsEntries.map(
-      (entry: { keyArgs: [number]; value: { state: { type: string }; member_counter: number } }) => ({
+      (entry: {
+        keyArgs: [number];
+        value: { state: { type: string }; member_counter: number };
+      }) => ({
         id: entry.keyArgs[0],
         state: entry.value.state.type as "Open" | "Blocked" | "Destroying",
         memberCount: entry.value.member_counter,
@@ -289,9 +284,7 @@ const fetchPoolIndex = async (
  * @param poolIds - Array of pool IDs to fetch metadata for
  * @returns Promise<Map<number, string>> - Map of pool ID to name
  */
-const fetchPoolMetadata = async (
-  poolIds: number[]
-): Promise<Map<number, string>> => {
+const fetchPoolMetadata = async (poolIds: number[]): Promise<Map<number, string>> => {
   const { typedApi } = getStakingClient();
 
   const metadataPromises = poolIds.map((id) =>
@@ -302,9 +295,7 @@ const fetchPoolMetadata = async (
   const metadataMap = new Map<number, string>();
   poolIds.forEach((id, index) => {
     const metadata = metadataResults[index];
-    const name = metadata
-      ? new TextDecoder().decode(metadata.asBytes())
-      : `Pool #${id}`;
+    const name = metadata ? new TextDecoder().decode(metadata.asBytes()) : `Pool #${id}`;
     metadataMap.set(id, name || `Pool #${id}`);
   });
 
@@ -327,19 +318,19 @@ export const fetchPoolSummariesPaginated = async (
 ): Promise<PaginatedPoolSummaries> => {
   // First, get the pool index (cached or fresh)
   const poolIndex = await fetchPoolIndex(forceRefresh);
-  
+
   const totalPools = poolIndex.length;
   const totalPages = Math.ceil(totalPools / pageSize);
   const currentPage = Math.max(1, Math.min(page, totalPages || 1));
-  
+
   // Calculate slice indices
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalPools);
-  
+
   // Get pool IDs for current page
   const pagePoolEntries = poolIndex.slice(startIndex, endIndex);
   const pagePoolIds = pagePoolEntries.map((p) => p.id);
-  
+
   if (pagePoolIds.length === 0) {
     return {
       pools: [],
@@ -349,11 +340,11 @@ export const fetchPoolSummariesPaginated = async (
       pageSize,
     };
   }
-  
+
   // Fetch metadata only for current page's pools
   console.log(`Fetching metadata for page ${currentPage} pools:`, pagePoolIds);
   const metadataMap = await fetchPoolMetadata(pagePoolIds);
-  
+
   // Build pool summaries for current page
   const pools: PoolSummary[] = pagePoolEntries.map((entry) => ({
     id: entry.id,
@@ -361,7 +352,7 @@ export const fetchPoolSummariesPaginated = async (
     state: entry.state,
     memberCount: entry.memberCount,
   }));
-  
+
   return {
     pools,
     currentPage,
@@ -380,9 +371,7 @@ export const fetchPoolSummariesPaginated = async (
  * @returns Promise<PoolSummary[]> - Array of pool summaries
  * @deprecated Use fetchPoolSummariesPaginated for paginated fetching
  */
-export const fetchPoolSummaries = async (
-  forceRefresh = false
-): Promise<PoolSummary[]> => {
+export const fetchPoolSummaries = async (forceRefresh = false): Promise<PoolSummary[]> => {
   // Check localStorage cache first
   if (!forceRefresh) {
     const cached = getCachedPoolSummaries();
@@ -409,12 +398,13 @@ export const fetchPoolSummaries = async (
 
     // Build pool summaries
     const summaries: PoolSummary[] = bondedPoolsEntries.map(
-      (entry: { keyArgs: [number]; value: { state: { type: string }; member_counter: number } }, index: number) => {
+      (
+        entry: { keyArgs: [number]; value: { state: { type: string }; member_counter: number } },
+        index: number
+      ) => {
         const id = entry.keyArgs[0];
         const metadata = metadataResults[index];
-        const name = metadata
-          ? new TextDecoder().decode(metadata.asBytes())
-          : `Pool #${id}`;
+        const name = metadata ? new TextDecoder().decode(metadata.asBytes()) : `Pool #${id}`;
 
         return {
           id,
@@ -446,9 +436,7 @@ export const fetchPoolSummaries = async (
  * @param poolId - The pool ID to fetch details for
  * @returns Promise<PoolDetails | null> - Full pool details or null if not found
  */
-export const fetchPoolDetails = async (
-  poolId: number
-): Promise<PoolDetails | null> => {
+export const fetchPoolDetails = async (poolId: number): Promise<PoolDetails | null> => {
   const { stakingSdk } = getStakingClient();
 
   try {
@@ -520,9 +508,7 @@ export const fetchNominationPools = async (
     if (cachedPools) {
       console.log("Using cached nomination pools");
       // Still filter based on includeAll
-      const filtered = includeAll
-        ? cachedPools
-        : cachedPools.filter((p) => p.state === "Open");
+      const filtered = includeAll ? cachedPools : cachedPools.filter((p) => p.state === "Open");
       return filtered;
     }
   }
@@ -556,9 +542,7 @@ export const fetchNominationPools = async (
     setCachedPools(sortedPools);
 
     // Filter for return
-    const filtered = includeAll
-      ? sortedPools
-      : sortedPools.filter((p) => p.state === "Open");
+    const filtered = includeAll ? sortedPools : sortedPools.filter((p) => p.state === "Open");
 
     return filtered;
   } catch (error) {
@@ -677,11 +661,7 @@ export const joinNominationPool = async (
     });
 
     // Create signer
-    const signer = getPolkadotSigner(
-      keypair.publicKey,
-      "Sr25519",
-      (input) => keypair.sign(input)
-    );
+    const signer = getPolkadotSigner(keypair.publicKey, "Sr25519", (input) => keypair.sign(input));
 
     // Sign and submit
     const result = await tx.signAndSubmit(signer);
@@ -708,9 +688,7 @@ export const joinNominationPool = async (
  * @param amount - Amount in DOT to add
  * @returns Promise<StakingTransactionResult> - Transaction result
  */
-export const bondExtra = async (
-  amount: number
-): Promise<StakingTransactionResult> => {
+export const bondExtra = async (amount: number): Promise<StakingTransactionResult> => {
   await cryptoWaitReady();
 
   const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
@@ -733,11 +711,7 @@ export const bondExtra = async (
       extra: { type: "FreeBalance", value: amountInPlanck },
     });
 
-    const signer = getPolkadotSigner(
-      keypair.publicKey,
-      "Sr25519",
-      (input) => keypair.sign(input)
-    );
+    const signer = getPolkadotSigner(keypair.publicKey, "Sr25519", (input) => keypair.sign(input));
 
     const result = await tx.signAndSubmit(signer);
 
@@ -764,9 +738,7 @@ export const bondExtra = async (
  * @param amount - Amount in DOT to unbond
  * @returns Promise<StakingTransactionResult> - Transaction result
  */
-export const unbondFromPool = async (
-  amount: number
-): Promise<StakingTransactionResult> => {
+export const unbondFromPool = async (amount: number): Promise<StakingTransactionResult> => {
   await cryptoWaitReady();
 
   const mnemonic = localStorage.getItem(WALLET_SEED_KEY);
@@ -796,11 +768,7 @@ export const unbondFromPool = async (
     // Use SDK helper which handles points calculation
     const tx = await stakingSdk.unbondNominationPool(walletAddress, amountInPlanck);
 
-    const signer = getPolkadotSigner(
-      keypair.publicKey,
-      "Sr25519",
-      (input) => keypair.sign(input)
-    );
+    const signer = getPolkadotSigner(keypair.publicKey, "Sr25519", (input) => keypair.sign(input));
 
     const result = await tx.signAndSubmit(signer);
 
@@ -844,11 +812,7 @@ export const claimPoolRewards = async (): Promise<StakingTransactionResult> => {
   try {
     const tx = typedApi.tx.NominationPools.claim_payout();
 
-    const signer = getPolkadotSigner(
-      keypair.publicKey,
-      "Sr25519",
-      (input) => keypair.sign(input)
-    );
+    const signer = getPolkadotSigner(keypair.publicKey, "Sr25519", (input) => keypair.sign(input));
 
     const result = await tx.signAndSubmit(signer);
 
@@ -904,11 +868,7 @@ export const withdrawUnbonded = async (): Promise<StakingTransactionResult> => {
       num_slashing_spans: 0,
     });
 
-    const signer = getPolkadotSigner(
-      keypair.publicKey,
-      "Sr25519",
-      (input) => keypair.sign(input)
-    );
+    const signer = getPolkadotSigner(keypair.publicKey, "Sr25519", (input) => keypair.sign(input));
 
     const result = await tx.signAndSubmit(signer);
 

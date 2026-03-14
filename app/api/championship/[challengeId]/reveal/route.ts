@@ -81,10 +81,7 @@ export async function POST(
     try {
       fullChallenge = decryptChallenge(challenge.full_challenge_encrypted);
     } catch {
-      return NextResponse.json(
-        { error: "Failed to decrypt challenge" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to decrypt challenge" }, { status: 500 });
     }
 
     // If already revealed, return existing deadlines (idempotent)
@@ -105,14 +102,9 @@ export async function POST(
     const competitionDuration = challenge.competition_duration_seconds || 259200; // 72h default
     const refundWindow = challenge.refund_window_seconds || 3600; // 1h default
 
-    const competeDeadlineRaw = new Date(
-      revealedAt.getTime() + competitionDuration * 1000
-    );
-    const competeDeadline =
-      competeDeadlineRaw < endTime ? competeDeadlineRaw : endTime;
-    const refundDeadline = new Date(
-      revealedAt.getTime() + refundWindow * 1000
-    );
+    const competeDeadlineRaw = new Date(revealedAt.getTime() + competitionDuration * 1000);
+    const competeDeadline = competeDeadlineRaw < endTime ? competeDeadlineRaw : endTime;
+    const refundDeadline = new Date(revealedAt.getTime() + refundWindow * 1000);
 
     // Update enrollment record
     const { error: updateErr } = await admin
@@ -127,10 +119,7 @@ export async function POST(
 
     if (updateErr) {
       console.error("Failed to update reveal:", updateErr);
-      return NextResponse.json(
-        { error: "Failed to record reveal" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to record reveal" }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -143,9 +132,6 @@ export async function POST(
     });
   } catch (error) {
     console.error("Reveal error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -58,9 +58,7 @@ export function useEcosystemProjects(
       const projectsWithStats: ProjectWithStats[] = dbProjects.map((p) => ({ ...p }));
       setProjects(projectsWithStats);
       setIsLoading(false);
-      const slugs = dbProjects
-        .map((p) => p.defillamaSlug)
-        .filter((s): s is string => !!s);
+      const slugs = dbProjects.map((p) => p.defillamaSlug).filter((s): s is string => !!s);
       if (slugs.length > 0) {
         try {
           const tvlMap = await fetchProtocolsTvl(slugs);
@@ -98,9 +96,7 @@ export function useEcosystemProjects(
         setProjects(projectsWithStats);
         setIsLoading(false);
 
-        const slugs = dbProjects
-          .map((p) => p.defillamaSlug)
-          .filter((s): s is string => !!s);
+        const slugs = dbProjects.map((p) => p.defillamaSlug).filter((s): s is string => !!s);
 
         if (slugs.length > 0) {
           try {
@@ -132,7 +128,9 @@ export function useEcosystemProjects(
         setIsLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [autoFetch]);
 
   const filteredProjects = useMemo(() => {

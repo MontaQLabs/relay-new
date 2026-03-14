@@ -7,12 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,10 +30,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Failed to fetch agents:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch agents" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to fetch agents" }, { status: 500 });
     }
 
     const agents = (data || []).map((a) => ({
@@ -57,9 +49,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ agents });
   } catch (error) {
     console.error("List agents error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -2,33 +2,33 @@
  * API Route tests for /api/activity/join
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NextRequest } from 'next/server';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 import {
   TEST_WALLET_ADDRESS,
   TEST_WALLET_ADDRESS_2,
   dbActivityRecord,
   validTestJwt,
-} from '../../setup/fixtures';
+} from "../../setup/fixtures";
 
 // Mock jose for JWT verification
-vi.mock('jose', () => ({
+vi.mock("jose", () => ({
   jwtVerify: vi.fn(async (token: string) => {
-    if (token === 'valid_token' || token === validTestJwt) {
+    if (token === "valid_token" || token === validTestJwt) {
       return {
         payload: {
           wallet_address: TEST_WALLET_ADDRESS,
         },
       };
     }
-    if (token === 'user2_token') {
+    if (token === "user2_token") {
       return {
         payload: {
           wallet_address: TEST_WALLET_ADDRESS_2,
         },
       };
     }
-    throw new Error('Invalid token');
+    throw new Error("Invalid token");
   }),
 }));
 
@@ -38,10 +38,10 @@ const mockSelectAttendee = vi.fn();
 const mockSelectCount = vi.fn();
 const mockInsertAttendee = vi.fn();
 
-vi.mock('@supabase/supabase-js', () => ({
+vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(() => ({
     from: vi.fn((table: string) => {
-      if (table === 'activities') {
+      if (table === "activities") {
         return {
           select: mockSelectActivity.mockReturnValue({
             eq: vi.fn().mockReturnValue({
@@ -56,30 +56,34 @@ vi.mock('@supabase/supabase-js', () => ({
           }),
         };
       }
-      if (table === 'activity_attendees') {
+      if (table === "activity_attendees") {
         return {
-          select: vi.fn().mockImplementation((selectStr: string, options?: { count?: string; head?: boolean }) => {
-            if (options?.count === 'exact') {
-              // Count query
-              return {
-                eq: mockSelectCount.mockResolvedValue({
-                  count: 5,
-                  error: null,
-                }),
-              };
-            }
-            // Regular select (checking existing attendee)
-            return {
-              eq: vi.fn().mockReturnValue({
-                eq: mockSelectAttendee.mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: null, // Not already attending
-                    error: null,
+          select: vi
+            .fn()
+            .mockImplementation(
+              (selectStr: string, options?: { count?: string; head?: boolean }) => {
+                if (options?.count === "exact") {
+                  // Count query
+                  return {
+                    eq: mockSelectCount.mockResolvedValue({
+                      count: 5,
+                      error: null,
+                    }),
+                  };
+                }
+                // Regular select (checking existing attendee)
+                return {
+                  eq: vi.fn().mockReturnValue({
+                    eq: mockSelectAttendee.mockReturnValue({
+                      single: vi.fn().mockResolvedValue({
+                        data: null, // Not already attending
+                        error: null,
+                      }),
+                    }),
                   }),
-                }),
-              }),
-            };
-          }),
+                };
+              }
+            ),
           insert: mockInsertAttendee.mockResolvedValue({ error: null }),
         };
       }
@@ -89,12 +93,12 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 // Import after mocking
-import { POST } from '@/app/api/activity/join/route';
+import { POST } from "@/app/api/activity/join/route";
 
-describe('POST /api/activity/join', () => {
+describe("POST /api/activity/join", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Reset to default behavior
     mockSelectActivity.mockReturnValue({
       eq: vi.fn().mockReturnValue({
@@ -107,145 +111,144 @@ describe('POST /api/activity/join', () => {
         }),
       }),
     });
-    
+
     mockInsertAttendee.mockResolvedValue({ error: null });
     mockSelectCount.mockResolvedValue({ count: 5, error: null });
   });
 
   const createRequest = (body: unknown, authToken?: string) => {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
     if (authToken) {
-      headers['authorization'] = `Bearer ${authToken}`;
+      headers["authorization"] = `Bearer ${authToken}`;
     }
-    return new NextRequest('http://localhost:3000/api/activity/join', {
-      method: 'POST',
+    return new NextRequest("http://localhost:3000/api/activity/join", {
+      method: "POST",
       body: JSON.stringify(body),
       headers,
     });
   };
 
-  describe('Authentication', () => {
-    it('should return 401 without authorization header', async () => {
-      const request = createRequest({ activityId: 'act_test_1' });
+  describe("Authentication", () => {
+    it("should return 401 without authorization header", async () => {
+      const request = createRequest({ activityId: "act_test_1" });
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toContain('Unauthorized');
+      expect(data.error).toContain("Unauthorized");
     });
 
-    it('should return 401 with invalid token', async () => {
-      const request = createRequest({ activityId: 'act_test_1' }, 'invalid_token');
+    it("should return 401 with invalid token", async () => {
+      const request = createRequest({ activityId: "act_test_1" }, "invalid_token");
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toContain('Unauthorized');
+      expect(data.error).toContain("Unauthorized");
     });
   });
 
-  describe('Input Validation', () => {
-    it('should return 400 if activityId is missing', async () => {
-      const request = createRequest({}, 'valid_token');
+  describe("Input Validation", () => {
+    it("should return 400 if activityId is missing", async () => {
+      const request = createRequest({}, "valid_token");
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('Activity ID is required');
+      expect(data.error).toContain("Activity ID is required");
     });
 
-    it('should return 404 if activity does not exist', async () => {
+    it("should return 404 if activity does not exist", async () => {
       mockSelectActivity.mockReturnValueOnce({
         eq: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({
             data: null,
-            error: { message: 'Not found' },
+            error: { message: "Not found" },
           }),
         }),
       });
 
-      const request = createRequest({ activityId: 'nonexistent' }, 'valid_token');
+      const request = createRequest({ activityId: "nonexistent" }, "valid_token");
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(404);
-      expect(data.error).toContain('Activity not found');
+      expect(data.error).toContain("Activity not found");
     });
   });
 
-  describe('Business Logic', () => {
-    it('should return 400 if already attending', async () => {
+  describe("Business Logic", () => {
+    it("should return 400 if already attending", async () => {
       mockSelectAttendee.mockReturnValueOnce({
         single: vi.fn().mockResolvedValue({
-          data: { id: 'existing' }, // Already attending
+          data: { id: "existing" }, // Already attending
           error: null,
         }),
       });
 
-      const request = createRequest({ activityId: 'act_test_1' }, 'valid_token');
+      const request = createRequest({ activityId: "act_test_1" }, "valid_token");
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('Already attending');
+      expect(data.error).toContain("Already attending");
     });
 
-    it('should return 400 if activity is full', async () => {
+    it("should return 400 if activity is full", async () => {
       // Set activity max to 5 and count to 5
       mockSelectActivity.mockReturnValueOnce({
         eq: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({
             data: {
-              activity_id: 'act_test_1',
+              activity_id: "act_test_1",
               max_attendees: 5,
             },
             error: null,
           }),
         }),
       });
-      
+
       mockSelectCount.mockResolvedValueOnce({ count: 5, error: null });
 
-      const request = createRequest({ activityId: 'act_test_1' }, 'valid_token');
+      const request = createRequest({ activityId: "act_test_1" }, "valid_token");
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('Activity is full');
+      expect(data.error).toContain("Activity is full");
     });
 
-    it('should successfully join activity when not full', async () => {
-      const request = createRequest({ activityId: 'act_test_1' }, 'valid_token');
+    it("should successfully join activity when not full", async () => {
+      const request = createRequest({ activityId: "act_test_1" }, "valid_token");
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data).toHaveProperty('success', true);
+      expect(data).toHaveProperty("success", true);
     });
 
-    it('should insert attendee record on success', async () => {
-      const request = createRequest({ activityId: 'act_test_1' }, 'valid_token');
+    it("should insert attendee record on success", async () => {
+      const request = createRequest({ activityId: "act_test_1" }, "valid_token");
       await POST(request);
 
       expect(mockInsertAttendee).toHaveBeenCalled();
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle database insert error', async () => {
+  describe("Error Handling", () => {
+    it("should handle database insert error", async () => {
       mockInsertAttendee.mockResolvedValueOnce({
-        error: { message: 'Database error' },
+        error: { message: "Database error" },
       });
 
-      const request = createRequest({ activityId: 'act_test_1' }, 'valid_token');
+      const request = createRequest({ activityId: "act_test_1" }, "valid_token");
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toContain('Failed to join activity');
+      expect(data.error).toContain("Failed to join activity");
     });
   });
 });
-

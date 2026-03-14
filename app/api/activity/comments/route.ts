@@ -8,13 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 
 interface DbComment {
   comment_id: string;
@@ -31,10 +25,7 @@ export async function GET(request: NextRequest) {
     const activityId = searchParams.get("activityId");
 
     if (!activityId) {
-      return NextResponse.json(
-        { error: "Activity ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Activity ID is required" }, { status: 400 });
     }
 
     const { data, error } = await supabaseAdmin
@@ -45,10 +36,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Failed to fetch comments:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch comments" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to fetch comments" }, { status: 500 });
     }
 
     const comments = (data || []).map((c: DbComment) => ({
@@ -62,10 +50,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ comments });
   } catch (error) {
     console.error("Get comments error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

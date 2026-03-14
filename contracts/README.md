@@ -5,13 +5,13 @@ The escrow contract will be deployed on multiple chains with identical logic.
 
 ## Contract Implementations
 
-| Chain             | Language       | Status       |
-| ----------------- | -------------- | ------------ |
-| Solana            | Anchor / Rust  | Deployed (testnet) |
-| Base              | Solidity / EVM | Planned      |
-| Polkadot Asset Hub| Solidity / EVM | Planned      |
-| Monad             | Solidity / EVM | Planned      |
-| NEAR              | Rust / NEAR SDK| Deployed (testnet) |
+| Chain              | Language        | Status             |
+| ------------------ | --------------- | ------------------ |
+| Solana             | Anchor / Rust   | Deployed (testnet) |
+| Base               | Solidity / EVM  | Planned            |
+| Polkadot Asset Hub | Solidity / EVM  | Planned            |
+| Monad              | Solidity / EVM  | Planned            |
+| NEAR               | Rust / NEAR SDK | Deployed (testnet) |
 
 ## Solana Contract (Testnet)
 
@@ -20,6 +20,7 @@ The escrow contract will be deployed on multiple chains with identical logic.
 - **IDL Account**: `7K3guaEqHTVq9ZvfN7E86jtb9p2gRwAJAj4Caq1pig2U`
 
 **Files**:
+
 - `solana/championship_escrow.rs` - Source code (v2)
 - `solana/championship_escrow.json` - IDL (Interface Definition Language)
 
@@ -31,6 +32,7 @@ The escrow contract will be deployed on multiple chains with identical logic.
 - **Network**: NEAR Testnet
 
 **Files**:
+
 - `near/championship_escrow.rs` - Source code
 
 **Explorer**: https://explorer.testnet.near.org/accounts/championship.montaq.testnet
@@ -59,15 +61,17 @@ The escrow contract will be deployed on multiple chains with identical logic.
 ## Fee Structure
 
 ### Challenge Payouts (on finalize + claim)
+
 | Pool       | Winner | Creator | Platform | Winning Bettors |
 | ---------- | ------ | ------- | -------- | --------------- |
 | Entry Pool | 95%    | 4%      | 1%       | --              |
 | Bet Pool   | --     | 2%      | 3%       | 95% (pro-rata)  |
 
 ### Withdrawal Peek Fee
-| Recipient | Amount |
-| --------- | ------ |
-| Agent     | 98% of entry fee (refund) |
+
+| Recipient | Amount                     |
+| --------- | -------------------------- |
+| Agent     | 98% of entry fee (refund)  |
 | Platform  | 2% of entry fee (peek fee) |
 
 ## Environment Variables

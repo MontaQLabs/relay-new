@@ -13,12 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 
 export async function GET(
   request: NextRequest,
@@ -35,10 +30,7 @@ export async function GET(
       .single();
 
     if (challengeError || !challenge) {
-      return NextResponse.json(
-        { error: "Challenge not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
     }
 
     // Get agents sorted by votes
@@ -49,10 +41,7 @@ export async function GET(
       .order("total_votes", { ascending: false });
 
     if (agentsError) {
-      return NextResponse.json(
-        { error: "Failed to fetch results" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to fetch results" }, { status: 500 });
     }
 
     const mappedAgents = (agents || []).map((a) => ({
@@ -106,9 +95,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Challenge results error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -4,12 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
 import { getAuthToken } from "@/app/utils/auth";
 import type { Friend } from "@/app/types/frontend_type";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 
 interface EditFriendSheetProps {
@@ -66,21 +61,18 @@ export default function EditFriendSheet({
         return;
       }
 
-      const response = await fetch(
-        `/api/friends/${encodeURIComponent(friend.walletAddress)}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: JSON.stringify({
-            nickname: nickname.trim(),
-            network: network.trim(),
-            remark: remark.trim() || undefined,
-          }),
-        }
-      );
+      const response = await fetch(`/api/friends/${encodeURIComponent(friend.walletAddress)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          nickname: nickname.trim(),
+          network: network.trim(),
+          remark: remark.trim() || undefined,
+        }),
+      });
 
       const data = await response.json();
 
@@ -92,9 +84,7 @@ export default function EditFriendSheet({
     } catch (error) {
       console.error("Failed to update friend:", error);
       setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to update friend. Please try again."
+        error instanceof Error ? error.message : "Failed to update friend. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -126,15 +116,12 @@ export default function EditFriendSheet({
         return;
       }
 
-      const response = await fetch(
-        `/api/friends/${encodeURIComponent(friend.walletAddress)}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        }
-      );
+      const response = await fetch(`/api/friends/${encodeURIComponent(friend.walletAddress)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
 
       const data = await response.json();
 
@@ -146,9 +133,7 @@ export default function EditFriendSheet({
     } catch (error) {
       console.error("Failed to delete friend:", error);
       setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to delete friend. Please try again."
+        error instanceof Error ? error.message : "Failed to delete friend. Please try again."
       );
     } finally {
       setIsDeleting(false);
@@ -202,9 +187,7 @@ export default function EditFriendSheet({
         <div className="space-y-6">
           {/* Username */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Username
-            </label>
+            <label className="block text-sm font-medium text-black mb-2">Username</label>
             <Input
               type="text"
               value={nickname}
@@ -217,9 +200,7 @@ export default function EditFriendSheet({
 
           {/* Network */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Network
-            </label>
+            <label className="block text-sm font-medium text-black mb-2">Network</label>
             <Input
               type="text"
               value={network}
@@ -232,9 +213,7 @@ export default function EditFriendSheet({
 
           {/* Address (read-only) */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Address
-            </label>
+            <label className="block text-sm font-medium text-black mb-2">Address</label>
             <Input
               type="text"
               value={friend.walletAddress}
@@ -246,9 +225,7 @@ export default function EditFriendSheet({
 
           {/* Remark */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Remark
-            </label>
+            <label className="block text-sm font-medium text-black mb-2">Remark</label>
             <Input
               type="text"
               value={remark}
@@ -289,8 +266,7 @@ export default function EditFriendSheet({
               disabled={isLoading || isDeleting || !hasChanges}
               className="w-full h-14 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               style={{
-                backgroundColor:
-                  isLoading || isDeleting || !hasChanges ? "#d1d1d6" : "#a855f7",
+                backgroundColor: isLoading || isDeleting || !hasChanges ? "#d1d1d6" : "#a855f7",
               }}
             >
               {isLoading ? (
@@ -304,8 +280,8 @@ export default function EditFriendSheet({
       </SheetContent>
 
       {/* Delete Confirmation Sheet */}
-      <Sheet 
-        open={showDeleteConfirm} 
+      <Sheet
+        open={showDeleteConfirm}
         onOpenChange={(open) => {
           if (!isDeleting) {
             setShowDeleteConfirm(open);
@@ -328,7 +304,8 @@ export default function EditFriendSheet({
                   Are you sure you want to delete this friend?
                 </p>
                 <p className="text-sm text-gray-600">
-                  This action cannot be undone. You will need to add this friend again if you want to restore them.
+                  This action cannot be undone. You will need to add this friend again if you want
+                  to restore them.
                 </p>
               </div>
             </div>

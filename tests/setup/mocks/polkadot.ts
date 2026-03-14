@@ -2,15 +2,16 @@
  * Polkadot API mocks for testing
  */
 
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 // Mock valid test addresses
-export const TEST_WALLET_ADDRESS = '15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5';
-export const TEST_WALLET_ADDRESS_2 = '14E5nqKAp3oAJcmzgZhUD2RcptBeUBScxKHgJKU4HPNcKVf3';
-export const TEST_INVALID_ADDRESS = 'invalid_address';
+export const TEST_WALLET_ADDRESS = "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5";
+export const TEST_WALLET_ADDRESS_2 = "14E5nqKAp3oAJcmzgZhUD2RcptBeUBScxKHgJKU4HPNcKVf3";
+export const TEST_INVALID_ADDRESS = "invalid_address";
 
 // Mock mnemonic (12 words)
-export const TEST_MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+export const TEST_MNEMONIC =
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
 // Mock keypair
 export const mockKeypair = {
@@ -37,17 +38,19 @@ export const mockMnemonicValidate = vi.fn((mnemonic: string) => {
   return words.length === 12 || words.length === 24;
 });
 
-export const mockSignatureVerify = vi.fn((message: string, signature: Uint8Array, address: string) => {
-  // For testing, return valid if address matches test address
-  return {
-    isValid: address === TEST_WALLET_ADDRESS || address === TEST_WALLET_ADDRESS_2,
-    crypto: 'sr25519',
-  };
-});
+export const mockSignatureVerify = vi.fn(
+  (message: string, signature: Uint8Array, address: string) => {
+    // For testing, return valid if address matches test address
+    return {
+      isValid: address === TEST_WALLET_ADDRESS || address === TEST_WALLET_ADDRESS_2,
+      crypto: "sr25519",
+    };
+  }
+);
 
 export const mockDecodeAddress = vi.fn((address: string) => {
   if (address === TEST_INVALID_ADDRESS) {
-    throw new Error('Invalid address');
+    throw new Error("Invalid address");
   }
   return new Uint8Array(32).fill(0);
 });
@@ -85,14 +88,14 @@ export const createMockPolkadotClient = () => {
               supply: BigInt(1_000_000_000_000),
               min_balance: BigInt(1000),
               accounts: 1000,
-              status: { type: 'Live' },
+              status: { type: "Live" },
               is_sufficient: true,
             }),
           },
           Metadata: {
             getValue: vi.fn().mockResolvedValue({
-              name: { asBytes: () => new TextEncoder().encode('Tether USD') },
-              symbol: { asBytes: () => new TextEncoder().encode('USDT') },
+              name: { asBytes: () => new TextEncoder().encode("Tether USD") },
+              symbol: { asBytes: () => new TextEncoder().encode("USDT") },
               decimals: 6,
             }),
           },
@@ -103,8 +106,8 @@ export const createMockPolkadotClient = () => {
           transfer_keep_alive: vi.fn(() => ({
             getEstimatedFees: vi.fn().mockResolvedValue(BigInt(1_000_000)), // 0.0001 DOT
             signAndSubmit: vi.fn().mockResolvedValue({
-              txHash: '0x1234567890abcdef',
-              block: { hash: '0xabcdef1234567890' },
+              txHash: "0x1234567890abcdef",
+              block: { hash: "0xabcdef1234567890" },
             }),
           })),
         },
@@ -112,8 +115,8 @@ export const createMockPolkadotClient = () => {
           transfer_keep_alive: vi.fn(() => ({
             getEstimatedFees: vi.fn().mockResolvedValue(BigInt(1_000_000)),
             signAndSubmit: vi.fn().mockResolvedValue({
-              txHash: '0x1234567890abcdef',
-              block: { hash: '0xabcdef1234567890' },
+              txHash: "0x1234567890abcdef",
+              block: { hash: "0xabcdef1234567890" },
             }),
           })),
         },
@@ -128,4 +131,3 @@ export const mockGetWsProvider = vi.fn(() => ({}));
 
 // Mock createClient
 export const mockCreateClient = vi.fn(() => createMockPolkadotClient());
-

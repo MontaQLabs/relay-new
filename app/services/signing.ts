@@ -19,9 +19,7 @@ import type { ChainKeypair } from "./escrow/types";
  * Derive a Solana keypair from a BIP-39 mnemonic.
  * Uses the same derivation path as the SolanaChainAdapter.
  */
-export async function deriveSolanaKeypair(
-  mnemonic: string
-): Promise<ChainKeypair> {
+export async function deriveSolanaKeypair(mnemonic: string): Promise<ChainKeypair> {
   // Dynamic import to avoid bundling in client code
   const { Keypair } = await import("@solana/web3.js");
   const { mnemonicToSeedSync } = await import("bip39");
@@ -36,9 +34,7 @@ export async function deriveSolanaKeypair(
  * Derive an EVM keypair (private key) from a BIP-39 mnemonic.
  * Works for Base, Polkadot Asset Hub (EVM), and Monad.
  */
-export async function deriveEVMPrivateKey(
-  mnemonic: string
-): Promise<ChainKeypair> {
+export async function deriveEVMPrivateKey(mnemonic: string): Promise<ChainKeypair> {
   const { HDKey } = await import("@scure/bip32");
   const { mnemonicToSeedSync } = await import("bip39");
 
@@ -51,9 +47,7 @@ export async function deriveEVMPrivateKey(
 /**
  * Derive a Polkadot keypair from a BIP-39 mnemonic.
  */
-export async function derivePolkadotKeypair(
-  mnemonic: string
-): Promise<ChainKeypair> {
+export async function derivePolkadotKeypair(mnemonic: string): Promise<ChainKeypair> {
   const { Keyring } = await import("@polkadot/keyring");
   const { cryptoWaitReady } = await import("@polkadot/util-crypto");
 
@@ -69,10 +63,7 @@ export async function derivePolkadotKeypair(
 /**
  * Derive the appropriate keypair for a given chain from a mnemonic.
  */
-export async function deriveKeypair(
-  mnemonic: string,
-  chainId: ChainId
-): Promise<ChainKeypair> {
+export async function deriveKeypair(mnemonic: string, chainId: ChainId): Promise<ChainKeypair> {
   switch (chainId) {
     case "solana":
       return deriveSolanaKeypair(mnemonic);
@@ -106,7 +97,10 @@ export async function deriveKeypair(
 export async function signAndSubmit(
   chainId: ChainId,
   mnemonic: string,
-  operation: (keypair: ChainKeypair, adapter: import("./escrow/types").IEscrowAdapter) => Promise<import("./escrow/types").TxResult>
+  operation: (
+    keypair: ChainKeypair,
+    adapter: import("./escrow/types").IEscrowAdapter
+  ) => Promise<import("./escrow/types").TxResult>
 ): Promise<import("./escrow/types").TxResult> {
   const { getEscrowAdapter } = await import("./escrow/registry");
 

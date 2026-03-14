@@ -7,11 +7,7 @@
  */
 
 import { Keyring } from "@polkadot/keyring";
-import {
-  cryptoWaitReady,
-  decodeAddress,
-  encodeAddress,
-} from "@polkadot/util-crypto";
+import { cryptoWaitReady, decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import { createClient, type PolkadotClient } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider";
 import { pah } from "@polkadot-api/descriptors";
@@ -28,14 +24,7 @@ import type {
   NetworkMode,
 } from "../types";
 
-import {
-  NETWORK_NAME,
-  CHAIN_ID,
-  NATIVE_TICKER,
-  DOT_DECIMALS,
-  ICON_URL,
-  getConfig,
-} from "./config";
+import { NETWORK_NAME, CHAIN_ID, NATIVE_TICKER, DOT_DECIMALS, ICON_URL, getConfig } from "./config";
 
 // ---------------------------------------------------------------------------
 // PolkadotChainAdapter
@@ -95,8 +84,7 @@ export class PolkadotChainAdapter implements ChainAdapter {
 
       // Native DOT balance
       const accountInfo = await api.query.System.Account.getValue(address);
-      const dotAmount =
-        Number(accountInfo.data.free) / Math.pow(10, DOT_DECIMALS);
+      const dotAmount = Number(accountInfo.data.free) / Math.pow(10, DOT_DECIMALS);
 
       if (dotAmount > 0) {
         coins.push({
@@ -126,9 +114,7 @@ export class PolkadotChainAdapter implements ChainAdapter {
           : typeof params.tokenIdentifier === "number"
             ? 6
             : DOT_DECIMALS;
-      const amountSmallest = BigInt(
-        Math.floor(params.amount * Math.pow(10, decimals))
-      );
+      const amountSmallest = BigInt(Math.floor(params.amount * Math.pow(10, decimals)));
 
       let tx;
       if (params.ticker === NATIVE_TICKER) {
@@ -163,9 +149,7 @@ export class PolkadotChainAdapter implements ChainAdapter {
     }
   }
 
-  async sendTransfer(
-    params: SignedTransferParams
-  ): Promise<ChainTransferResult> {
+  async sendTransfer(params: SignedTransferParams): Promise<ChainTransferResult> {
     await cryptoWaitReady();
 
     const keyring = new Keyring({ type: "sr25519", ss58Format: this.ss58Format });
@@ -180,9 +164,7 @@ export class PolkadotChainAdapter implements ChainAdapter {
           : typeof params.tokenIdentifier === "number"
             ? 6
             : DOT_DECIMALS;
-      const amountSmallest = BigInt(
-        Math.floor(params.amount * Math.pow(10, decimals))
-      );
+      const amountSmallest = BigInt(Math.floor(params.amount * Math.pow(10, decimals)));
 
       let tx;
       if (params.ticker === NATIVE_TICKER) {
@@ -202,10 +184,8 @@ export class PolkadotChainAdapter implements ChainAdapter {
         });
       }
 
-      const signer = getPolkadotSigner(
-        keypair.publicKey,
-        "Sr25519",
-        (input) => keypair.sign(input)
+      const signer = getPolkadotSigner(keypair.publicKey, "Sr25519", (input) =>
+        keypair.sign(input)
       );
       const result = await tx.signAndSubmit(signer);
 
@@ -226,24 +206,18 @@ export class PolkadotChainAdapter implements ChainAdapter {
 
   // -- Transaction history --------------------------------------------------
 
-  async fetchTransactions(
-    address: string,
-    page = 0
-  ): Promise<ChainTransaction[]> {
+  async fetchTransactions(address: string, page = 0): Promise<ChainTransaction[]> {
     try {
-      const response = await fetch(
-        `${this.subscanApiUrl}/api/v2/scan/transfers`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            address,
-            row: 25,
-            page,
-            direction: "all",
-          }),
-        }
-      );
+      const response = await fetch(`${this.subscanApiUrl}/api/v2/scan/transfers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address,
+          row: 25,
+          page,
+          direction: "all",
+        }),
+      });
 
       if (!response.ok) return [];
 
@@ -270,8 +244,7 @@ export class PolkadotChainAdapter implements ChainAdapter {
             from: t.from,
             to: t.to,
             ticker: t.asset_symbol || "DOT",
-            amount:
-              parseFloat(t.amount_v2 || t.amount) / Math.pow(10, decimals),
+            amount: parseFloat(t.amount_v2 || t.amount) / Math.pow(10, decimals),
             fee: parseFloat(t.fee) / Math.pow(10, 10),
             timestamp: new Date(t.block_timestamp * 1000).toISOString(),
             status: t.success ? "completed" : "failed",

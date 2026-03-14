@@ -18,7 +18,7 @@ export default function SeedPhraseDisplay({ words, onCopy }: SeedPhraseDisplayPr
 
   const handleCopy = async () => {
     if (!isRevealed) return;
-    
+
     try {
       await navigator.clipboard.writeText(words.join(" "));
       setCopied(true);
@@ -69,16 +69,10 @@ export default function SeedPhraseDisplay({ words, onCopy }: SeedPhraseDisplayPr
                   borderColor: "#d1d1d6",
                 }}
               >
-                <span
-                  className="text-sm font-medium mr-2"
-                  style={{ color: "#8e8e93" }}
-                >
+                <span className="text-sm font-medium mr-2" style={{ color: "#8e8e93" }}>
                   {index + 1}.
                 </span>
-                <span
-                  className="text-base font-medium flex-1"
-                  style={{ color: "#1a1a1a" }}
-                >
+                <span className="text-base font-medium flex-1" style={{ color: "#1a1a1a" }}>
                   {word}
                 </span>
               </div>

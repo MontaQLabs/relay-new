@@ -30,15 +30,10 @@ export function StakingStatusCard({
   const hasUnlocks = unlocks.length > 0;
 
   // Calculate total unlocking amount
-  const totalUnlocking = unlocks.reduce(
-    (sum, unlock) => sum + planckToDot(unlock.value),
-    0
-  );
+  const totalUnlocking = unlocks.reduce((sum, unlock) => sum + planckToDot(unlock.value), 0);
 
   // Check if any unlocks are ready to withdraw
-  const readyToWithdraw = unlocks.filter(
-    (unlock) => unlock.era <= currentEra
-  );
+  const readyToWithdraw = unlocks.filter((unlock) => unlock.era <= currentEra);
   const totalReadyToWithdraw = readyToWithdraw.reduce(
     (sum, unlock) => sum + planckToDot(unlock.value),
     0
@@ -63,7 +58,8 @@ export function StakingStatusCard({
       <div className="mb-6">
         <p className="text-white/60 text-sm mb-1">Your Stake</p>
         <p className="text-white text-3xl font-bold">
-          {formatStakingAmount(stakedAmount)} <span className="text-lg font-normal text-white/60">DOT</span>
+          {formatStakingAmount(stakedAmount)}{" "}
+          <span className="text-lg font-normal text-white/60">DOT</span>
         </p>
       </div>
 
@@ -79,12 +75,8 @@ export function StakingStatusCard({
             <Gift className="w-4 h-4 text-emerald-400" />
             <span className="text-white/60 text-xs">Rewards</span>
           </div>
-          <p className="text-white font-semibold">
-            {formatStakingAmount(pendingRewards)} DOT
-          </p>
-          {pendingRewards > 0 && (
-            <p className="text-emerald-400 text-xs mt-1">Tap to claim</p>
-          )}
+          <p className="text-white font-semibold">{formatStakingAmount(pendingRewards)} DOT</p>
+          {pendingRewards > 0 && <p className="text-emerald-400 text-xs mt-1">Tap to claim</p>}
         </button>
 
         {/* Unbonding */}
@@ -97,10 +89,7 @@ export function StakingStatusCard({
             {hasUnlocks ? `${formatStakingAmount(totalUnlocking)} DOT` : "—"}
           </p>
           {totalReadyToWithdraw > 0 && (
-            <button
-              onClick={onWithdraw}
-              className="text-amber-400 text-xs mt-1 hover:underline"
-            >
+            <button onClick={onWithdraw} className="text-amber-400 text-xs mt-1 hover:underline">
               Withdraw {formatStakingAmount(totalReadyToWithdraw)} DOT
             </button>
           )}
@@ -117,9 +106,7 @@ export function StakingStatusCard({
                 <span className="text-white/80">
                   {formatStakingAmount(planckToDot(unlock.value))} DOT
                 </span>
-                <span className="text-white/60">
-                  {formatUnlockTime(currentEra, unlock.era)}
-                </span>
+                <span className="text-white/60">{formatUnlockTime(currentEra, unlock.era)}</span>
               </div>
             ))}
           </div>

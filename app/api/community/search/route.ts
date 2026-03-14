@@ -9,13 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// Server-side Supabase client with service role key
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from "@/app/utils/supabase-admin";
 
 interface DbCommunity {
   id: string;
@@ -91,10 +85,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Failed to search communities:", error);
-      return NextResponse.json(
-        { error: "Failed to search communities" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to search communities" }, { status: 500 });
     }
 
     const communities = await Promise.all((data || []).map(mapCommunity));
@@ -102,10 +93,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ communities });
   } catch (error) {
     console.error("Search communities error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

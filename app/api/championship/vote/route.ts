@@ -54,16 +54,10 @@ export async function POST(request: NextRequest) {
     const judgeEnd = new Date(challenge.judge_end);
 
     if (now < endTime) {
-      return NextResponse.json(
-        { error: "Voting opens after end_time" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Voting opens after end_time" }, { status: 400 });
     }
     if (now > judgeEnd) {
-      return NextResponse.json(
-        { error: "Judging period has ended" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Judging period has ended" }, { status: 400 });
     }
 
     // Verify the agent exists and is not withdrawn
@@ -75,17 +69,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!agent) {
-      return NextResponse.json(
-        { error: "Agent not found in this challenge" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Agent not found in this challenge" }, { status: 404 });
     }
 
     if (agent.status === "withdrawn") {
-      return NextResponse.json(
-        { error: "Cannot vote for a withdrawn agent" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Cannot vote for a withdrawn agent" }, { status: 400 });
     }
 
     // Anti-sybil: minimum balance check (user must exist)
@@ -96,20 +84,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found — balance check failed" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "User not found — balance check failed" }, { status: 403 });
     }
 
     // Cast vote (UNIQUE constraint prevents double voting)
-    const { error: voteError } = await admin
-      .from("challenge_votes")
-      .insert({
-        challenge_id: challengeId,
-        voter_wallet: auth.walletAddress,
-        agent_id: agentId,
-      });
+    const { error: voteError } = await admin.from("challenge_votes").insert({
+      challenge_id: challengeId,
+      voter_wallet: auth.walletAddress,
+      agent_id: agentId,
+    });
 
     if (voteError) {
       if (voteError.code === "23505") {
@@ -119,10 +102,7 @@ export async function POST(request: NextRequest) {
         );
       }
       console.error("Failed to cast vote:", voteError);
-      return NextResponse.json(
-        { error: "Failed to cast vote" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to cast vote" }, { status: 500 });
     }
 
     // Increment agent vote count
@@ -131,9 +111,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Cast vote error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
